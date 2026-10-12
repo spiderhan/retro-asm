@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.8.0
+
+New: **how long each instruction takes.** The tooltip for an instruction now has a *Time* line with its clock cycles, for the way it is written on that line, and **This line** in the side panel shows it too.
+
+- **C64 and BBC (6502):** the time for each way of writing the operand, with one more when an address crosses into the next page (`LDA $D020,X`: 4 or 5). Branches give both times (2 if it doesn't jump, 3 if it does, 4 into another page). On the BBC, the 65C02's extra instructions are covered, the BBC Master's numbers are added where they are different (`JMP (&20E)`, `ASL &3000,X`), and the half-speed hardware at &FC00-&FEFF is marked.
+- **ZX Spectrum (Z80):** T-states for every instruction, with both times for jumps, calls, returns, `DJNZ` and the repeating instructions (`LDIR`: 21 for each byte, 16 for the last). Addresses in 16384-32767 are marked as shared with the screen (contended memory).
+- **TI-99/4A (TMS9900):** cycles for the instruction and each operand (`*R1+`, `@LABEL(R2)` ...), how many times it reads or writes memory, and how much slower it gets in slow memory (4 more for each). Shifts, `LDCR` and `STCR` work out the time from the count; `DIV`, `ABS` and the jumps give the range.
+- The cheat sheet says how fast each machine runs and what slows it down.
+- All the numbers live in the chip files (a `timing` section and each instruction's `cycles`), so a chip file of your own can have them too. See **Adding a chip of your own** in the README.
+- Checked: every 6502 and 65C02 number against the 6502 data sheet and py65 (which has one slip, `DEC` with a full address, left out); every way of writing every Z80 instruction (2,397 of them) against SkoolKit's Z80 simulator, run with jumps taken and not taken; the TMS9900 against the TMS9900 data manual. New check: `python test/z80-cycle-check.py`.
+- New tests in `test/ext-test.js` for all four chips, the tooltip and the side panel.
+
 ## 0.7.4
 
 - The code now lives on GitHub: [spiderhan/retro-asm](https://github.com/spiderhan/retro-asm). The extension's details link to it, and problems can be reported on its Issues page.

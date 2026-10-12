@@ -33,7 +33,7 @@ Open an assembly file: `.a99`, `.z80` or `.6502` open by themselves. The bottom-
 Click the chip icon on the bar down the left of VS Code (or run **Retro ASM: Show the side panel**). It has four parts, each of which can be folded away or dragged into a different order:
 
 - **Project:** the chip, how big the program is and how much room is left, its files, how many warnings there are, the last build, the biggest routines, and names that nothing uses (often fine, but sometimes a spelling slip or spare code). The buttons at the top build, and build and run.
-- **This line:** follows the cursor. The line in plain English, its address and size, the registers it reads and changes, what the instruction does and which flags it sets, and the routine it is in (how big it is and where it is called from).
+- **This line:** follows the cursor. The line in plain English, its address and size, the registers it reads and changes, what the instruction does, which flags it sets and how many cycles it takes, and the routine it is in (how big it is and where it is called from).
 - **Memory map:** the machine's whole memory as a bar, with your program and the hardware it uses marked on it, how much room is left, and where each file sits.
 - **Hardware used:** every screen, sound, keyboard, port and ROM address your code uses, grouped by what it is, with a short explanation. Open one to see each line that uses it, and click to go there. Addresses outside the program that the chip file doesn't know (usually your own variables) are kept in a folded-away list at the bottom.
 
@@ -45,7 +45,7 @@ The examples here are TI-99/4A code. The other computers get the same kinds of t
 
 | Hover over | You see |
 |---|---|
-| An instruction (`MOVB`, `JNE`, `LDCR` ...) | What it does, how it is written, and **what this exact line does**. For example `MOVB *R1+,@VDPWD` says: *Copy the byte R1 points at (R1 then moves on by 1) into the byte at VDPWD (>8C00).* A jump looks at the line above it, so `DEC R2` then `JNE LOOP` says: *Jump to LOOP if R2 is not 0.* |
+| An instruction (`MOVB`, `JNE`, `LDCR` ...) | What it does, how it is written, **what this exact line does**, and how long it takes (see **How long it takes** below). For example `MOVB *R1+,@VDPWD` says: *Copy the byte R1 points at (R1 then moves on by 1) into the byte at VDPWD (>8C00).* A jump looks at the line above it, so `DEC R2` then `JNE LOOP` says: *Jump to LOOP if R2 is not 0.* |
 | A label | Where it is defined, the line itself, the comment block written above it, its value if it is an `EQU`, and how many times it is used. |
 | A routine built into the machine | TI-99/4A Editor/Assembler helpers (`VSBW`, `VMBW`, `KSCAN`, `DSRLNK` ...), C64 KERNAL routines (`CHROUT` at `$FFD2` ...), Spectrum ROM routines (`CLS`, `BEEPER` ...) and BBC operating system calls (`OSWRCH`, `OSBYTE` ...) say what they do and what to put in the registers first. For the TI helpers: what the name stands for (VSBW = VDP Single Byte Write), and this works whether the program brings it in with `REF`, sets it with `EQU`, or has its own copy of the routine. |
 | A number | Decimal, hex and binary, plus the left and right bytes. Known addresses say what lives there: `>8C00` on the TI, `$D020` on the C64, `23560` or `$5C78` on the Spectrum, `&FE4E` on the BBC. |
@@ -103,6 +103,16 @@ Every chip warns when a short jump or branch can't reach its label (`JR`/`DJNZ` 
 - Addresses match what the real assemblers produce: checked against xas99 (TI), SkoolKit (Spectrum), BeebAsm (BBC) and py65 (C64 instruction sizes).
 - On the TI-99/4A, programs loaded with Editor/Assembler are assumed to start at `>A000`; change `retroAsm.loadAddress` if yours doesn't. Code after `AORG` uses the address it gives.
 - Sums with labels are worked out in tooltips, so `PAT_END-PAT` shows as a number.
+
+### How long it takes (cycles)
+
+The tooltip for an instruction, and **This line** in the side panel, say how many clock cycles it takes, written the way it is on that line. Handy for working out whether a loop fits in one screen refresh.
+
+- **C64 and BBC (6502):** `LDA $D020,X` says *4 cycles, or 5 if adding X to the address crosses into the next page of 256 bytes*. Branches give both times: *2 cycles if it doesn't jump, 3 if it does*. On the BBC, the Master's 65C02 numbers are added where they are different, and the hardware at `&FC00`-`&FEFF` is marked as slower.
+- **ZX Spectrum (Z80):** the times are T-states. Jumps and repeats give both numbers: `LDIR` says *21 cycles for each byte it copies, 16 for the last one*. An address in 16384-32767 is marked as shared with the screen, as it can run a little slower while the picture is drawn.
+- **TI-99/4A (TMS9900):** the time depends on where things are in memory. The console ROM and the 256 bytes at `>8300` are fast. The 32K expansion, cartridges and the video and sound chips are slow, and each read or write there adds 4 cycles. So `MOV @X,@Y` says *30 cycles, plus up to 24 more in slow memory (it reads or writes memory 6 times; each slow one adds 4)*.
+- How fast each machine goes: C64 about 1 million cycles a second, BBC 2 million, TI-99/4A 3 million, Spectrum 3.5 million. The cheat sheet says this too.
+- Checked against: the 6502 data sheet and py65 (6502), SkoolKit's Z80 simulator (every way of writing every Z80 instruction) and the TMS9900 data manual.
 
 ### A summary above each routine
 
@@ -290,6 +300,8 @@ For assemblers that write things differently, the `syntax` section has switches,
 
 The `sizing` section can list `forms`: ways of writing an operand and how many bytes the instruction then takes, with a smaller size for zero-page addresses. A form can be kept to some instructions (`only`), and `extra` adds bytes on top (the Z80's IX and IY). Setting `evenAlign` to `false` turns off the TMS9900's rule that code starts on an even address.
 
+The `timing` section and each instruction's `cycles` give the time in the tooltip. `cycles` can be a number; two numbers, such as `[7, 12]`, for an instruction that may or may not jump (worded by `timing.pair`, or the instruction's own `cyclesPair`); a number for each way of writing the operand, named by `timing.modes` (these work like the sizing forms, with `zeroPage` for the shorter form, and `"4+"` means one more when a page is crossed); or a list of rules tried on the operands, as in `z80.json`. `cyclesAlt` with `timing.altLabel` gives a second chip's numbers (the BBC Master's 65C02), `cyclesNote` adds a sentence, and `timing.slow` marks addresses that run slower. `tms9900.json` shows `access` (how often it reads or writes memory), `operandCost`, `slowAccess` and `cyclesByCount` (a time that depends on a count). A chip file with no `timing` section just shows no time.
+
 `bbc.json` shows the directive kinds `if`, `elif`, `else`, `endif`, `for`, `next` and `skipto`, `reserves` (a gap that puts nothing into the program file), and a `build` section that names the assembler and the emulator to look for (`tool`, `run`), with the command to run each.
 
 `z80.json` also shows `ioPorts` (hardware reached with IN and OUT, and how to read a value sent there), `addressGuess` (when a plain number is probably an address), `build` (what to say when no build command is set) and, in `registers`, which registers are pairs.
@@ -343,6 +355,7 @@ From the `retro-asm` folder:
 | `node test/real-check.js <folder>` | Runs the checks over every `.a99`, `.z80`, `.asm`, `.a80`, `.s` and `.6502` file in a folder (a finished program should give 0 warnings). |
 | `node test/beebasm-check.js file.6502 [beebasm]` | Builds the file with the real BeebAsm and compares the address of every label with ours. Give the path to `beebasm` (or set `BEEBASM`); `node test/ext-test.js` runs it too when `BEEBASM` is set. |
 | `python test/z80-size-check.py [file.asm]` | Compares the Z80 sizes with SkoolKit's Z80 assembler (`pip install skoolkit`): every way of writing every instruction, or every line of a file. |
+| `python test/z80-cycle-check.py` | Compares the Z80 cycle counts with SkoolKit's Z80 simulator: every way of writing every instruction is run, with jumps taken and not taken. |
 | `node test/layout-check.js file.a99 file.lst` | Compares every address with an xas99 listing made with `-L`. |
 | `node test/real-hover.js <folder> <file.a99> "<text on a line>" [word]` | Prints the tooltip for a word on a line of your own code. With no text, prints the summary lines and the program's size. |
 | `npm install`, then `npm run test:vscode` | The real thing: opens a copy of VS Code and tries tooltips, go to definition, the outline, the summary lines, warnings, the original-game links and a build inside it. See below. |

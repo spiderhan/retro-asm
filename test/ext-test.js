@@ -318,6 +318,42 @@ const at=(doc,needle,sub)=>{const lines=doc.getText().split(/\r?\n/);const l=lin
    const mark=D.syntax.lineComment[0];ok(`${c}: the @reg tip uses this chip's comment mark`,t&&t.parts.some(x=>x.includes(mark+' @reg')),t&&t.parts);
   }
  }
+ { // 0.8.0: how long each instruction takes (cycles), on all four chips
+  const {loadFile}=require('../lib/dialect');const {Project}=require('../lib/project');const F=require('../lib/features');const X=require('../lib/explain');const PN=require('../lib/panel');
+  const time=(chip,src,needle)=>{const D=loadFile(path.join(__dirname,'../dialects',chip+'.json'));const PJ=new Project();PJ.set('/x/t.s',src,D);const m=PJ.get('/x/t.s');
+   const ln=src.split('\n').findIndex(l=>l.includes(needle));const pl=m.lines[ln];return X.timeFor(D.instr(pl.mnem.upper),pl,F.makeCtx(PJ,'/x/t.s'),ln);};
+  const same=(a,b)=>JSON.stringify([...new Set(a)].sort((x,y)=>x-y))===JSON.stringify(b);
+  // TMS9900: the data manual's numbers, worked out by hand (instruction + each operand's extra)
+  const ti='       AORG >A000\nSTART  MOV  @X,@Y\n       MOVB *R1+,R2\n       MOV  R1,R2\n       CLR  *R1\n       JNE  START\n       SLA  R1,4\n       SRL  R1,0\n       STCR *R2,8\n       LDCR @X,3\n       BLWP @X\n       LI   R1,5\n       RT\n       DIV  R1,R2\nX      DATA 0\nY      DATA 0\n       END\n';
+  for(const [needle,c,m] of [['MOV  @X,@Y',[30],6],['MOVB *R1+',[20],6],['MOV  R1,R2',[14],4],['CLR  *R1',[14],4],['JNE',[8,10],1],['SLA',[20],3],['STCR',[48],5],['LDCR',[34],4],['BLWP',[34],7],['LI   R1,5',[12],3],['       RT',[12],3],['DIV',[16,92,124],6]]){
+   const t=time('tms9900',ti,needle);ok(`tms9900 time: ${needle.trim()} = ${c.join('/')} cycles, ${m} memory uses`,t&&same(t.values,c)&&t.access===m,t);
+  }
+  const t0=time('tms9900',ti,'SRL  R1,0');ok('tms9900 time: a shift by R0 says the count comes from R0',t0&&/from R0/.test(t0.text)&&t0.access===4,t0);
+  ok('tms9900 time: slow memory is spelled out',/up to 24 more in slow memory/.test(time('tms9900',ti,'MOV  @X,@Y').text));
+  // C64: 6502 data sheet
+  const c64='  *=$0801\nstart: lda #5\n  lda $fb\n  lda $d020,x\n  sta $0400,y\n  jmp ($0314)\n  inc $d020\n  dec $d020\n  bne start\n  ldx $fb,y\n  lda $fb,y\n  lda ($fb),y\n  asl\n  rts\n';
+  for(const [needle,c] of [['lda #5',[2]],['lda $fb\n',[3]],['lda $d020,x',[4,5]],['sta $0400,y',[5]],['jmp ($0314)',[5]],['inc $d020',[6]],['dec $d020',[6]],['bne start',[2,3]],['ldx $fb,y',[4]],['lda $fb,y',[4,5]],['lda ($fb),y',[5,6]],['asl',[2]],['rts',[6]]]){
+   const t=time('6502',c64,needle.replace('\n',''));ok(`6502 time: ${needle.trim()} = ${c.join('/')}`,t&&same(t.values,c),t);
+  }
+  ok('6502 time: a branch says when it takes longer',/3 if it does \(4 if it jumps into another page/.test(time('6502',c64,'bne start').text));
+  // BBC: 65C02 extras, the Master's different timings and the half-speed hardware
+  const bbc='CPU 1\nORG &1900\n.start LDA (&70)\n  JMP (&20E)\n  LDA &FE4E\n  STZ &70\n  BRA start\n  LDA &3000\n';
+  for(const [needle,c] of [['LDA (&70)',[5]],['JMP (&20E)',[5]],['STZ',[3]],['BRA',[3]],['LDA &3000',[4]]]){const t=time('bbc',bbc,needle);ok(`bbc time: ${needle} = ${c.join('/')}`,t&&same(t.values,c),t);}
+  ok('bbc time: the Master\'s 65C02 number is given too',/On the BBC Master's 65C02: 6 cycles/.test(time('bbc',bbc,'JMP (&20E)').text));
+  ok('bbc time: hardware at &FE4E is slower',/half speed/.test(time('bbc',bbc,'LDA &FE4E').text)&&!/half speed/.test(time('bbc',bbc,'LDA &3000').text));
+  // Spectrum: jumps, repeats and contended memory (test/z80-cycle-check.py checks every form against SkoolKit)
+  const zx='  ORG 32768\nstart: ld a,(ix+3)\n  jr nz,start\n  ldir\n  ld (23560),a\n  call 24000\n';
+  ok('z80 time: LD A,(IX+3) = 19',same(time('z80',zx,'ld a,(ix+3)').values,[19]));
+  ok('z80 time: JR NZ = 7 or 12',/12 cycles if it jumps, 7 if not/.test(time('z80',zx,'jr nz').text));
+  ok('z80 time: LDIR per byte',/21 cycles for each byte it copies, 16 for the last one/.test(time('z80',zx,'ldir').text));
+  ok('z80 time: memory shared with the screen is noted',/contended/.test(time('z80',zx,'ld (23560),a').text)&&!/contended/.test(time('z80',zx,'call 24000').text));
+  // and it shows in the tooltip and the side panel
+  {const D=loadFile(path.join(__dirname,'../dialects/6502.json'));const PJ=new Project();PJ.set('/x/h.asm',c64,D);
+   const h=F.hoverAt(PJ,'/x/h.asm',3,4);ok('the instruction tooltip has a Time line',h&&h.parts.some(x=>/^\*Time:\* 4 cycles, or 5 if adding X/.test(x)),h&&h.parts);
+   const tl=PN.thisLine(PJ,'/x/h.asm',3,4);ok('the side panel has the time too',tl&&/^4 cycles, or 5/.test(tl.time||''),tl&&tl.time);}
+  {const D=loadFile(path.join(__dirname,'../dialects/tms9900.json'));const PJ=new Project();PJ.set('/x/h.a99',ti,D);
+   const h=F.hoverAt(PJ,'/x/h.a99',8,10);ok('tms9900 tooltip has a Time line',h&&h.parts.some(x=>/^\*Time:\* 48 cycles/.test(x)),h&&h.parts);}
+ }
  // build: use the real assembler if it is around (set XAS99=/path/to/xas99.py)
  const xas=process.env.XAS99;
  if(xas&&fs.existsSync(xas)){

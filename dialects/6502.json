@@ -194,8 +194,10 @@
    "help": "A number or label without `#` means the byte stored at that address. Addresses $00 to $FF (the zero page) make shorter, faster instructions."
   }
  ],
+ "timing": {"_about": "How long each instruction takes, in clock cycles. Each instruction's \"cycles\" gives the number for each way of writing its operand (the \"modes\" below, first match wins; a number up to 255 picks the zero-page mode when the instruction has one). \"5+\" means one more when the address crosses into the next page.", "about": "The C64's 6502 runs at about 1 million cycles a second (985,248 on a UK/PAL machine), so 20,000 or so per screen refresh. On some screen lines the video chip borrows the memory and the 6502 waits, so a loop can take a little longer than the numbers say.", "pair": "{1} cycles if it doesn't jump, {2} if it does", "modes": [{"re": "^$", "name": "imp"}, {"re": "^A$", "name": "acc"}, {"re": "^#", "name": "imm"}, {"re": "^\\(.*\\),Y$", "name": "indy", "plus": "adding Y to the address crosses into the next page of 256 bytes"}, {"re": "^\\(.*,X\\)$", "name": "indx"}, {"re": "^\\((.*)\\)$", "name": "ind", "zeroPage": "zpi"}, {"re": "^(.*),X$", "name": "absx", "zeroPage": "zpx", "plus": "adding X to the address crosses into the next page of 256 bytes"}, {"re": "^(.*),Y$", "name": "absy", "zeroPage": "zpy", "plus": "adding Y to the address crosses into the next page of 256 bytes"}, {"re": "^(.*)$", "name": "abs", "zeroPage": "zp"}]},
  "instructions": {
   "LDA": {
+   "cycles": {"imm": 2, "zp": 3, "zpx": 4, "abs": 4, "absx": "4+", "absy": "4+", "indx": 6, "indy": "5+"},
    "group": "Moving data",
    "name": "Load A",
    "syntax": "LDA #5   or   LDA address",
@@ -224,6 +226,7 @@
    "size": "byte"
   },
   "STA": {
+   "cycles": {"zp": 3, "zpx": 4, "abs": 4, "absx": 5, "absy": 5, "indx": 6, "indy": 6},
    "group": "Moving data",
    "name": "Store A",
    "syntax": "STA address",
@@ -252,6 +255,7 @@
    "size": "byte"
   },
   "LDX": {
+   "cycles": {"imm": 2, "zp": 3, "zpy": 4, "abs": 4, "absy": "4+"},
    "group": "Moving data",
    "name": "Load X",
    "syntax": "LDX #5   or   LDX address",
@@ -280,6 +284,7 @@
    "size": "byte"
   },
   "STX": {
+   "cycles": {"zp": 3, "zpy": 4, "abs": 4},
    "group": "Moving data",
    "name": "Store X",
    "syntax": "STX address",
@@ -307,6 +312,7 @@
    "size": "byte"
   },
   "LDY": {
+   "cycles": {"imm": 2, "zp": 3, "zpx": 4, "abs": 4, "absx": "4+"},
    "group": "Moving data",
    "name": "Load Y",
    "syntax": "LDY #5   or   LDY address",
@@ -335,6 +341,7 @@
    "size": "byte"
   },
   "STY": {
+   "cycles": {"zp": 3, "zpx": 4, "abs": 4},
    "group": "Moving data",
    "name": "Store Y",
    "syntax": "STY address",
@@ -362,6 +369,7 @@
    "size": "byte"
   },
   "TAX": {
+   "cycles": 2,
    "group": "Moving data",
    "name": "Copy A to X",
    "syntax": "TAX",
@@ -381,6 +389,7 @@
    "size": "byte"
   },
   "TAY": {
+   "cycles": 2,
    "group": "Moving data",
    "name": "Copy A to Y",
    "syntax": "TAY",
@@ -400,6 +409,7 @@
    "size": "byte"
   },
   "TXA": {
+   "cycles": 2,
    "group": "Moving data",
    "name": "Copy X to A",
    "syntax": "TXA",
@@ -419,6 +429,7 @@
    "size": "byte"
   },
   "TYA": {
+   "cycles": 2,
    "group": "Moving data",
    "name": "Copy Y to A",
    "syntax": "TYA",
@@ -438,6 +449,7 @@
    "size": "byte"
   },
   "TSX": {
+   "cycles": 2,
    "group": "Stack",
    "name": "Copy stack pointer to X",
    "syntax": "TSX",
@@ -454,6 +466,7 @@
    "size": "byte"
   },
   "TXS": {
+   "cycles": 2,
    "group": "Stack",
    "name": "Copy X to stack pointer",
    "syntax": "TXS",
@@ -469,6 +482,7 @@
    "size": "byte"
   },
   "PHA": {
+   "cycles": 3,
    "group": "Stack",
    "name": "Push A",
    "syntax": "PHA",
@@ -484,6 +498,7 @@
    "size": "byte"
   },
   "PLA": {
+   "cycles": 4,
    "group": "Stack",
    "name": "Pull A",
    "syntax": "PLA",
@@ -500,6 +515,7 @@
    "size": "byte"
   },
   "PHP": {
+   "cycles": 3,
    "group": "Stack",
    "name": "Push flags",
    "syntax": "PHP",
@@ -510,6 +526,7 @@
    "size": "byte"
   },
   "PLP": {
+   "cycles": 4,
    "group": "Stack",
    "name": "Pull flags",
    "syntax": "PLP",
@@ -520,6 +537,7 @@
    "size": "byte"
   },
   "ADC": {
+   "cycles": {"imm": 2, "zp": 3, "zpx": 4, "abs": 4, "absx": "4+", "absy": "4+", "indx": 6, "indy": "5+"},
    "group": "Sums",
    "name": "Add with carry",
    "syntax": "ADC #5   or   ADC address",
@@ -552,6 +570,7 @@
    "size": "byte"
   },
   "SBC": {
+   "cycles": {"imm": 2, "zp": 3, "zpx": 4, "abs": 4, "absx": "4+", "absy": "4+", "indx": 6, "indy": "5+"},
    "group": "Sums",
    "name": "Subtract with carry",
    "syntax": "SBC #5   or   SBC address",
@@ -584,6 +603,7 @@
    "size": "byte"
   },
   "INX": {
+   "cycles": 2,
    "group": "Sums",
    "name": "Add 1 to X",
    "syntax": "INX",
@@ -603,6 +623,7 @@
    "size": "byte"
   },
   "DEX": {
+   "cycles": 2,
    "group": "Sums",
    "name": "Take 1 from X",
    "syntax": "DEX",
@@ -622,6 +643,7 @@
    "size": "byte"
   },
   "INY": {
+   "cycles": 2,
    "group": "Sums",
    "name": "Add 1 to Y",
    "syntax": "INY",
@@ -641,6 +663,7 @@
    "size": "byte"
   },
   "DEY": {
+   "cycles": 2,
    "group": "Sums",
    "name": "Take 1 from Y",
    "syntax": "DEY",
@@ -660,6 +683,7 @@
    "size": "byte"
   },
   "INC": {
+   "cycles": {"zp": 5, "zpx": 6, "abs": 6, "absx": 7},
    "group": "Sums",
    "name": "Add 1 to memory",
    "syntax": "INC address",
@@ -683,6 +707,7 @@
    "size": "byte"
   },
   "DEC": {
+   "cycles": {"zp": 5, "zpx": 6, "abs": 6, "absx": 7},
    "group": "Sums",
    "name": "Take 1 from memory",
    "syntax": "DEC address",
@@ -706,6 +731,7 @@
    "size": "byte"
   },
   "AND": {
+   "cycles": {"imm": 2, "zp": 3, "zpx": 4, "abs": 4, "absx": "4+", "absy": "4+", "indx": 6, "indy": "5+"},
    "group": "Bits",
    "name": "And",
    "syntax": "AND #%00001111",
@@ -738,6 +764,7 @@
    "size": "byte"
   },
   "ORA": {
+   "cycles": {"imm": 2, "zp": 3, "zpx": 4, "abs": 4, "absx": "4+", "absy": "4+", "indx": 6, "indy": "5+"},
    "group": "Bits",
    "name": "Or",
    "syntax": "ORA #%10000000",
@@ -769,6 +796,7 @@
    "size": "byte"
   },
   "EOR": {
+   "cycles": {"imm": 2, "zp": 3, "zpx": 4, "abs": 4, "absx": "4+", "absy": "4+", "indx": 6, "indy": "5+"},
    "group": "Bits",
    "name": "Exclusive or (flip bits)",
    "syntax": "EOR #%11111111",
@@ -801,6 +829,7 @@
    "size": "byte"
   },
   "BIT": {
+   "cycles": {"zp": 3, "abs": 4},
    "group": "Bits",
    "name": "Test bits",
    "syntax": "BIT address",
@@ -821,6 +850,7 @@
    "size": "byte"
   },
   "ASL": {
+   "cycles": {"imp": 2, "acc": 2, "zp": 5, "zpx": 6, "abs": 6, "absx": 7},
    "group": "Bits",
    "name": "Shift left",
    "syntax": "ASL   or   ASL address",
@@ -847,6 +877,7 @@
    "size": "byte"
   },
   "LSR": {
+   "cycles": {"imp": 2, "acc": 2, "zp": 5, "zpx": 6, "abs": 6, "absx": 7},
    "group": "Bits",
    "name": "Shift right",
    "syntax": "LSR   or   LSR address",
@@ -873,6 +904,7 @@
    "size": "byte"
   },
   "ROL": {
+   "cycles": {"imp": 2, "acc": 2, "zp": 5, "zpx": 6, "abs": 6, "absx": 7},
    "group": "Bits",
    "name": "Rotate left",
    "syntax": "ROL   or   ROL address",
@@ -900,6 +932,7 @@
    "size": "byte"
   },
   "ROR": {
+   "cycles": {"imp": 2, "acc": 2, "zp": 5, "zpx": 6, "abs": 6, "absx": 7},
    "group": "Bits",
    "name": "Rotate right",
    "syntax": "ROR   or   ROR address",
@@ -927,6 +960,7 @@
    "size": "byte"
   },
   "CMP": {
+   "cycles": {"imm": 2, "zp": 3, "zpx": 4, "abs": 4, "absx": "4+", "absy": "4+", "indx": 6, "indy": "5+"},
    "group": "Comparing",
    "name": "Compare with A",
    "syntax": "CMP #5   or   CMP address",
@@ -957,6 +991,7 @@
    "size": "byte"
   },
   "CPX": {
+   "cycles": {"imm": 2, "zp": 3, "abs": 4},
    "group": "Comparing",
    "name": "Compare with X",
    "syntax": "CPX #5   or   CPX address",
@@ -983,6 +1018,7 @@
    "size": "byte"
   },
   "CPY": {
+   "cycles": {"imm": 2, "zp": 3, "abs": 4},
    "group": "Comparing",
    "name": "Compare with Y",
    "syntax": "CPY #5   or   CPY address",
@@ -1009,6 +1045,8 @@
    "size": "byte"
   },
   "BEQ": {
+   "cycles": [2, 3],
+   "cyclesNote": "4 if it jumps into another page of 256 bytes",
    "group": "Jumps",
    "name": "Branch if equal",
    "syntax": "BEQ label",
@@ -1025,6 +1063,8 @@
    "size": "byte"
   },
   "BNE": {
+   "cycles": [2, 3],
+   "cyclesNote": "4 if it jumps into another page of 256 bytes",
    "group": "Jumps",
    "name": "Branch if not equal",
    "syntax": "BNE label",
@@ -1041,6 +1081,8 @@
    "size": "byte"
   },
   "BCS": {
+   "cycles": [2, 3],
+   "cyclesNote": "4 if it jumps into another page of 256 bytes",
    "group": "Jumps",
    "name": "Branch if carry set",
    "syntax": "BCS label",
@@ -1057,6 +1099,8 @@
    "size": "byte"
   },
   "BCC": {
+   "cycles": [2, 3],
+   "cyclesNote": "4 if it jumps into another page of 256 bytes",
    "group": "Jumps",
    "name": "Branch if carry clear",
    "syntax": "BCC label",
@@ -1073,6 +1117,8 @@
    "size": "byte"
   },
   "BMI": {
+   "cycles": [2, 3],
+   "cyclesNote": "4 if it jumps into another page of 256 bytes",
    "group": "Jumps",
    "name": "Branch if minus",
    "syntax": "BMI label",
@@ -1089,6 +1135,8 @@
    "size": "byte"
   },
   "BPL": {
+   "cycles": [2, 3],
+   "cyclesNote": "4 if it jumps into another page of 256 bytes",
    "group": "Jumps",
    "name": "Branch if plus",
    "syntax": "BPL label",
@@ -1105,6 +1153,8 @@
    "size": "byte"
   },
   "BVS": {
+   "cycles": [2, 3],
+   "cyclesNote": "4 if it jumps into another page of 256 bytes",
    "group": "Jumps",
    "name": "Branch if overflow set",
    "syntax": "BVS label",
@@ -1121,6 +1171,8 @@
    "size": "byte"
   },
   "BVC": {
+   "cycles": [2, 3],
+   "cyclesNote": "4 if it jumps into another page of 256 bytes",
    "group": "Jumps",
    "name": "Branch if overflow clear",
    "syntax": "BVC label",
@@ -1137,6 +1189,7 @@
    "size": "byte"
   },
   "JMP": {
+   "cycles": {"abs": 3, "ind": 5},
    "group": "Jumps",
    "name": "Jump",
    "syntax": "JMP label   or   JMP ($0314)",
@@ -1158,6 +1211,7 @@
    "size": "byte"
   },
   "JSR": {
+   "cycles": {"abs": 6},
    "group": "Calling routines",
    "name": "Jump to subroutine (call)",
    "syntax": "JSR label",
@@ -1172,6 +1226,7 @@
    "size": "byte"
   },
   "RTS": {
+   "cycles": 6,
    "group": "Calling routines",
    "name": "Return from subroutine",
    "syntax": "RTS",
@@ -1183,6 +1238,7 @@
    "size": "byte"
   },
   "RTI": {
+   "cycles": 6,
    "group": "Calling routines",
    "name": "Return from interrupt",
    "syntax": "RTI",
@@ -1195,6 +1251,7 @@
    "size": "byte"
   },
   "BRK": {
+   "cycles": 7,
    "group": "Calling routines",
    "name": "Break",
    "syntax": "BRK",
@@ -1205,6 +1262,7 @@
    "size": "byte"
   },
   "CLC": {
+   "cycles": 2,
    "group": "Flags",
    "name": "Clear carry",
    "syntax": "CLC",
@@ -1215,6 +1273,7 @@
    "size": "byte"
   },
   "SEC": {
+   "cycles": 2,
    "group": "Flags",
    "name": "Set carry",
    "syntax": "SEC",
@@ -1225,6 +1284,7 @@
    "size": "byte"
   },
   "CLI": {
+   "cycles": 2,
    "group": "Flags",
    "name": "Allow interrupts",
    "syntax": "CLI",
@@ -1235,6 +1295,7 @@
    "size": "byte"
   },
   "SEI": {
+   "cycles": 2,
    "group": "Flags",
    "name": "Stop interrupts",
    "syntax": "SEI",
@@ -1245,6 +1306,7 @@
    "size": "byte"
   },
   "CLD": {
+   "cycles": 2,
    "group": "Flags",
    "name": "Decimal mode off",
    "syntax": "CLD",
@@ -1255,6 +1317,7 @@
    "size": "byte"
   },
   "SED": {
+   "cycles": 2,
    "group": "Flags",
    "name": "Decimal mode on",
    "syntax": "SED",
@@ -1265,6 +1328,7 @@
    "size": "byte"
   },
   "CLV": {
+   "cycles": 2,
    "group": "Flags",
    "name": "Clear overflow",
    "syntax": "CLV",
@@ -1275,6 +1339,7 @@
    "size": "byte"
   },
   "NOP": {
+   "cycles": 2,
    "group": "Other",
    "name": "No operation",
    "syntax": "NOP",

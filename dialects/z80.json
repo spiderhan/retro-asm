@@ -342,8 +342,10 @@
    "name": "Register"
   }
  ],
+ "timing": {"_about": "How long each instruction takes, in clock cycles (T-states). An instruction's \"cycles\" is a number, [if not, if so] for jumps and repeats, or a list of rules tried on the operands written with no spaces (first match wins).", "about": "The Spectrum's Z80 runs at 3.5 million cycles (T-states) a second: 69,888 per screen refresh on a 48K Spectrum. Code or data in 16384-32767 shares its memory with the screen, so it can run a little slower while the picture is drawn.", "pair": "{2} cycles if it jumps, {1} if not", "slow": [{"from": "4000", "to": "7FFF", "code": true, "text": "Memory at 16384-32767 is shared with the screen (contended memory), so this can take a few cycles longer while the picture is being drawn."}]},
  "instructions": {
   "LD": {
+   "cycles": [{"re": "^(A,[IR]|[IR],A)$", "c": 9}, {"re": "^SP,HL$", "c": 6}, {"re": "^SP,I[XY]$", "c": 10}, {"re": "^HL,\\(", "c": 16}, {"re": "^\\(.*\\),HL$", "c": 16}, {"re": "^(BC|DE|SP|IX|IY),\\(", "c": 20}, {"re": "^\\(.*\\),(BC|DE|SP|IX|IY)$", "c": 20}, {"re": "^I[XY],", "c": 14}, {"re": "^(BC|DE|HL|SP),", "c": 10}, {"re": "\\(I[XY][^)]*\\)", "c": 19}, {"re": "^\\(HL\\),(A|B|C|D|E|H|L)$", "c": 7}, {"re": "^\\(HL\\),", "c": 10}, {"re": "^(A|B|C|D|E|H|L),\\(HL\\)$", "c": 7}, {"re": "^A,\\((BC|DE)\\)$|^\\((BC|DE)\\),A$", "c": 7}, {"re": "^A,\\(|^\\(.*\\),A$", "c": 13}, {"re": "^(A|B|C|D|E|H|L|IXH|IXL|IYH|IYL),(IXH|IXL|IYH|IYL)$|^(IXH|IXL|IYH|IYL),(A|B|C|D|E|H|L)$", "c": 8}, {"re": "^(IXH|IXL|IYH|IYL),", "c": 11}, {"re": "^(A|B|C|D|E|H|L),(A|B|C|D|E|H|L)$", "c": 4}, {"re": ".", "c": 7}],
    "group": "Moving data",
    "name": "Load",
    "syntax": "LD dest,source",
@@ -372,6 +374,7 @@
    ]
   },
   "EX": {
+   "cycles": [{"re": "^\\(SP\\),I[XY]$", "c": 23}, {"re": "^\\(SP\\),", "c": 19}, {"re": ".", "c": 4}],
    "group": "Moving data",
    "name": "Exchange",
    "syntax": "EX DE,HL",
@@ -404,6 +407,7 @@
    ]
   },
   "EXX": {
+   "cycles": 4,
    "group": "Moving data",
    "name": "Exchange all",
    "syntax": "EXX",
@@ -426,6 +430,7 @@
    "flags": "No flags change."
   },
   "PUSH": {
+   "cycles": [{"re": "^I[XY]$", "c": 15}, {"re": ".", "c": 11}],
    "group": "Stack",
    "name": "Push",
    "syntax": "PUSH pair",
@@ -442,6 +447,7 @@
    "flags": "No flags change."
   },
   "POP": {
+   "cycles": [{"re": "^I[XY]$", "c": 14}, {"re": ".", "c": 10}],
    "group": "Stack",
    "name": "Pop",
    "syntax": "POP pair",
@@ -458,6 +464,7 @@
    "flags": "No flags change, except POP AF, which takes them off the stack."
   },
   "ADD": {
+   "cycles": [{"re": "^HL,", "c": 11}, {"re": "^I[XY],", "c": 15}, {"re": "^(A,)?\\(I[XY][^)]*\\)$", "c": 19}, {"re": "^(A,)?\\(HL\\)$", "c": 7}, {"re": "^(A,)?(IXH|IXL|IYH|IYL)$", "c": 8}, {"re": "^(A,)?(A|B|C|D|E|H|L)$", "c": 4}, {"re": ".", "c": 7}],
    "group": "Adding and subtracting",
    "name": "Add",
    "syntax": "ADD A,value   or   ADD HL,pair",
@@ -513,6 +520,7 @@
    ]
   },
   "ADC": {
+   "cycles": [{"re": "^HL,", "c": 15}, {"re": "^(A,)?\\(I[XY][^)]*\\)$", "c": 19}, {"re": "^(A,)?\\(HL\\)$", "c": 7}, {"re": "^(A,)?(IXH|IXL|IYH|IYL)$", "c": 8}, {"re": "^(A,)?(A|B|C|D|E|H|L)$", "c": 4}, {"re": ".", "c": 7}],
    "group": "Adding and subtracting",
    "name": "Add with carry",
    "syntax": "ADC A,value",
@@ -557,6 +565,7 @@
    "flags": "All flags show the result, for the HL form too."
   },
   "SUB": {
+   "cycles": [{"re": "^(A,)?\\(I[XY][^)]*\\)$", "c": 19}, {"re": "^(A,)?\\(HL\\)$", "c": 7}, {"re": "^(A,)?(IXH|IXL|IYH|IYL)$", "c": 8}, {"re": "^(A,)?(A|B|C|D|E|H|L)$", "c": 4}, {"re": ".", "c": 7}],
    "group": "Adding and subtracting",
    "name": "Subtract",
    "syntax": "SUB value",
@@ -606,6 +615,7 @@
    ]
   },
   "SBC": {
+   "cycles": [{"re": "^HL,", "c": 15}, {"re": "^(A,)?\\(I[XY][^)]*\\)$", "c": 19}, {"re": "^(A,)?\\(HL\\)$", "c": 7}, {"re": "^(A,)?(IXH|IXL|IYH|IYL)$", "c": 8}, {"re": "^(A,)?(A|B|C|D|E|H|L)$", "c": 4}, {"re": ".", "c": 7}],
    "group": "Adding and subtracting",
    "name": "Subtract with carry",
    "syntax": "SBC A,value",
@@ -650,6 +660,7 @@
    "flags": "All flags show the result, for the HL form too. `AND A` then `SBC HL,DE` is the usual way to subtract DE from HL."
   },
   "INC": {
+   "cycles": [{"re": "^(BC|DE|HL|SP)$", "c": 6}, {"re": "^I[XY]$", "c": 10}, {"re": "^\\(HL\\)$", "c": 11}, {"re": "\\(I[XY][^)]*\\)", "c": 23}, {"re": "^(IXH|IXL|IYH|IYL)$", "c": 8}, {"re": ".", "c": 4}],
    "group": "Adding and subtracting",
    "name": "Increment",
    "syntax": "INC dest",
@@ -671,6 +682,7 @@
    "more": "Because INC and DEC on a pair change no flags, `DEC BC` then `JR NZ` doesn't test BC. The usual test is `LD A,B` then `OR C`."
   },
   "DEC": {
+   "cycles": [{"re": "^(BC|DE|HL|SP)$", "c": 6}, {"re": "^I[XY]$", "c": 10}, {"re": "^\\(HL\\)$", "c": 11}, {"re": "\\(I[XY][^)]*\\)", "c": 23}, {"re": "^(IXH|IXL|IYH|IYL)$", "c": 8}, {"re": ".", "c": 4}],
    "group": "Adding and subtracting",
    "name": "Decrement",
    "syntax": "DEC dest",
@@ -692,6 +704,7 @@
    "more": "Because INC and DEC on a pair change no flags, `DEC BC` then `JR NZ` doesn't test BC. The usual test is `LD A,B` then `OR C`."
   },
   "NEG": {
+   "cycles": 8,
    "group": "Adding and subtracting",
    "name": "Negate",
    "syntax": "NEG",
@@ -711,6 +724,7 @@
    "flags": "All flags show the result."
   },
   "DAA": {
+   "cycles": 4,
    "group": "Adding and subtracting",
    "name": "Decimal adjust",
    "syntax": "DAA",
@@ -729,6 +743,7 @@
    "flags": "Z, carry and parity show the result."
   },
   "CP": {
+   "cycles": [{"re": "^(A,)?\\(I[XY][^)]*\\)$", "c": 19}, {"re": "^(A,)?\\(HL\\)$", "c": 7}, {"re": "^(A,)?(IXH|IXL|IYH|IYL)$", "c": 8}, {"re": "^(A,)?(A|B|C|D|E|H|L)$", "c": 4}, {"re": ".", "c": 7}],
    "group": "Comparing",
    "name": "Compare",
    "syntax": "CP value",
@@ -762,6 +777,7 @@
    "flags": "Z if they are equal. C if A was smaller (counting 0 to 255, no minus numbers), NC if A was the same or bigger."
   },
   "AND": {
+   "cycles": [{"re": "^(A,)?\\(I[XY][^)]*\\)$", "c": 19}, {"re": "^(A,)?\\(HL\\)$", "c": 7}, {"re": "^(A,)?(IXH|IXL|IYH|IYL)$", "c": 8}, {"re": "^(A,)?(A|B|C|D|E|H|L)$", "c": 4}, {"re": ".", "c": 7}],
    "group": "Bits",
    "name": "AND",
    "syntax": "AND value",
@@ -811,6 +827,7 @@
    ]
   },
   "OR": {
+   "cycles": [{"re": "^(A,)?\\(I[XY][^)]*\\)$", "c": 19}, {"re": "^(A,)?\\(HL\\)$", "c": 7}, {"re": "^(A,)?(IXH|IXL|IYH|IYL)$", "c": 8}, {"re": "^(A,)?(A|B|C|D|E|H|L)$", "c": 4}, {"re": ".", "c": 7}],
    "group": "Bits",
    "name": "OR",
    "syntax": "OR value",
@@ -860,6 +877,7 @@
    ]
   },
   "XOR": {
+   "cycles": [{"re": "^(A,)?\\(I[XY][^)]*\\)$", "c": 19}, {"re": "^(A,)?\\(HL\\)$", "c": 7}, {"re": "^(A,)?(IXH|IXL|IYH|IYL)$", "c": 8}, {"re": "^(A,)?(A|B|C|D|E|H|L)$", "c": 4}, {"re": ".", "c": 7}],
    "group": "Bits",
    "name": "Exclusive OR",
    "syntax": "XOR value",
@@ -909,6 +927,7 @@
    "flags": "Z if the result is 0. Carry is always switched off. P/V shows parity (whether an even number of bits are 1)."
   },
   "CPL": {
+   "cycles": 4,
    "group": "Bits",
    "name": "Complement",
    "syntax": "CPL",
@@ -927,6 +946,7 @@
    "flags": "Z and carry are not changed."
   },
   "BIT": {
+   "cycles": [{"re": ",\\(HL\\)$", "c": 12}, {"re": "\\(I[XY][^)]*\\)", "c": 20}, {"re": ".", "c": 8}],
    "group": "Bits",
    "name": "Test bit",
    "syntax": "BIT number,dest",
@@ -945,6 +965,7 @@
    "flags": "Z on if the bit was 0, off if it was 1. Carry is not changed."
   },
   "SET": {
+   "cycles": [{"re": ",\\(HL\\)$", "c": 15}, {"re": "\\(I[XY][^)]*\\)", "c": 23}, {"re": ".", "c": 8}],
    "group": "Bits",
    "name": "Set bit",
    "syntax": "SET number,dest",
@@ -962,6 +983,7 @@
    "flags": "No flags change."
   },
   "RES": {
+   "cycles": [{"re": ",\\(HL\\)$", "c": 15}, {"re": "\\(I[XY][^)]*\\)", "c": 23}, {"re": ".", "c": 8}],
    "group": "Bits",
    "name": "Reset bit",
    "syntax": "RES number,dest",
@@ -979,6 +1001,7 @@
    "flags": "No flags change."
   },
   "CCF": {
+   "cycles": 4,
    "group": "Bits",
    "name": "Complement carry",
    "syntax": "CCF",
@@ -989,6 +1012,7 @@
    "flags": "Only carry changes (apart from the little-used H and N)."
   },
   "SCF": {
+   "cycles": 4,
    "group": "Bits",
    "name": "Set carry",
    "syntax": "SCF",
@@ -999,6 +1023,7 @@
    "flags": "Only carry changes (apart from the little-used H and N)."
   },
   "RLCA": {
+   "cycles": 4,
    "group": "Shifting and rotating",
    "name": "Rotate A left",
    "syntax": "RLCA",
@@ -1018,6 +1043,7 @@
    "flags": "Carry gets the bit that fell off the end. Z and S are not changed (unlike the longer RLC A and friends)."
   },
   "RLA": {
+   "cycles": 4,
    "group": "Shifting and rotating",
    "name": "Rotate A left through carry",
    "syntax": "RLA",
@@ -1037,6 +1063,7 @@
    "flags": "Carry gets the bit that fell off the end. Z and S are not changed (unlike the longer RLC A and friends)."
   },
   "RRCA": {
+   "cycles": 4,
    "group": "Shifting and rotating",
    "name": "Rotate A right",
    "syntax": "RRCA",
@@ -1056,6 +1083,7 @@
    "flags": "Carry gets the bit that fell off the end. Z and S are not changed (unlike the longer RLC A and friends)."
   },
   "RRA": {
+   "cycles": 4,
    "group": "Shifting and rotating",
    "name": "Rotate A right through carry",
    "syntax": "RRA",
@@ -1075,6 +1103,7 @@
    "flags": "Carry gets the bit that fell off the end. Z and S are not changed (unlike the longer RLC A and friends)."
   },
   "RLD": {
+   "cycles": 18,
    "group": "Shifting and rotating",
    "name": "Rotate digit left",
    "syntax": "RLD",
@@ -1094,6 +1123,7 @@
    "flags": "Z, S and parity show the new A; carry is not changed."
   },
   "RRD": {
+   "cycles": 18,
    "group": "Shifting and rotating",
    "name": "Rotate digit right",
    "syntax": "RRD",
@@ -1113,6 +1143,7 @@
    "flags": "Z, S and parity show the new A; carry is not changed."
   },
   "RLC": {
+   "cycles": [{"re": "^\\(HL\\)$", "c": 15}, {"re": "\\(I[XY][^)]*\\)", "c": 23}, {"re": ".", "c": 8}],
    "group": "Shifting and rotating",
    "name": "Rotate left",
    "syntax": "RLC dest",
@@ -1129,6 +1160,7 @@
    "flags": "Carry gets the bit that fell off the end; Z, S and parity show the result."
   },
   "RL": {
+   "cycles": [{"re": "^\\(HL\\)$", "c": 15}, {"re": "\\(I[XY][^)]*\\)", "c": 23}, {"re": ".", "c": 8}],
    "group": "Shifting and rotating",
    "name": "Rotate left through carry",
    "syntax": "RL dest",
@@ -1145,6 +1177,7 @@
    "flags": "Carry gets the bit that fell off the end; Z, S and parity show the result."
   },
   "RRC": {
+   "cycles": [{"re": "^\\(HL\\)$", "c": 15}, {"re": "\\(I[XY][^)]*\\)", "c": 23}, {"re": ".", "c": 8}],
    "group": "Shifting and rotating",
    "name": "Rotate right",
    "syntax": "RRC dest",
@@ -1161,6 +1194,7 @@
    "flags": "Carry gets the bit that fell off the end; Z, S and parity show the result."
   },
   "RR": {
+   "cycles": [{"re": "^\\(HL\\)$", "c": 15}, {"re": "\\(I[XY][^)]*\\)", "c": 23}, {"re": ".", "c": 8}],
    "group": "Shifting and rotating",
    "name": "Rotate right through carry",
    "syntax": "RR dest",
@@ -1177,6 +1211,7 @@
    "flags": "Carry gets the bit that fell off the end; Z, S and parity show the result."
   },
   "SLA": {
+   "cycles": [{"re": "^\\(HL\\)$", "c": 15}, {"re": "\\(I[XY][^)]*\\)", "c": 23}, {"re": ".", "c": 8}],
    "group": "Shifting and rotating",
    "name": "Shift left",
    "syntax": "SLA dest",
@@ -1193,6 +1228,7 @@
    "flags": "Carry gets the bit that fell off the end; Z, S and parity show the result."
   },
   "SLL": {
+   "cycles": [{"re": "^\\(HL\\)$", "c": 15}, {"re": "\\(I[XY][^)]*\\)", "c": 23}, {"re": ".", "c": 8}],
    "group": "Shifting and rotating",
    "name": "Shift left, 1 in at the bottom (unofficial)",
    "syntax": "SLL dest",
@@ -1209,6 +1245,7 @@
    "flags": "Carry gets the bit that fell off the end; Z, S and parity show the result."
   },
   "SRA": {
+   "cycles": [{"re": "^\\(HL\\)$", "c": 15}, {"re": "\\(I[XY][^)]*\\)", "c": 23}, {"re": ".", "c": 8}],
    "group": "Shifting and rotating",
    "name": "Shift right, keeping the sign",
    "syntax": "SRA dest",
@@ -1225,6 +1262,7 @@
    "flags": "Carry gets the bit that fell off the end; Z, S and parity show the result."
   },
   "SRL": {
+   "cycles": [{"re": "^\\(HL\\)$", "c": 15}, {"re": "\\(I[XY][^)]*\\)", "c": 23}, {"re": ".", "c": 8}],
    "group": "Shifting and rotating",
    "name": "Shift right",
    "syntax": "SRL dest",
@@ -1241,6 +1279,7 @@
    "flags": "Carry gets the bit that fell off the end; Z, S and parity show the result."
   },
   "JP": {
+   "cycles": [{"re": "^\\(HL\\)$|^HL$", "c": 4}, {"re": "^\\(I[XY]\\)$|^I[XY]$", "c": 8}, {"re": ".", "c": 10}],
    "group": "Jumps",
    "name": "Jump",
    "syntax": "JP label   or   JP condition,label",
@@ -1277,6 +1316,7 @@
    ]
   },
   "JR": {
+   "cycles": [{"re": "^(NZ|Z|NC|C),", "c": [7, 12]}, {"re": ".", "c": 12}],
    "group": "Jumps",
    "name": "Jump relative",
    "syntax": "JR label   or   JR condition,label",
@@ -1307,6 +1347,8 @@
    "more": "It can only reach 128 bytes back or 127 ahead (counted from the next instruction). Further away, use JP."
   },
   "DJNZ": {
+   "cycles": [8, 13],
+   "cyclesPair": "{2} cycles if it jumps back, {1} when B reaches 0",
    "group": "Jumps",
    "name": "Decrement B and jump if not zero",
    "syntax": "DJNZ label",
@@ -1330,6 +1372,8 @@
    "more": "It can only reach 128 bytes back or 127 ahead (counted from the next instruction)."
   },
   "CALL": {
+   "cycles": [{"re": "^(NZ|Z|NC|C|PO|PE|P|M),", "c": [10, 17]}, {"re": ".", "c": 17}],
+   "cyclesPair": "{2} cycles if it calls, {1} if not",
    "group": "Calling routines",
    "name": "Call",
    "syntax": "CALL label   or   CALL condition,label",
@@ -1351,6 +1395,8 @@
    "flags": "No flags change."
   },
   "RET": {
+   "cycles": [{"re": "^$", "c": 10}, {"re": ".", "c": [5, 11]}],
+   "cyclesPair": "{2} cycles if it returns, {1} if not",
    "group": "Calling routines",
    "name": "Return",
    "syntax": "RET   or   RET condition",
@@ -1370,6 +1416,7 @@
    "flags": "No flags change."
   },
   "RETI": {
+   "cycles": 14,
    "group": "Calling routines",
    "name": "Return from interrupt",
    "syntax": "RETI",
@@ -1381,6 +1428,7 @@
    "flags": "No flags change."
   },
   "RETN": {
+   "cycles": 14,
    "group": "Calling routines",
    "name": "Return from non-maskable interrupt",
    "syntax": "RETN",
@@ -1392,6 +1440,7 @@
    "flags": "No flags change."
   },
   "RST": {
+   "cycles": 11,
    "group": "Calling routines",
    "name": "Restart",
    "syntax": "RST address",
@@ -1423,6 +1472,7 @@
    ]
   },
   "LDI": {
+   "cycles": 16,
    "group": "Block copy and search",
    "name": "Load and increment",
    "syntax": "LDI",
@@ -1445,6 +1495,8 @@
    "flags": "P/V is off once BC reaches 0. Z and carry are not changed."
   },
   "LDIR": {
+   "cycles": [16, 21],
+   "cyclesPair": "{2} cycles for each byte it copies, {1} for the last one",
    "group": "Block copy and search",
    "name": "Load, increment and repeat",
    "syntax": "LDIR",
@@ -1468,6 +1520,7 @@
    "more": "BC = 0 copies 65,536 bytes, not none. `LD HL,start` / `LD DE,start+1` / `LD (HL),0` / `LD BC,count-1` / `LDIR` is the usual way to fill memory with zeros."
   },
   "LDD": {
+   "cycles": 16,
    "group": "Block copy and search",
    "name": "Load and decrement",
    "syntax": "LDD",
@@ -1490,6 +1543,8 @@
    "flags": "P/V is off once BC reaches 0. Z and carry are not changed."
   },
   "LDDR": {
+   "cycles": [16, 21],
+   "cyclesPair": "{2} cycles for each byte it copies, {1} for the last one",
    "group": "Block copy and search",
    "name": "Load, decrement and repeat",
    "syntax": "LDDR",
@@ -1512,6 +1567,7 @@
    "flags": "P/V is off once BC reaches 0. Z and carry are not changed."
   },
   "CPI": {
+   "cycles": 16,
    "group": "Block copy and search",
    "name": "Compare and increment",
    "syntax": "CPI",
@@ -1533,6 +1589,8 @@
    "flags": "Z if A matched the byte. P/V is off once BC reaches 0. Carry is not changed."
   },
   "CPIR": {
+   "cycles": [16, 21],
+   "cyclesPair": "{2} cycles for each byte it checks, {1} for the last one (or the one that matches)",
    "group": "Block copy and search",
    "name": "Compare, increment and repeat",
    "syntax": "CPIR",
@@ -1554,6 +1612,7 @@
    "flags": "Z if A matched the byte. P/V is off once BC reaches 0. Carry is not changed."
   },
   "CPD": {
+   "cycles": 16,
    "group": "Block copy and search",
    "name": "Compare and decrement",
    "syntax": "CPD",
@@ -1575,6 +1634,8 @@
    "flags": "Z if A matched the byte. P/V is off once BC reaches 0. Carry is not changed."
   },
   "CPDR": {
+   "cycles": [16, 21],
+   "cyclesPair": "{2} cycles for each byte it checks, {1} for the last one (or the one that matches)",
    "group": "Block copy and search",
    "name": "Compare, decrement and repeat",
    "syntax": "CPDR",
@@ -1596,6 +1657,7 @@
    "flags": "Z if A matched the byte. P/V is off once BC reaches 0. Carry is not changed."
   },
   "IN": {
+   "cycles": [{"re": "^A,\\(C\\)$", "c": 12}, {"re": "^A,\\(", "c": 11}, {"re": ".", "c": 12}],
    "group": "Ports",
    "name": "Input",
    "syntax": "IN A,(port)",
@@ -1613,6 +1675,7 @@
    "flags": "IN A,(n) changes no flags. IN r,(C) sets Z, S and parity from the byte read."
   },
   "OUT": {
+   "cycles": [{"re": "^\\(C\\),", "c": 12}, {"re": ".", "c": 11}],
    "group": "Ports",
    "name": "Output",
    "syntax": "OUT (port),A",
@@ -1630,6 +1693,7 @@
    "flags": "No flags change."
   },
   "INI": {
+   "cycles": 16,
    "group": "Ports",
    "name": "Input and increment",
    "syntax": "INI",
@@ -1651,6 +1715,8 @@
    "flags": "Z is on once B reaches 0."
   },
   "INIR": {
+   "cycles": [16, 21],
+   "cyclesPair": "{2} cycles for each byte, {1} for the last one",
    "group": "Ports",
    "name": "Input, increment and repeat",
    "syntax": "INIR",
@@ -1672,6 +1738,7 @@
    "flags": "Z is on once B reaches 0."
   },
   "IND": {
+   "cycles": 16,
    "group": "Ports",
    "name": "Input and decrement",
    "syntax": "IND",
@@ -1693,6 +1760,8 @@
    "flags": "Z is on once B reaches 0."
   },
   "INDR": {
+   "cycles": [16, 21],
+   "cyclesPair": "{2} cycles for each byte, {1} for the last one",
    "group": "Ports",
    "name": "Input, decrement and repeat",
    "syntax": "INDR",
@@ -1714,6 +1783,7 @@
    "flags": "Z is on once B reaches 0."
   },
   "OUTI": {
+   "cycles": 16,
    "group": "Ports",
    "name": "Output and increment",
    "syntax": "OUTI",
@@ -1735,6 +1805,8 @@
    "flags": "Z is on once B reaches 0."
   },
   "OTIR": {
+   "cycles": [16, 21],
+   "cyclesPair": "{2} cycles for each byte, {1} for the last one",
    "group": "Ports",
    "name": "Output, increment and repeat",
    "syntax": "OTIR",
@@ -1756,6 +1828,7 @@
    "flags": "Z is on once B reaches 0."
   },
   "OUTD": {
+   "cycles": 16,
    "group": "Ports",
    "name": "Output and decrement",
    "syntax": "OUTD",
@@ -1777,6 +1850,8 @@
    "flags": "Z is on once B reaches 0."
   },
   "OTDR": {
+   "cycles": [16, 21],
+   "cyclesPair": "{2} cycles for each byte, {1} for the last one",
    "group": "Ports",
    "name": "Output, decrement and repeat",
    "syntax": "OTDR",
@@ -1798,6 +1873,7 @@
    "flags": "Z is on once B reaches 0."
   },
   "NOP": {
+   "cycles": 4,
    "group": "Control",
    "name": "No operation",
    "syntax": "NOP",
@@ -1808,6 +1884,8 @@
    "flags": "No flags change."
   },
   "HALT": {
+   "cycles": 4,
+   "cyclesNote": "It then waits, 4 cycles at a time, until the next interrupt (50 times a second on the Spectrum).",
    "group": "Control",
    "name": "Halt",
    "syntax": "HALT",
@@ -1819,6 +1897,7 @@
    "more": "If interrupts are off (after DI), HALT waits for ever."
   },
   "DI": {
+   "cycles": 4,
    "group": "Control",
    "name": "Disable interrupts",
    "syntax": "DI",
@@ -1829,6 +1908,7 @@
    "flags": "No flags change."
   },
   "EI": {
+   "cycles": 4,
    "group": "Control",
    "name": "Enable interrupts",
    "syntax": "EI",
@@ -1839,6 +1919,7 @@
    "flags": "No flags change."
   },
   "IM": {
+   "cycles": 8,
    "group": "Control",
    "name": "Interrupt mode",
    "syntax": "IM number",
