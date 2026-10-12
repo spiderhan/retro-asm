@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.4
+
+- The code now lives on GitHub: [spiderhan/retro-asm](https://github.com/spiderhan/retro-asm). The extension's details link to it, and problems can be reported on its Issues page.
+- README: the install steps now start from the Releases page, where each new `.vsix` is put.
+
 ## 0.7.3
 
 Ready to share: the docs and code are general, for any program.
