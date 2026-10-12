@@ -1,0 +1,66 @@
+{
+  "_help": [
+    "A chip file. Everything the tooltips say comes from here, so write it in your own words.",
+    "Save the file and it reloads. Then open a source file and run 'Retro ASM: Switch chip'.",
+    "Only id, name and instructions are needed to start; add the rest as you go.",
+    "For full worked examples, look at tms9900.json, z80.json, 6502.json (C64) and bbc.json inside the extension's dialects folder."
+  ],
+  "id": "__ID__",
+  "name": "__NAME__",
+  "short": "__NAME__",
+  "fileExtensions": [".__ID__"],
+  "about": "One line about this chip.",
+
+  "syntax": {
+    "_help": "How the source is laid out. Delete a line to get the usual default.",
+    "lineComment": [";"],
+    "col0Comment": [],
+    "col0IsAlwaysLabel": false,
+    "indentedLabels": true,
+    "stringQuotes": ["\""],
+    "hexPrefixes": ["$", "0x"],
+    "binPrefixes": ["%"],
+    "hexSuffix": true,
+    "hexDisplay": "$",
+    "leftToRightMath": false,
+    "highByteName": "high byte",
+    "lowByteName": "low byte"
+  },
+
+  "registers": {
+    "names": ["A", "X", "Y"],
+    "about": "One line about what a register is on this chip.",
+    "notes": {
+      "A": "The main register."
+    }
+  },
+
+  "operandForms": [
+    { "re": "^\\((.+)\\)$", "example": "(LABEL)", "text": "the {unit} stored at {e1}", "name": "Memory at an address", "help": "What this way of writing an operand means." },
+    { "re": "@REGISTER", "example": "A", "text": "{r1}", "name": "Register" }
+  ],
+
+  "instructions": {
+    "_help": [
+      "ops says what each operand is: g = a register or memory place, i = a number, t = a label to jump to, r = a register.",
+      "explain is the sentence shown as 'This line:'. {1} and {2} stand for the first and second operand.",
+      "Add \"local\": true to short jumps, so the labels they go to are tucked inside their routine in the Outline."
+    ],
+    "LDA": { "group": "Moving data", "name": "Load A", "syntax": "LDA value", "ops": ["g"], "summary": "Copies a value into A.", "explain": "Copy {1} into A." },
+    "JMP": { "group": "Jumps", "name": "Jump", "syntax": "JMP label", "ops": ["t"], "summary": "Always jumps to the label.", "explain": "Jump to {1}." },
+    "RTS": { "group": "Calling routines", "name": "Return", "syntax": "RTS", "ops": [], "summary": "Returns from a routine.", "explain": "Return to the caller." }
+  },
+
+  "directives": {
+    "_help": "kind is one of: equ, data, text, space, include, import, export, origin, end, macro, endmacro, if, elif, else, endif, for, next, skipto, other. ops is [fewest, most] operands.",
+    "EQU": { "kind": "equ", "name": "Equate", "syntax": "NAME EQU value", "ops": [1, 1], "summary": "Gives a name to a number." },
+    "ORG": { "kind": "origin", "name": "Origin", "syntax": "ORG address", "ops": [1, 1], "summary": "Says where in memory the following code goes." },
+    "DB":  { "kind": "data", "unit": 1, "name": "Bytes", "syntax": "DB value,value,...", "ops": [1, 999], "summary": "Puts bytes into the program." },
+    "DW":  { "kind": "data", "unit": 2, "name": "Words", "syntax": "DW value,value,...", "ops": [1, 999], "summary": "Puts words (2 bytes each) into the program." }
+  },
+
+  "addresses": {
+    "_help": "Hex address (no prefix) and what lives there. Shown when that address is hovered.",
+    "FFFC": "Example: the reset vector."
+  }
+}

@@ -1,0 +1,51 @@
+* =========================================================
+*  PADDLE - made-up test program: move a bat with the keys
+* =========================================================
+
+       DEF  START
+       REF  VSBW,VMBW,VWTR
+
+* ---------- Data ----------
+WS     BSS  32
+
+BATPAT DATA >7EFF,>FFFF,>FFFF,>FF7E   * Pattern 136: the bat
+*         Y,X,drawing,colour
+SPRITE BYTE 160,112,136,15            * Sprite 0: bat (white)
+       BYTE >D0                       * End of sprite list
+       EVEN
+ROWBIT DATA >0400
+SERVE  DATA 8
+
+START  LWPI WS
+       LIMI 0
+       CLR  R0                * Start at video address 0
+       LI   R1,>2000
+BLANK  BLWP @VSBW
+       INC  R0
+       JNE  BLANK
+       MOVB R0,@>83D4
+LOOP   MOVB @>8379,R3
+TICK   LIMI 2
+       CB   @>8379,R3
+       JEQ  TICK
+       BL   @KEYCOL
+       COC  @ROWBIT,R2        * Enter?
+       JNE  K2
+       SOC  @SERVE,R9
+K2     LI   R1,>0200          * Column 2
+K5
+
+       MOVB R5,@SPRITE+1      *   Bat's X
+       AI   R5,->0300         *   3 pixels left
+       JMP  LOOP
+
+* ---------------------------------------------------------
+* KEYCOL - read one keyboard column
+*   In:  R1 left byte = column number (0-7)
+* ---------------------------------------------------------
+KEYCOL LI   R12,>0024         * CRU address of the column select lines
+       LDCR R1,3              * Choose the column (3 bits)
+       INV  R2                * Lines read 0 when pressed; flip them
+       RT                     * Return
+
+       END  START

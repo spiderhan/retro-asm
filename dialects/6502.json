@@ -1,0 +1,2172 @@
+{
+ "id": "6502",
+ "name": "6502 (Commodore 64, KickAssembler)",
+ "short": "6502",
+ "fileExtensions": [
+  ".asm",
+  ".s",
+  ".6502"
+ ],
+ "about": "The 8-bit chip in the Commodore 64 (a 6510, which is a 6502 with an extra port), and in the BBC Micro, Apple II, Atari 8-bit and NES. Written the KickAssembler way, with the C64's memory and chips explained.",
+ "syntax": {
+  "lineComment": [
+   "//"
+  ],
+  "blockComment": [
+   "/*",
+   "*/"
+  ],
+  "col0Comment": [],
+  "spaceStarComment": false,
+  "operandsEndAtSpace": false,
+  "col0IsAlwaysLabel": false,
+  "labelsNeedColon": true,
+  "indentedLabels": true,
+  "stringQuotes": [
+   "\"",
+   "'"
+  ],
+  "hexPrefixes": [
+   "$"
+  ],
+  "binPrefixes": [
+   "%"
+  ],
+  "hexSuffix": false,
+  "hexDisplay": "$",
+  "addressPrefix": "",
+  "leftToRightMath": false,
+  "wordBits": 16,
+  "byteName": "byte",
+  "wordName": "word",
+  "highByteName": "high byte",
+  "lowByteName": "low byte",
+  "starOrigin": true,
+  "braceBlocks": true,
+  "parenCalls": true,
+  "dottedNames": true,
+  "hereSymbol": "*",
+  "lowHighBytes": true,
+  "joinIndexed": true
+ },
+ "build": {
+  "_about": "How to build code for this chip. With no build command or build.bat, the hint is shown.",
+  "hint": "For 6502 code, set \"retroAsm.build.command\" to run KickAssembler, for example java -jar C:\\path\\to\\KickAss.jar \"${file}\" (or put a build.bat next to the file), and \"retroAsm.build.runCommand\" to start VICE."
+ },
+ "sizing": {
+  "evenAlign": false,
+  "base": 1,
+  "jumpUnit": 1,
+  "jumpFrom": 2,
+  "jumpBack": 128,
+  "jumpForward": 127,
+  "loadAddress": "0801",
+  "loadNote": "With no *= line, this assumes the code starts at $0801, where a C64 BASIC program goes",
+  "forms": [
+   {
+    "re": "^$",
+    "bytes": 1
+   },
+   {
+    "re": "^A$",
+    "bytes": 1
+   },
+   {
+    "re": "^#",
+    "bytes": 2
+   },
+   {
+    "re": "^\\(.*\\),Y$",
+    "bytes": 2
+   },
+   {
+    "re": "^\\(.*,X\\)$",
+    "bytes": 2
+   },
+   {
+    "re": "^\\(.*\\)$",
+    "bytes": 3
+   },
+   {
+    "re": "^(.*),X$",
+    "bytes": 3,
+    "zeroPage": {
+     "bytes": 2
+    }
+   },
+   {
+    "re": "^(.*),Y$",
+    "bytes": 3,
+    "zeroPage": {
+     "bytes": 2,
+     "only": [
+      "LDX",
+      "STX"
+     ]
+    }
+   },
+   {
+    "re": "^(.*)$",
+    "bytes": 3,
+    "zeroPage": {
+     "bytes": 2
+    }
+   }
+  ]
+ },
+ "checks": {},
+ "registers": {
+  "names": [
+   "A",
+   "X",
+   "Y"
+  ],
+  "about": "The 6502 has only three registers, one byte each: A for sums, and X and Y, mostly for counting and for stepping through tables. Most work is done in memory, especially the zero page ($00 to $FF).",
+  "notes": {
+   "A": "The accumulator: sums, comparisons and the bit instructions all work on A.",
+   "X": "An index register: added to an address with `,X`, and handy as a loop counter (DEX, BNE).",
+   "Y": "An index register: added to an address with `,Y`, and the only one that works with a zero-page pointer: `($FB),Y`."
+  }
+ },
+ "conditions": {},
+ "operandForms": [
+  {
+   "re": "^#<(.+)$",
+   "example": "#<label",
+   "text": "the low byte of {v1}",
+   "name": "Low byte",
+   "help": "`<` takes the low (right-hand) byte of a 16-bit number such as an address. `#<label` and `#>label` are how an address is loaded one byte at a time."
+  },
+  {
+   "re": "^#>(.+)$",
+   "example": "#>label",
+   "text": "the high byte of {v1}",
+   "name": "High byte",
+   "help": "`>` takes the high (left-hand) byte of a 16-bit number such as an address."
+  },
+  {
+   "re": "^#(.+)$",
+   "example": "#$05",
+   "text": "the number {v1}",
+   "name": "A number (immediate)",
+   "help": "`#` means \"this number itself\". Without it, the same number means the byte stored at that address, which is a common mistake."
+  },
+  {
+   "re": "^\\((.+)\\),\\s*Y$",
+   "example": "($FB),Y",
+   "text": "the byte Y places past the address stored at {e1} (and the byte after it)",
+   "name": "Pointer in the zero page, plus Y",
+   "help": "The two bytes at a zero-page address hold another address, low byte first. Y is added to that and the byte there is used. The usual way to walk through memory with a pointer."
+  },
+  {
+   "re": "^\\((.+),\\s*X\\)$",
+   "example": "($FB,X)",
+   "text": "the byte at the address stored at {e1} + X",
+   "name": "Pointer picked by X",
+   "help": "X is added to the zero-page address first, then the two bytes there are read as an address. Rarely needed."
+  },
+  {
+   "re": "^\\((.+)\\)$",
+   "example": "($0314)",
+   "text": "the address stored at {e1} (and the byte after it)",
+   "name": "Address stored in memory",
+   "help": "Only JMP uses this: it jumps to the address held in the two bytes there, low byte first."
+  },
+  {
+   "re": "^(.+),\\s*([XY])$",
+   "example": "$0400,X",
+   "text": "the byte at {e1} + {r2}",
+   "name": "Address plus X or Y",
+   "help": "The register is added to the address, so the same line reaches a different byte each time round a loop. Used for tables and for screen memory."
+  },
+  {
+   "re": "@REGISTER",
+   "example": "A",
+   "text": "{r1}",
+   "name": "Register"
+  },
+  {
+   "re": "^(.+)$",
+   "example": "$D020",
+   "text": "the byte at {e1}",
+   "quiet": true,
+   "name": "Byte at an address",
+   "help": "A number or label without `#` means the byte stored at that address. Addresses $00 to $FF (the zero page) make shorter, faster instructions."
+  }
+ ],
+ "instructions": {
+  "LDA": {
+   "group": "Moving data",
+   "name": "Load A",
+   "syntax": "LDA #5   or   LDA address",
+   "ops": {
+    "1": [
+     "g"
+    ],
+    "2": [
+     "g",
+     "r"
+    ]
+   },
+   "rw": [
+    "r",
+    "r"
+   ],
+   "implicit": {
+    "w": [
+     "A"
+    ]
+   },
+   "resultReg": "A",
+   "summary": "Puts a number, or the byte stored at an address, into A.",
+   "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+   "explain": "Put {1} into A.",
+   "size": "byte"
+  },
+  "STA": {
+   "group": "Moving data",
+   "name": "Store A",
+   "syntax": "STA address",
+   "ops": {
+    "1": [
+     "g"
+    ],
+    "2": [
+     "g",
+     "r"
+    ]
+   },
+   "rw": [
+    "r",
+    "r"
+   ],
+   "implicit": {
+    "r": [
+     "A"
+    ]
+   },
+   "summary": "Copies A into memory. A is not changed.",
+   "more": "There is no store-a-number instruction: load the number into a register first, then store it.",
+   "flags": "No flags change.",
+   "explain": "Copy A into {1}.",
+   "size": "byte"
+  },
+  "LDX": {
+   "group": "Moving data",
+   "name": "Load X",
+   "syntax": "LDX #5   or   LDX address",
+   "ops": {
+    "1": [
+     "g"
+    ],
+    "2": [
+     "g",
+     "r"
+    ]
+   },
+   "rw": [
+    "r",
+    "r"
+   ],
+   "implicit": {
+    "w": [
+     "X"
+    ]
+   },
+   "resultReg": "X",
+   "summary": "Puts a number, or the byte stored at an address, into X.",
+   "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+   "explain": "Put {1} into X.",
+   "size": "byte"
+  },
+  "STX": {
+   "group": "Moving data",
+   "name": "Store X",
+   "syntax": "STX address",
+   "ops": {
+    "1": [
+     "g"
+    ],
+    "2": [
+     "g",
+     "r"
+    ]
+   },
+   "rw": [
+    "r",
+    "r"
+   ],
+   "implicit": {
+    "r": [
+     "X"
+    ]
+   },
+   "summary": "Copies X into memory. X is not changed.",
+   "flags": "No flags change.",
+   "explain": "Copy X into {1}.",
+   "size": "byte"
+  },
+  "LDY": {
+   "group": "Moving data",
+   "name": "Load Y",
+   "syntax": "LDY #5   or   LDY address",
+   "ops": {
+    "1": [
+     "g"
+    ],
+    "2": [
+     "g",
+     "r"
+    ]
+   },
+   "rw": [
+    "r",
+    "r"
+   ],
+   "implicit": {
+    "w": [
+     "Y"
+    ]
+   },
+   "resultReg": "Y",
+   "summary": "Puts a number, or the byte stored at an address, into Y.",
+   "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+   "explain": "Put {1} into Y.",
+   "size": "byte"
+  },
+  "STY": {
+   "group": "Moving data",
+   "name": "Store Y",
+   "syntax": "STY address",
+   "ops": {
+    "1": [
+     "g"
+    ],
+    "2": [
+     "g",
+     "r"
+    ]
+   },
+   "rw": [
+    "r",
+    "r"
+   ],
+   "implicit": {
+    "r": [
+     "Y"
+    ]
+   },
+   "summary": "Copies Y into memory. Y is not changed.",
+   "flags": "No flags change.",
+   "explain": "Copy Y into {1}.",
+   "size": "byte"
+  },
+  "TAX": {
+   "group": "Moving data",
+   "name": "Copy A to X",
+   "syntax": "TAX",
+   "ops": [],
+   "implicit": {
+    "r": [
+     "A"
+    ],
+    "w": [
+     "X"
+    ]
+   },
+   "resultReg": "X",
+   "summary": "Copies A into X. A is not changed.",
+   "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+   "explain": "Copy A into X.",
+   "size": "byte"
+  },
+  "TAY": {
+   "group": "Moving data",
+   "name": "Copy A to Y",
+   "syntax": "TAY",
+   "ops": [],
+   "implicit": {
+    "r": [
+     "A"
+    ],
+    "w": [
+     "Y"
+    ]
+   },
+   "resultReg": "Y",
+   "summary": "Copies A into Y. A is not changed.",
+   "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+   "explain": "Copy A into Y.",
+   "size": "byte"
+  },
+  "TXA": {
+   "group": "Moving data",
+   "name": "Copy X to A",
+   "syntax": "TXA",
+   "ops": [],
+   "implicit": {
+    "r": [
+     "X"
+    ],
+    "w": [
+     "A"
+    ]
+   },
+   "resultReg": "A",
+   "summary": "Copies X into A. X is not changed.",
+   "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+   "explain": "Copy X into A.",
+   "size": "byte"
+  },
+  "TYA": {
+   "group": "Moving data",
+   "name": "Copy Y to A",
+   "syntax": "TYA",
+   "ops": [],
+   "implicit": {
+    "r": [
+     "Y"
+    ],
+    "w": [
+     "A"
+    ]
+   },
+   "resultReg": "A",
+   "summary": "Copies Y into A. Y is not changed.",
+   "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+   "explain": "Copy Y into A.",
+   "size": "byte"
+  },
+  "TSX": {
+   "group": "Stack",
+   "name": "Copy stack pointer to X",
+   "syntax": "TSX",
+   "ops": [],
+   "implicit": {
+    "w": [
+     "X"
+    ]
+   },
+   "resultReg": "X",
+   "summary": "Copies the stack pointer into X, so a routine can look at what is on the stack.",
+   "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+   "explain": "Copy the stack pointer into X.",
+   "size": "byte"
+  },
+  "TXS": {
+   "group": "Stack",
+   "name": "Copy X to stack pointer",
+   "syntax": "TXS",
+   "ops": [],
+   "implicit": {
+    "r": [
+     "X"
+    ]
+   },
+   "summary": "Sets the stack pointer from X. Usually only done once, at the start of a program (`LDX #$FF` then `TXS`).",
+   "flags": "No flags change.",
+   "explain": "Set the stack pointer to X.",
+   "size": "byte"
+  },
+  "PHA": {
+   "group": "Stack",
+   "name": "Push A",
+   "syntax": "PHA",
+   "ops": [],
+   "implicit": {
+    "r": [
+     "A"
+    ]
+   },
+   "summary": "Puts a copy of A on the stack. Get it back later with PLA.",
+   "flags": "No flags change.",
+   "explain": "Push A onto the stack.",
+   "size": "byte"
+  },
+  "PLA": {
+   "group": "Stack",
+   "name": "Pull A",
+   "syntax": "PLA",
+   "ops": [],
+   "implicit": {
+    "w": [
+     "A"
+    ]
+   },
+   "resultReg": "A",
+   "summary": "Takes the top byte off the stack and puts it in A.",
+   "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+   "explain": "Take the top byte off the stack and put it in A.",
+   "size": "byte"
+  },
+  "PHP": {
+   "group": "Stack",
+   "name": "Push flags",
+   "syntax": "PHP",
+   "ops": [],
+   "summary": "Puts a copy of the flags on the stack. Get them back later with PLP.",
+   "flags": "No flags change.",
+   "explain": "Push the flags onto the stack.",
+   "size": "byte"
+  },
+  "PLP": {
+   "group": "Stack",
+   "name": "Pull flags",
+   "syntax": "PLP",
+   "ops": [],
+   "summary": "Takes the top byte off the stack and puts it back into the flags.",
+   "flags": "All flags come from the stack.",
+   "explain": "Take the top byte off the stack and put it back into the flags.",
+   "size": "byte"
+  },
+  "ADC": {
+   "group": "Sums",
+   "name": "Add with carry",
+   "syntax": "ADC #5   or   ADC address",
+   "ops": {
+    "1": [
+     "g"
+    ],
+    "2": [
+     "g",
+     "r"
+    ]
+   },
+   "rw": [
+    "r",
+    "r"
+   ],
+   "implicit": {
+    "r": [
+     "A"
+    ],
+    "w": [
+     "A"
+    ]
+   },
+   "resultReg": "A",
+   "summary": "Adds a number to A, plus 1 more if the carry flag is on.",
+   "more": "There is no plain add: put `CLC` before `ADC` so the carry starts off. After a sum that went past 255, the carry is on, which is how bigger numbers are added a byte at a time.",
+   "flags": "Carry (the sum went past 255), overflow, zero and negative.",
+   "explain": "Add {1} to A, plus 1 if the carry flag is on.",
+   "size": "byte"
+  },
+  "SBC": {
+   "group": "Sums",
+   "name": "Subtract with carry",
+   "syntax": "SBC #5   or   SBC address",
+   "ops": {
+    "1": [
+     "g"
+    ],
+    "2": [
+     "g",
+     "r"
+    ]
+   },
+   "rw": [
+    "r",
+    "r"
+   ],
+   "implicit": {
+    "r": [
+     "A"
+    ],
+    "w": [
+     "A"
+    ]
+   },
+   "resultReg": "A",
+   "summary": "Takes a number away from A, and 1 more if the carry flag is off.",
+   "more": "Put `SEC` before `SBC` so the carry starts on (the opposite of ADC). If the answer went below 0, the carry ends up off.",
+   "flags": "Carry (off if it went below 0), overflow, zero and negative.",
+   "explain": "Take {1} away from A, and 1 more if the carry flag is off.",
+   "size": "byte"
+  },
+  "INX": {
+   "group": "Sums",
+   "name": "Add 1 to X",
+   "syntax": "INX",
+   "ops": [],
+   "implicit": {
+    "r": [
+     "X"
+    ],
+    "w": [
+     "X"
+    ]
+   },
+   "resultReg": "X",
+   "summary": "Adds 1 to X. After 255 it goes back round to 0.",
+   "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+   "explain": "Add 1 to X.",
+   "size": "byte"
+  },
+  "DEX": {
+   "group": "Sums",
+   "name": "Take 1 from X",
+   "syntax": "DEX",
+   "ops": [],
+   "implicit": {
+    "r": [
+     "X"
+    ],
+    "w": [
+     "X"
+    ]
+   },
+   "resultReg": "X",
+   "summary": "Takes 1 from X. After 0 it goes back round to 255. With BNE, it makes a loop that runs until X reaches 0.",
+   "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+   "explain": "Take 1 from X.",
+   "size": "byte"
+  },
+  "INY": {
+   "group": "Sums",
+   "name": "Add 1 to Y",
+   "syntax": "INY",
+   "ops": [],
+   "implicit": {
+    "r": [
+     "Y"
+    ],
+    "w": [
+     "Y"
+    ]
+   },
+   "resultReg": "Y",
+   "summary": "Adds 1 to Y. After 255 it goes back round to 0.",
+   "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+   "explain": "Add 1 to Y.",
+   "size": "byte"
+  },
+  "DEY": {
+   "group": "Sums",
+   "name": "Take 1 from Y",
+   "syntax": "DEY",
+   "ops": [],
+   "implicit": {
+    "r": [
+     "Y"
+    ],
+    "w": [
+     "Y"
+    ]
+   },
+   "resultReg": "Y",
+   "summary": "Takes 1 from Y. After 0 it goes back round to 255. With BNE, it makes a loop that runs until Y reaches 0.",
+   "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+   "explain": "Take 1 from Y.",
+   "size": "byte"
+  },
+  "INC": {
+   "group": "Sums",
+   "name": "Add 1 to memory",
+   "syntax": "INC address",
+   "ops": {
+    "1": [
+     "g"
+    ],
+    "2": [
+     "g",
+     "r"
+    ]
+   },
+   "rw": [
+    "r",
+    "r"
+   ],
+   "sets": "result:1",
+   "summary": "Adds 1 to the byte stored at an address. After 255 it goes back round to 0.",
+   "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+   "explain": "Add 1 to {1}.",
+   "size": "byte"
+  },
+  "DEC": {
+   "group": "Sums",
+   "name": "Take 1 from memory",
+   "syntax": "DEC address",
+   "ops": {
+    "1": [
+     "g"
+    ],
+    "2": [
+     "g",
+     "r"
+    ]
+   },
+   "rw": [
+    "r",
+    "r"
+   ],
+   "sets": "result:1",
+   "summary": "Takes 1 from the byte stored at an address. After 0 it goes back round to 255.",
+   "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+   "explain": "Take 1 from {1}.",
+   "size": "byte"
+  },
+  "AND": {
+   "group": "Bits",
+   "name": "And",
+   "syntax": "AND #%00001111",
+   "ops": {
+    "1": [
+     "g"
+    ],
+    "2": [
+     "g",
+     "r"
+    ]
+   },
+   "rw": [
+    "r",
+    "r"
+   ],
+   "implicit": {
+    "r": [
+     "A"
+    ],
+    "w": [
+     "A"
+    ]
+   },
+   "resultReg": "A",
+   "summary": "Keeps only the bits of A that are also on in the number. The rest are turned off.",
+   "more": "Handy for picking out part of a byte: `AND #%00001111` keeps the right-hand four bits.",
+   "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+   "explain": "Keep only the bits of A that are also on in {1}.",
+   "size": "byte"
+  },
+  "ORA": {
+   "group": "Bits",
+   "name": "Or",
+   "syntax": "ORA #%10000000",
+   "ops": {
+    "1": [
+     "g"
+    ],
+    "2": [
+     "g",
+     "r"
+    ]
+   },
+   "rw": [
+    "r",
+    "r"
+   ],
+   "implicit": {
+    "r": [
+     "A"
+    ],
+    "w": [
+     "A"
+    ]
+   },
+   "resultReg": "A",
+   "summary": "Turns on in A every bit that is on in the number. The others are left alone.",
+   "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+   "explain": "Turn on in A every bit that is on in {1}.",
+   "size": "byte"
+  },
+  "EOR": {
+   "group": "Bits",
+   "name": "Exclusive or (flip bits)",
+   "syntax": "EOR #%11111111",
+   "ops": {
+    "1": [
+     "g"
+    ],
+    "2": [
+     "g",
+     "r"
+    ]
+   },
+   "rw": [
+    "r",
+    "r"
+   ],
+   "implicit": {
+    "r": [
+     "A"
+    ],
+    "w": [
+     "A"
+    ]
+   },
+   "resultReg": "A",
+   "summary": "Flips the bits of A that are on in the number: on becomes off and off becomes on.",
+   "more": "`EOR #$FF` flips every bit.",
+   "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+   "explain": "Flip the bits of A that are on in {1}.",
+   "size": "byte"
+  },
+  "BIT": {
+   "group": "Bits",
+   "name": "Test bits",
+   "syntax": "BIT address",
+   "ops": {
+    "1": [
+     "g"
+    ]
+   },
+   "implicit": {
+    "r": [
+     "A"
+    ]
+   },
+   "summary": "Tests a byte in memory without changing anything. The zero flag shows whether it shares any 'on' bits with A. Its top bit is copied into the negative flag and the next bit into the overflow flag.",
+   "more": "Often used just to look at the top bit of a hardware register: `BIT $D011` then `BPL` or `BMI`.",
+   "flags": "Zero (no bits shared with A), negative (bit 7 of the byte), overflow (bit 6).",
+   "explain": "Test {1} against A, without changing either.",
+   "size": "byte"
+  },
+  "ASL": {
+   "group": "Bits",
+   "name": "Shift left",
+   "syntax": "ASL   or   ASL address",
+   "ops": {
+    "0": [],
+    "1": [
+     "g"
+    ],
+    "2": [
+     "g",
+     "r"
+    ]
+   },
+   "rw": [
+    "rw",
+    "r"
+   ],
+   "summary": "Slides all the bits one place left, which doubles the number. A 0 comes in on the right; the bit pushed out on the left goes into the carry flag.",
+   "flags": "Carry (the bit pushed out), zero and negative.",
+   "explain": {
+    "0": "Shift A left one bit (doubling it).",
+    "1": "Shift {1} left one bit (doubling it)."
+   },
+   "size": "byte"
+  },
+  "LSR": {
+   "group": "Bits",
+   "name": "Shift right",
+   "syntax": "LSR   or   LSR address",
+   "ops": {
+    "0": [],
+    "1": [
+     "g"
+    ],
+    "2": [
+     "g",
+     "r"
+    ]
+   },
+   "rw": [
+    "rw",
+    "r"
+   ],
+   "summary": "Slides all the bits one place right, which halves the number (dropping any half). A 0 comes in on the left; the bit pushed out on the right goes into the carry flag.",
+   "flags": "Carry (the bit pushed out), zero and negative.",
+   "explain": {
+    "0": "Shift A right one bit (halving it).",
+    "1": "Shift {1} right one bit (halving it)."
+   },
+   "size": "byte"
+  },
+  "ROL": {
+   "group": "Bits",
+   "name": "Rotate left",
+   "syntax": "ROL   or   ROL address",
+   "ops": {
+    "0": [],
+    "1": [
+     "g"
+    ],
+    "2": [
+     "g",
+     "r"
+    ]
+   },
+   "rw": [
+    "rw",
+    "r"
+   ],
+   "summary": "Slides all the bits one place left. The carry flag comes in on the right, and the bit pushed out on the left becomes the new carry.",
+   "more": "Used after ASL to double a number bigger than one byte.",
+   "flags": "Carry (the bit pushed out), zero and negative.",
+   "explain": {
+    "0": "Rotate A left one bit through the carry flag.",
+    "1": "Rotate {1} left one bit through the carry flag."
+   },
+   "size": "byte"
+  },
+  "ROR": {
+   "group": "Bits",
+   "name": "Rotate right",
+   "syntax": "ROR   or   ROR address",
+   "ops": {
+    "0": [],
+    "1": [
+     "g"
+    ],
+    "2": [
+     "g",
+     "r"
+    ]
+   },
+   "rw": [
+    "rw",
+    "r"
+   ],
+   "summary": "Slides all the bits one place right. The carry flag comes in on the left, and the bit pushed out on the right becomes the new carry.",
+   "more": "Used after LSR to halve a number bigger than one byte.",
+   "flags": "Carry (the bit pushed out), zero and negative.",
+   "explain": {
+    "0": "Rotate A right one bit through the carry flag.",
+    "1": "Rotate {1} right one bit through the carry flag."
+   },
+   "size": "byte"
+  },
+  "CMP": {
+   "group": "Comparing",
+   "name": "Compare with A",
+   "syntax": "CMP #5   or   CMP address",
+   "ops": {
+    "1": [
+     "g"
+    ],
+    "2": [
+     "g",
+     "r"
+    ]
+   },
+   "rw": [
+    "r",
+    "r"
+   ],
+   "implicit": {
+    "r": [
+     "A"
+    ]
+   },
+   "sets": "compare",
+   "compareReg": "A",
+   "signed": false,
+   "summary": "Compares A with a number, without changing either. The flags then say how they compare.",
+   "flags": "Zero (equal), carry (A is the same or bigger), negative. Follow with BEQ, BNE, BCS (same or bigger) or BCC (smaller).",
+   "explain": "Compare A with {1}.",
+   "size": "byte"
+  },
+  "CPX": {
+   "group": "Comparing",
+   "name": "Compare with X",
+   "syntax": "CPX #5   or   CPX address",
+   "ops": {
+    "1": [
+     "g"
+    ]
+   },
+   "rw": [
+    "r",
+    "r"
+   ],
+   "implicit": {
+    "r": [
+     "X"
+    ]
+   },
+   "sets": "compare",
+   "compareReg": "X",
+   "signed": false,
+   "summary": "Compares X with a number, without changing either. The flags then say how they compare.",
+   "flags": "Zero (equal), carry (X is the same or bigger), negative. Follow with BEQ, BNE, BCS (same or bigger) or BCC (smaller).",
+   "explain": "Compare X with {1}.",
+   "size": "byte"
+  },
+  "CPY": {
+   "group": "Comparing",
+   "name": "Compare with Y",
+   "syntax": "CPY #5   or   CPY address",
+   "ops": {
+    "1": [
+     "g"
+    ]
+   },
+   "rw": [
+    "r",
+    "r"
+   ],
+   "implicit": {
+    "r": [
+     "Y"
+    ]
+   },
+   "sets": "compare",
+   "compareReg": "Y",
+   "signed": false,
+   "summary": "Compares Y with a number, without changing either. The flags then say how they compare.",
+   "flags": "Zero (equal), carry (Y is the same or bigger), negative. Follow with BEQ, BNE, BCS (same or bigger) or BCC (smaller).",
+   "explain": "Compare Y with {1}.",
+   "size": "byte"
+  },
+  "BEQ": {
+   "group": "Jumps",
+   "name": "Branch if equal",
+   "syntax": "BEQ label",
+   "ops": [
+    "t"
+   ],
+   "cond": "eq",
+   "local": true,
+   "bytes": 2,
+   "summary": "Jumps if the last result was 0, or the two things just compared were equal. Otherwise carries on with the next line.",
+   "more": "It can only reach 128 bytes back or 127 ahead. For further, branch the opposite way over a JMP.",
+   "flags": "No flags change.",
+   "explain": "Jump to {1t} if the last result was 0, or the two things just compared were equal.",
+   "size": "byte"
+  },
+  "BNE": {
+   "group": "Jumps",
+   "name": "Branch if not equal",
+   "syntax": "BNE label",
+   "ops": [
+    "t"
+   ],
+   "cond": "ne",
+   "local": true,
+   "bytes": 2,
+   "summary": "Jumps if the last result was not 0, or the two things just compared were different. Otherwise carries on with the next line.",
+   "more": "It can only reach 128 bytes back or 127 ahead. For further, branch the opposite way over a JMP.",
+   "flags": "No flags change.",
+   "explain": "Jump to {1t} if the last result was not 0, or the two things just compared were different.",
+   "size": "byte"
+  },
+  "BCS": {
+   "group": "Jumps",
+   "name": "Branch if carry set",
+   "syntax": "BCS label",
+   "ops": [
+    "t"
+   ],
+   "cond": "he",
+   "local": true,
+   "bytes": 2,
+   "summary": "Jumps if the carry flag is on (after a compare: the register was the same or bigger). Otherwise carries on with the next line.",
+   "more": "It can only reach 128 bytes back or 127 ahead. For further, branch the opposite way over a JMP.",
+   "flags": "No flags change.",
+   "explain": "Jump to {1t} if the carry flag is on (after a compare: the register was the same or bigger).",
+   "size": "byte"
+  },
+  "BCC": {
+   "group": "Jumps",
+   "name": "Branch if carry clear",
+   "syntax": "BCC label",
+   "ops": [
+    "t"
+   ],
+   "cond": "l",
+   "local": true,
+   "bytes": 2,
+   "summary": "Jumps if the carry flag is off (after a compare: the register was smaller). Otherwise carries on with the next line.",
+   "more": "It can only reach 128 bytes back or 127 ahead. For further, branch the opposite way over a JMP.",
+   "flags": "No flags change.",
+   "explain": "Jump to {1t} if the carry flag is off (after a compare: the register was smaller).",
+   "size": "byte"
+  },
+  "BMI": {
+   "group": "Jumps",
+   "name": "Branch if minus",
+   "syntax": "BMI label",
+   "ops": [
+    "t"
+   ],
+   "cond": "mi",
+   "local": true,
+   "bytes": 2,
+   "summary": "Jumps if the last result had its top bit on (a negative number). Otherwise carries on with the next line.",
+   "more": "It can only reach 128 bytes back or 127 ahead. For further, branch the opposite way over a JMP.",
+   "flags": "No flags change.",
+   "explain": "Jump to {1t} if the last result had its top bit on (a negative number).",
+   "size": "byte"
+  },
+  "BPL": {
+   "group": "Jumps",
+   "name": "Branch if plus",
+   "syntax": "BPL label",
+   "ops": [
+    "t"
+   ],
+   "cond": "pl",
+   "local": true,
+   "bytes": 2,
+   "summary": "Jumps if the last result had its top bit off (0 to 127). Otherwise carries on with the next line.",
+   "more": "It can only reach 128 bytes back or 127 ahead. For further, branch the opposite way over a JMP.",
+   "flags": "No flags change.",
+   "explain": "Jump to {1t} if the last result had its top bit off (0 to 127).",
+   "size": "byte"
+  },
+  "BVS": {
+   "group": "Jumps",
+   "name": "Branch if overflow set",
+   "syntax": "BVS label",
+   "ops": [
+    "t"
+   ],
+   "cond": "vs",
+   "local": true,
+   "bytes": 2,
+   "summary": "Jumps if the overflow flag is on. Otherwise carries on with the next line.",
+   "more": "It can only reach 128 bytes back or 127 ahead. For further, branch the opposite way over a JMP.",
+   "flags": "No flags change.",
+   "explain": "Jump to {1t} if the overflow flag is on.",
+   "size": "byte"
+  },
+  "BVC": {
+   "group": "Jumps",
+   "name": "Branch if overflow clear",
+   "syntax": "BVC label",
+   "ops": [
+    "t"
+   ],
+   "cond": "vc",
+   "local": true,
+   "bytes": 2,
+   "summary": "Jumps if the overflow flag is off. Otherwise carries on with the next line.",
+   "more": "It can only reach 128 bytes back or 127 ahead. For further, branch the opposite way over a JMP.",
+   "flags": "No flags change.",
+   "explain": "Jump to {1t} if the overflow flag is off.",
+   "size": "byte"
+  },
+  "JMP": {
+   "group": "Jumps",
+   "name": "Jump",
+   "syntax": "JMP label   or   JMP ($0314)",
+   "ops": [
+    "g"
+   ],
+   "far": true,
+   "bytes": 3,
+   "summary": "Jumps to any address. No way back is saved.",
+   "more": "With brackets it jumps to the address stored in memory there (low byte first), for example through a table of routines.",
+   "flags": "No flags change.",
+   "explain": "Jump to {1t}. No way back is saved.",
+   "special": [
+    {
+     "re": "^\\(",
+     "text": "Jump to {1}. No way back is saved."
+    }
+   ],
+   "size": "byte"
+  },
+  "JSR": {
+   "group": "Calling routines",
+   "name": "Jump to subroutine (call)",
+   "syntax": "JSR label",
+   "ops": [
+    "t"
+   ],
+   "call": true,
+   "bytes": 3,
+   "summary": "Calls a routine. The way back is saved on the stack, and the routine's RTS comes back to the next line.",
+   "flags": "No flags change.",
+   "explain": "Call the routine {1t}. The way back is saved on the stack.",
+   "size": "byte"
+  },
+  "RTS": {
+   "group": "Calling routines",
+   "name": "Return from subroutine",
+   "syntax": "RTS",
+   "ops": [],
+   "returns": true,
+   "summary": "Returns from a routine called with JSR, using the way back saved on the stack.",
+   "flags": "No flags change.",
+   "explain": "Return to the caller.",
+   "size": "byte"
+  },
+  "RTI": {
+   "group": "Calling routines",
+   "name": "Return from interrupt",
+   "syntax": "RTI",
+   "ops": [],
+   "returns": true,
+   "summary": "Ends an interrupt routine: gets the flags and the way back off the stack.",
+   "more": "On the C64, an interrupt routine set up through $0314 usually ends with `JMP $EA31` (or `JMP $EA81`) instead, so the system's own work still gets done.",
+   "flags": "All flags come from the stack.",
+   "explain": "Return from the interrupt.",
+   "size": "byte"
+  },
+  "BRK": {
+   "group": "Calling routines",
+   "name": "Break",
+   "syntax": "BRK",
+   "ops": [],
+   "summary": "Stops the program and jumps to the break routine. On the C64 that usually means back to BASIC, or into a monitor if one is running.",
+   "flags": "Sets the break and interrupt-disable flags.",
+   "explain": "Stop here (break).",
+   "size": "byte"
+  },
+  "CLC": {
+   "group": "Flags",
+   "name": "Clear carry",
+   "syntax": "CLC",
+   "ops": [],
+   "summary": "Turns the carry flag off. Put it before ADC.",
+   "flags": "Only that flag changes.",
+   "explain": "Turn the carry flag off.",
+   "size": "byte"
+  },
+  "SEC": {
+   "group": "Flags",
+   "name": "Set carry",
+   "syntax": "SEC",
+   "ops": [],
+   "summary": "Turns the carry flag on. Put it before SBC.",
+   "flags": "Only that flag changes.",
+   "explain": "Turn the carry flag on.",
+   "size": "byte"
+  },
+  "CLI": {
+   "group": "Flags",
+   "name": "Allow interrupts",
+   "syntax": "CLI",
+   "ops": [],
+   "summary": "Turns the interrupt-disable flag off, so interrupts can happen again.",
+   "flags": "Only that flag changes.",
+   "explain": "Allow interrupts again.",
+   "size": "byte"
+  },
+  "SEI": {
+   "group": "Flags",
+   "name": "Stop interrupts",
+   "syntax": "SEI",
+   "ops": [],
+   "summary": "Turns the interrupt-disable flag on, so normal interrupts wait. Used while setting up an interrupt routine.",
+   "flags": "Only that flag changes.",
+   "explain": "Stop interrupts for now.",
+   "size": "byte"
+  },
+  "CLD": {
+   "group": "Flags",
+   "name": "Decimal mode off",
+   "syntax": "CLD",
+   "ops": [],
+   "summary": "Turns decimal mode off, so ADC and SBC work on ordinary binary numbers.",
+   "flags": "Only that flag changes.",
+   "explain": "Turn decimal mode off.",
+   "size": "byte"
+  },
+  "SED": {
+   "group": "Flags",
+   "name": "Decimal mode on",
+   "syntax": "SED",
+   "ops": [],
+   "summary": "Turns decimal mode on: ADC and SBC then treat each half of a byte as one decimal digit (0 to 9). Handy for scores.",
+   "flags": "Only that flag changes.",
+   "explain": "Turn decimal mode on.",
+   "size": "byte"
+  },
+  "CLV": {
+   "group": "Flags",
+   "name": "Clear overflow",
+   "syntax": "CLV",
+   "ops": [],
+   "summary": "Turns the overflow flag off.",
+   "flags": "Only that flag changes.",
+   "explain": "Turn the overflow flag off.",
+   "size": "byte"
+  },
+  "NOP": {
+   "group": "Other",
+   "name": "No operation",
+   "syntax": "NOP",
+   "ops": [],
+   "summary": "Does nothing for 2 cycles. Used for tiny delays or to leave room.",
+   "flags": "No flags change.",
+   "explain": "Do nothing.",
+   "size": "byte"
+  }
+ },
+ "directives": {
+  "*=": {
+   "kind": "origin",
+   "mode": "absolute",
+   "name": "Where the code goes",
+   "syntax": "*=$0801   or   *=$0810 \"Main\"",
+   "ops": [
+    1,
+    1
+   ],
+   "summary": "Says where in memory the following code and data go. A name in quotes after it labels that part in the assembler's memory map."
+  },
+  ".PC": {
+   "kind": "origin",
+   "mode": "absolute",
+   "name": "Where the code goes (old way)",
+   "syntax": ".pc = $0810",
+   "ops": [
+    1,
+    1
+   ],
+   "summary": "The older way of writing `*=`."
+  },
+  "BASICUPSTART2": {
+   "kind": "origin",
+   "mode": "absolute",
+   "fixed": "080D",
+   "name": "BASIC start line",
+   "syntax": "BasicUpstart2(start)",
+   "ops": [
+    1,
+    1
+   ],
+   "summary": "Puts a one-line BASIC program at $0801 (`10 SYS 2061`-style), so typing RUN starts your code at the label you give. Your code then carries on from $080D."
+  },
+  "BASICUPSTART": {
+   "kind": "other",
+   "conditional": true,
+   "name": "BASIC start line (here)",
+   "syntax": "BasicUpstart(start)",
+   "ops": [
+    1,
+    1
+   ],
+   "summary": "Puts a BASIC SYS line at the current address. Usually BasicUpstart2 is easier."
+  },
+  ".BYTE": {
+   "kind": "data",
+   "unit": 1,
+   "name": "Bytes",
+   "syntax": ".byte 1, $FF, %1010",
+   "ops": [
+    1,
+    999
+   ],
+   "summary": "Puts one or more single bytes into the program here."
+  },
+  ".BY": {
+   "kind": "data",
+   "unit": 1,
+   "name": "Bytes",
+   "syntax": ".by 1, 2, 3",
+   "ops": [
+    1,
+    999
+   ],
+   "summary": "Short for `.byte`."
+  },
+  ".WORD": {
+   "kind": "data",
+   "unit": 2,
+   "name": "Words",
+   "syntax": ".word $1234, label",
+   "ops": [
+    1,
+    999
+   ],
+   "summary": "Puts one or more 16-bit numbers into the program, 2 bytes each, low byte first (as the 6502 expects)."
+  },
+  ".WO": {
+   "kind": "data",
+   "unit": 2,
+   "name": "Words",
+   "syntax": ".wo label",
+   "ops": [
+    1,
+    999
+   ],
+   "summary": "Short for `.word`."
+  },
+  ".DWORD": {
+   "kind": "data",
+   "unit": 4,
+   "name": "Double words",
+   "syntax": ".dword $12345678",
+   "ops": [
+    1,
+    999
+   ],
+   "summary": "Puts 32-bit numbers into the program, 4 bytes each, low byte first."
+  },
+  ".TEXT": {
+   "kind": "text",
+   "unit": 1,
+   "name": "Text",
+   "syntax": ".text \"HELLO\"",
+   "ops": [
+    1,
+    999
+   ],
+   "symbolOperands": false,
+   "summary": "Puts the letters of some text into the program, one byte each, in the C64's screen codes (set by `.encoding`)."
+  },
+  ".FILL": {
+   "kind": "space",
+   "symbolOperands": false,
+   "name": "Fill",
+   "syntax": ".fill 40, 0",
+   "ops": [
+    2,
+    2
+   ],
+   "summary": "Puts the same byte (or a worked-out value) into the program a number of times: `.fill count, value`. The value can use `i` for the position: `.fill 8, i*2`."
+  },
+  ".LOHIFILL": {
+   "kind": "other",
+   "conditional": true,
+   "name": "Low/high table",
+   "syntax": ".lohifill 25, screen + i*40",
+   "ops": [
+    2,
+    2
+   ],
+   "symbolOperands": false,
+   "summary": "Makes two tables at once: the low bytes, then the high bytes, of a list of addresses. Reach them with `name.lo` and `name.hi`."
+  },
+  ".ALIGN": {
+   "kind": "other",
+   "alignTo": true,
+   "name": "Align",
+   "syntax": ".align $100",
+   "ops": [
+    1,
+    1
+   ],
+   "summary": "Moves on to the next address that is a multiple of the number, leaving a gap. Used so a table doesn't cross a page (which would cost an extra cycle)."
+  },
+  ".CONST": {
+   "kind": "equ",
+   "nameFirst": true,
+   "name": "Constant",
+   "syntax": ".const BORDER = $D020",
+   "ops": [
+    1,
+    1
+   ],
+   "summary": "Gives a name to a number. It takes up no memory. It can't be changed later."
+  },
+  ".LABEL": {
+   "kind": "equ",
+   "nameFirst": true,
+   "name": "Label for an address",
+   "syntax": ".label border = $D020",
+   "ops": [
+    1,
+    1
+   ],
+   "summary": "Gives a name to an address, without putting anything in the program. Unlike `.const`, the name also shows up in the debugger's list of labels."
+  },
+  ".VAR": {
+   "kind": "equ",
+   "nameFirst": true,
+   "defKind": "param",
+   "name": "Variable",
+   "syntax": ".var count = 0",
+   "ops": [
+    1,
+    1
+   ],
+   "summary": "A name for a value the assembler can change as it goes (with `.eval`). Only the assembler sees it; it isn't in the program."
+  },
+  ".EVAL": {
+   "kind": "other",
+   "name": "Work out",
+   "syntax": ".eval count = count + 1",
+   "ops": [
+    1,
+    1
+   ],
+   "summary": "Works something out while assembling, usually changing a `.var`."
+  },
+  ".ENUM": {
+   "kind": "other",
+   "symbolOperands": false,
+   "name": "Numbered names",
+   "syntax": ".enum {STILL, WALK, JUMP}",
+   "ops": [
+    0,
+    999
+   ],
+   "summary": "Gives a list of names the numbers 0, 1, 2 and so on."
+  },
+  "#IMPORT": {
+   "kind": "include",
+   "name": "Include another file",
+   "syntax": "#import \"music.asm\"",
+   "ops": [
+    1,
+    1
+   ],
+   "symbolOperands": false,
+   "summary": "Pulls in another source file here, as if its lines were written here."
+  },
+  "#IMPORTONCE": {
+   "kind": "other",
+   "name": "Only include once",
+   "syntax": "#importonce",
+   "ops": [
+    0,
+    0
+   ],
+   "summary": "Put at the top of a file that others `#import`, so it is only pulled in once."
+  },
+  ".IMPORT": {
+   "kind": "other",
+   "conditional": true,
+   "symbolOperands": false,
+   "name": "Import (old way)",
+   "syntax": ".import source \"file.asm\"   or   .import binary \"data.bin\"",
+   "ops": [
+    1,
+    2
+   ],
+   "summary": "The older way to pull in a source file, or the raw bytes of a binary file."
+  },
+  ".MACRO": {
+   "kind": "macro",
+   "declares": "params",
+   "symbolOperands": false,
+   "name": "Define a macro",
+   "syntax": ".macro clear(colour) { ... }",
+   "ops": [
+    1,
+    99
+   ],
+   "summary": "A named block of lines that is copied in wherever you write its name, for example `clear(BLACK)`. The names in brackets stand for the values given."
+  },
+  ".FUNCTION": {
+   "kind": "macro",
+   "declares": "params",
+   "symbolOperands": false,
+   "name": "Define a function",
+   "syntax": ".function double(x) { .return x*2 }",
+   "ops": [
+    1,
+    99
+   ],
+   "summary": "A sum you can reuse while assembling, such as `double(5)`. It produces a value, not code."
+  },
+  ".PSEUDOCOMMAND": {
+   "kind": "macro",
+   "declares": "params",
+   "symbolOperands": false,
+   "name": "Define a new instruction",
+   "syntax": ".pseudocommand mov src : dst { ... }",
+   "ops": [
+    1,
+    99
+   ],
+   "summary": "Makes up a new instruction out of real ones, used like `mov #5 : $D020`."
+  },
+  ".RETURN": {
+   "kind": "other",
+   "name": "Give back a value",
+   "syntax": ".return x*2",
+   "ops": [
+    0,
+    1
+   ],
+   "summary": "The value a `.function` gives back."
+  },
+  ".FOR": {
+   "kind": "other",
+   "conditional": true,
+   "declares": "vars",
+   "symbolOperands": false,
+   "name": "Repeat (for)",
+   "syntax": ".for (var i=0; i<8; i++) { ... }",
+   "ops": [
+    1,
+    99
+   ],
+   "summary": "Repeats the lines in the { } block, counting with a variable. Each time round the lines are put into the program again."
+  },
+  ".WHILE": {
+   "kind": "other",
+   "conditional": true,
+   "symbolOperands": false,
+   "name": "Repeat (while)",
+   "syntax": ".while (i<8) { ... }",
+   "ops": [
+    1,
+    99
+   ],
+   "summary": "Repeats the lines in the { } block while the test is true."
+  },
+  ".IF": {
+   "kind": "other",
+   "conditional": true,
+   "name": "If",
+   "syntax": ".if (DEBUG) { ... } else { ... }",
+   "ops": [
+    1,
+    99
+   ],
+   "summary": "Only puts the lines in the { } block into the program if the test is true."
+  },
+  "ELSE": {
+   "kind": "other",
+   "conditional": true,
+   "symbolOperands": false,
+   "name": "Otherwise",
+   "syntax": "} else {",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "Starts the lines to use when the `.if` test was false."
+  },
+  "#IF": {
+   "kind": "other",
+   "conditional": true,
+   "symbolOperands": false,
+   "name": "If defined (before assembling)",
+   "syntax": "#if DEBUG",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "Part of the preprocessor, which runs before assembling: `#define NAME` turns a switch on, and `#if NAME` ... `#endif` keeps lines only when it is on."
+  },
+  "#ELIF": {
+   "kind": "other",
+   "conditional": true,
+   "symbolOperands": false,
+   "name": "Else if (before assembling)",
+   "syntax": "#elif TEST",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "Part of the preprocessor, which runs before assembling: `#define NAME` turns a switch on, and `#if NAME` ... `#endif` keeps lines only when it is on."
+  },
+  "#ELSE": {
+   "kind": "other",
+   "conditional": true,
+   "symbolOperands": false,
+   "name": "Otherwise (before assembling)",
+   "syntax": "#else",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "Part of the preprocessor, which runs before assembling: `#define NAME` turns a switch on, and `#if NAME` ... `#endif` keeps lines only when it is on."
+  },
+  "#ENDIF": {
+   "kind": "other",
+   "conditional": false,
+   "symbolOperands": false,
+   "name": "End of #if",
+   "syntax": "#endif",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "Part of the preprocessor, which runs before assembling: `#define NAME` turns a switch on, and `#if NAME` ... `#endif` keeps lines only when it is on."
+  },
+  "#DEFINE": {
+   "kind": "other",
+   "conditional": false,
+   "symbolOperands": false,
+   "name": "Define a switch",
+   "syntax": "#define DEBUG",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "Part of the preprocessor, which runs before assembling: `#define NAME` turns a switch on, and `#if NAME` ... `#endif` keeps lines only when it is on."
+  },
+  "#UNDEF": {
+   "kind": "other",
+   "conditional": false,
+   "symbolOperands": false,
+   "name": "Remove a switch",
+   "syntax": "#undef DEBUG",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "Part of the preprocessor, which runs before assembling: `#define NAME` turns a switch on, and `#if NAME` ... `#endif` keeps lines only when it is on."
+  },
+  ".PRINT": {
+   "kind": "other",
+   "conditional": false,
+   "symbolOperands": false,
+   "name": "Print",
+   "syntax": ".print",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "Prints a message while assembling."
+  },
+  ".PRINTNOW": {
+   "kind": "other",
+   "conditional": false,
+   "symbolOperands": false,
+   "name": "Print now",
+   "syntax": ".printnow",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "Prints a message straight away, on the first pass."
+  },
+  ".ERROR": {
+   "kind": "other",
+   "conditional": false,
+   "symbolOperands": false,
+   "name": "Stop with an error",
+   "syntax": ".error",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "Stops assembling with your own error message."
+  },
+  ".ERRORIF": {
+   "kind": "other",
+   "conditional": false,
+   "symbolOperands": false,
+   "name": "Error if",
+   "syntax": ".errorif",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "Stops with an error if the test is true: `.errorif (* > $1000), \"Too big\"`."
+  },
+  ".ASSERT": {
+   "kind": "other",
+   "conditional": false,
+   "symbolOperands": false,
+   "name": "Check",
+   "syntax": ".assert",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "Checks that two things are equal while assembling, and reports it if not."
+  },
+  ".ENCODING": {
+   "kind": "other",
+   "conditional": false,
+   "symbolOperands": false,
+   "name": "Text encoding",
+   "syntax": ".encoding",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "Says how `.text` turns letters into bytes: `\"screencode_upper\"` (the default), `\"screencode_mixed\"`, `\"petscii_upper\"` or `\"petscii_mixed\"`."
+  },
+  ".NAMESPACE": {
+   "kind": "other",
+   "conditional": false,
+   "symbolOperands": false,
+   "name": "Namespace",
+   "syntax": ".namespace",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "Keeps the labels inside its { } block apart from the rest."
+  },
+  ".SEGMENT": {
+   "kind": "other",
+   "conditional": true,
+   "symbolOperands": false,
+   "name": "Segment",
+   "syntax": ".segment",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "Switches to a named part of memory set up with `.segmentdef`."
+  },
+  ".SEGMENTDEF": {
+   "kind": "other",
+   "conditional": false,
+   "symbolOperands": false,
+   "name": "Define a segment",
+   "syntax": ".segmentdef",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "Sets up a named part of memory, such as a place for code or for graphics."
+  },
+  ".SEGMENTOUT": {
+   "kind": "other",
+   "conditional": true,
+   "symbolOperands": false,
+   "name": "Segment output",
+   "syntax": ".segmentout",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "Puts the contents of another segment here."
+  },
+  ".FILE": {
+   "kind": "other",
+   "conditional": false,
+   "symbolOperands": false,
+   "name": "Output file",
+   "syntax": ".file",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "Saves some segments to a file of their own."
+  },
+  ".DISK": {
+   "kind": "other",
+   "conditional": false,
+   "symbolOperands": false,
+   "name": "Disk image",
+   "syntax": ".disk",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "Makes a .d64 disk image holding your program."
+  },
+  ".BREAK": {
+   "kind": "other",
+   "conditional": false,
+   "symbolOperands": false,
+   "name": "Breakpoint",
+   "syntax": ".break",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "Marks a place for the VICE debugger to stop."
+  },
+  ".WATCH": {
+   "kind": "other",
+   "conditional": false,
+   "symbolOperands": false,
+   "name": "Watch",
+   "syntax": ".watch",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "Asks the VICE debugger to stop when an address is used."
+  },
+  ".ZP": {
+   "kind": "other",
+   "conditional": true,
+   "symbolOperands": false,
+   "name": "Zero page block",
+   "syntax": ".zp",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "Lays out labels in the zero page ($00 to $FF), inside its { } block."
+  },
+  ".CPU": {
+   "kind": "other",
+   "conditional": false,
+   "symbolOperands": false,
+   "name": "Chip",
+   "syntax": ".cpu",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "Chooses the chip: `_6502NoIllegals` (the default), `_6502` (with the unofficial instructions) or `_65c02`."
+  },
+  ".STRUCT": {
+   "kind": "other",
+   "conditional": false,
+   "symbolOperands": false,
+   "name": "Structure",
+   "syntax": ".struct",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "Describes a group of named values."
+  },
+  ".DEFINE": {
+   "kind": "other",
+   "conditional": false,
+   "symbolOperands": false,
+   "name": "Define",
+   "syntax": ".define",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "Defines things for the assembler's own use."
+  },
+  ".PLUGIN": {
+   "kind": "other",
+   "conditional": false,
+   "symbolOperands": false,
+   "name": "Plugin",
+   "syntax": ".plugin",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "Loads an extra part into KickAssembler."
+  }
+ },
+ "symbols": {
+  "BLACK": {
+   "text": "KickAssembler's name for colour 0 (black).",
+   "builtIn": true,
+   "value": 0
+  },
+  "WHITE": {
+   "text": "KickAssembler's name for colour 1 (white).",
+   "builtIn": true,
+   "value": 1
+  },
+  "RED": {
+   "text": "KickAssembler's name for colour 2 (red).",
+   "builtIn": true,
+   "value": 2
+  },
+  "CYAN": {
+   "text": "KickAssembler's name for colour 3 (cyan).",
+   "builtIn": true,
+   "value": 3
+  },
+  "PURPLE": {
+   "text": "KickAssembler's name for colour 4 (purple).",
+   "builtIn": true,
+   "value": 4
+  },
+  "GREEN": {
+   "text": "KickAssembler's name for colour 5 (green).",
+   "builtIn": true,
+   "value": 5
+  },
+  "BLUE": {
+   "text": "KickAssembler's name for colour 6 (blue).",
+   "builtIn": true,
+   "value": 6
+  },
+  "YELLOW": {
+   "text": "KickAssembler's name for colour 7 (yellow).",
+   "builtIn": true,
+   "value": 7
+  },
+  "ORANGE": {
+   "text": "KickAssembler's name for colour 8 (orange).",
+   "builtIn": true,
+   "value": 8
+  },
+  "BROWN": {
+   "text": "KickAssembler's name for colour 9 (brown).",
+   "builtIn": true,
+   "value": 9
+  },
+  "LIGHT_RED": {
+   "text": "KickAssembler's name for colour 10 (light red).",
+   "builtIn": true,
+   "value": 10
+  },
+  "DARK_GRAY": {
+   "text": "KickAssembler's name for colour 11 (dark gray).",
+   "builtIn": true,
+   "value": 11
+  },
+  "DARK_GREY": {
+   "text": "KickAssembler's name for colour 11 (dark gray).",
+   "builtIn": true,
+   "value": 11
+  },
+  "GRAY": {
+   "text": "KickAssembler's name for colour 12 (gray).",
+   "builtIn": true,
+   "value": 12
+  },
+  "GREY": {
+   "text": "KickAssembler's name for colour 12 (gray).",
+   "builtIn": true,
+   "value": 12
+  },
+  "LIGHT_GREEN": {
+   "text": "KickAssembler's name for colour 13 (light green).",
+   "builtIn": true,
+   "value": 13
+  },
+  "LIGHT_BLUE": {
+   "text": "KickAssembler's name for colour 14 (light blue).",
+   "builtIn": true,
+   "value": 14
+  },
+  "LIGHT_GRAY": {
+   "text": "KickAssembler's name for colour 15 (light gray).",
+   "builtIn": true,
+   "value": 15
+  },
+  "LIGHT_GREY": {
+   "text": "KickAssembler's name for colour 15 (light gray).",
+   "builtIn": true,
+   "value": 15
+  },
+  "PI": {
+   "text": "KickAssembler's value of pi (3.14159...), for working out tables with sin() and cos().",
+   "builtIn": true
+  },
+  "E": {
+   "text": "KickAssembler's value of e (2.71828...).",
+   "builtIn": true
+  },
+  "TRUE": {
+   "text": "True, for .if tests.",
+   "builtIn": true,
+   "value": 1
+  },
+  "FALSE": {
+   "text": "False, for .if tests.",
+   "builtIn": true,
+   "value": 0
+  }
+ },
+ "addresses": {
+  "0000": "Processor port direction: which bits of $0001 are outputs.",
+  "0001": "Processor port: bits 0 to 2 choose what you see at $A000, $D000 and $E000 (BASIC, I/O, KERNAL or RAM). The usual value is $37; $35 hides BASIC and KERNAL but keeps the I/O chips.",
+  "00FB": "Free zero-page byte ($FB to $FE are free for your own use). Often half of a pointer.",
+  "00FC": "Free zero-page byte ($FB to $FE are free for your own use).",
+  "00FD": "Free zero-page byte ($FB to $FE are free for your own use).",
+  "00FE": "Free zero-page byte ($FB to $FE are free for your own use).",
+  "0314": "The address the system jumps to on each interrupt (low byte here, high byte at $0315). Change it to run your own routine 50 times a second. Normally $EA31.",
+  "0315": "High byte of the interrupt address at $0314.",
+  "0318": "The address the system jumps to when RESTORE is pressed (NMI), low byte first.",
+  "0400": "Start of screen memory: 1000 bytes, one per character, 40 across and 25 down.",
+  "07F8": "Sprite pointers: 8 bytes, one per sprite. The sprite's picture is at this number times 64 (in the current video bank).",
+  "0801": "Where a BASIC program starts, and so where a program loaded with LOAD\"*\",8,1 then RUN usually begins.",
+  "A000": "BASIC ROM (or RAM underneath, if $0001 says so).",
+  "C000": "4K of free RAM ($C000 to $CFFF), not used by BASIC.",
+  "D000": "VIC-II: sprite 0 X position (the sprites' positions run $D000 to $D00F, X then Y).",
+  "D001": "VIC-II: sprite 0 Y position.",
+  "D010": "VIC-II: the ninth bit of each sprite's X position (bit 0 = sprite 0), for X beyond 255.",
+  "D011": "VIC-II control: bit 7 is the top bit of the raster line, bit 4 turns the screen on, bits 0 to 2 scroll up and down. Normally $1B.",
+  "D012": "VIC-II raster line: reading gives the line being drawn; writing sets the line for a raster interrupt.",
+  "D015": "VIC-II: which sprites are switched on (bit 0 = sprite 0).",
+  "D016": "VIC-II control: bit 4 turns on multicolour mode, bit 3 chooses 40 or 38 columns, bits 0 to 2 scroll sideways. Normally $C8.",
+  "D017": "VIC-II: which sprites are stretched to double height.",
+  "D018": "VIC-II memory setup: where the screen and the character set are inside the video bank. Normally $15 (or $17 for lower case).",
+  "D019": "VIC-II interrupt status: which video interrupt happened. Write the same bits back to say it has been dealt with.",
+  "D01A": "VIC-II interrupt enable: bit 0 turns on raster interrupts.",
+  "D01B": "VIC-II: which sprites go behind the background.",
+  "D01C": "VIC-II: which sprites are multicolour.",
+  "D01D": "VIC-II: which sprites are stretched to double width.",
+  "D01E": "VIC-II: which sprites have touched each other (reading clears it).",
+  "D01F": "VIC-II: which sprites have touched the background (reading clears it).",
+  "D020": "Border colour (0 to 15).",
+  "D021": "Background colour (0 to 15).",
+  "D022": "Extra background colour 1 (multicolour and extended colour modes).",
+  "D023": "Extra background colour 2.",
+  "D025": "Sprite multicolour 1, shared by all multicolour sprites.",
+  "D026": "Sprite multicolour 2, shared by all multicolour sprites.",
+  "D027": "Sprite 0 colour (sprites 1 to 7 follow, up to $D02E).",
+  "D400": "SID sound chip: voice 1 frequency, low byte (high byte at $D401). Voices 2 and 3 start at $D407 and $D40E.",
+  "D404": "SID: voice 1 control: bit 0 starts or stops the note, bits 4 to 7 choose the waveform (triangle, saw, pulse, noise).",
+  "D405": "SID: voice 1 attack (left 4 bits) and decay (right 4 bits).",
+  "D406": "SID: voice 1 sustain (left 4 bits) and release (right 4 bits).",
+  "D418": "SID: volume (right 4 bits, 0 to 15) and filter mode.",
+  "D800": "Colour memory: 1000 values, one per screen character, giving its colour (0 to 15).",
+  "DC00": "CIA 1 port A: joystick in port 2 (bits 0 to 4: up, down, left, right, fire; 0 = pressed), and the keyboard column to read.",
+  "DC01": "CIA 1 port B: joystick in port 1, and the keyboard row being read.",
+  "DC0D": "CIA 1 interrupt control: writing $7F stops its timer interrupts (done when setting up a raster interrupt).",
+  "DD00": "CIA 2 port A: bits 0 and 1 choose which 16K the VIC-II sees (%11 = $0000, %10 = $4000, %01 = $8000, %00 = $C000).",
+  "DD0D": "CIA 2 interrupt control (the NMI).",
+  "E544": "KERNAL: clear the screen.",
+  "EA31": "The system's normal interrupt routine (keyboard, clock, cursor). Jump here at the end of your own interrupt routine.",
+  "EA81": "The end of the system's interrupt routine: just gets the registers back and returns. Jump here to skip the keyboard and clock work.",
+  "FF81": "KERNAL SCINIT: set up the screen and the video chip.",
+  "FFBA": "KERNAL SETLFS: set file number (A), device (X) and secondary address (Y) before OPEN, LOAD or SAVE.",
+  "FFBD": "KERNAL SETNAM: set the file name. A = length, X and Y = address of the name (low, high).",
+  "FFC0": "KERNAL OPEN: open a file set up with SETLFS and SETNAM.",
+  "FFC3": "KERNAL CLOSE: close file number A.",
+  "FFCF": "KERNAL CHRIN: read a character from the keyboard or an open file into A.",
+  "FFD2": "KERNAL CHROUT: print the character in A at the cursor (PETSCII).",
+  "FFD5": "KERNAL LOAD: load a file. A = 0 to load (1 to verify), X and Y = where to put it if the secondary address is 0.",
+  "FFD8": "KERNAL SAVE: save memory to a file.",
+  "FFE1": "KERNAL STOP: is RUN/STOP being pressed? (zero flag on if so).",
+  "FFE4": "KERNAL GETIN: get a key from the keyboard buffer into A (0 if none was pressed).",
+  "FFFA": "The NMI address (RESTORE key), low byte first. Used when the KERNAL is switched out.",
+  "FFFC": "The reset address, low byte first.",
+  "FFFE": "The interrupt (IRQ) address, low byte first. Used instead of $0314 when the KERNAL is switched out."
+ },
+ "regions": [
+  {
+   "from": "0000",
+   "to": "00FF",
+   "text": "the zero page (fast, shorter instructions; $FB to $FE are free)"
+  },
+  {
+   "from": "0100",
+   "to": "01FF",
+   "text": "the stack"
+  },
+  {
+   "from": "0200",
+   "to": "03FF",
+   "text": "the system's working area"
+  },
+  {
+   "from": "0400",
+   "to": "07FF",
+   "text": "screen memory (and the sprite pointers at the end)"
+  },
+  {
+   "from": "0800",
+   "to": "9FFF",
+   "text": "free RAM for programs (BASIC's area)"
+  },
+  {
+   "from": "A000",
+   "to": "BFFF",
+   "text": "BASIC ROM, with RAM underneath"
+  },
+  {
+   "from": "C000",
+   "to": "CFFF",
+   "text": "free RAM (4K)"
+  },
+  {
+   "from": "D000",
+   "to": "D3FF",
+   "text": "the VIC-II video chip"
+  },
+  {
+   "from": "D400",
+   "to": "D7FF",
+   "text": "the SID sound chip"
+  },
+  {
+   "from": "D800",
+   "to": "DBFF",
+   "text": "colour memory"
+  },
+  {
+   "from": "DC00",
+   "to": "DCFF",
+   "text": "CIA 1 (keyboard, joysticks, timers)"
+  },
+  {
+   "from": "DD00",
+   "to": "DDFF",
+   "text": "CIA 2 (serial bus, video bank, timers)"
+  },
+  {
+   "from": "DE00",
+   "to": "DFFF",
+   "text": "expansion port I/O"
+  },
+  {
+   "from": "E000",
+   "to": "FFFF",
+   "text": "KERNAL ROM, with RAM underneath"
+  }
+ ]
+}

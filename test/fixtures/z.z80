@@ -1,0 +1,19 @@
+; Z80 test
+SCREEN  EQU $4000
+start:  ld hl,SCREEN        ; point at the screen
+        ld b,10
+loop:   ld (hl),a
+        inc hl
+        djnz loop
+        ld a,(counter)
+        cp 5
+        jr nz,loop
+        jp c,start
+        call z,sub1
+        xor a
+        ld (ix+3),b
+        ret
+sub1:   push bc
+        pop bc
+        ret nc
+counter: defb 0

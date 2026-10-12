@@ -1,0 +1,8 @@
+; made-up data for the tests
+PAT_ROCK
+       BYTE >3C,>7E,>FF,>DB,>FF,>7E,>3C,>18
+PAT_ROCK_END
+ZONE_LIST
+       DATA ZONE_1,ZONE_1
+ZONE_1 BYTE 0,0,>90,>90
+       EVEN

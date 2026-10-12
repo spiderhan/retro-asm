@@ -1,0 +1,26 @@
+{
+  "_help": [
+    "Your own notes, shown in the tooltips. Save this file and they appear straight away.",
+    "registers: what each register holds in your program.",
+    "addresses: your own notes for memory addresses (written the way your assembler writes hex).",
+    "symbols:   notes for names that are not defined in your source.",
+    "files:     the same three sections again, for one source file only (these win over the general ones).",
+    "Anything starting with an underscore, like this _help, is ignored.",
+    "You can also write a note in the source itself with a comment line:   ; @reg R4 = player X",
+    "That kind of note applies from that line downwards, so different routines can use a register differently."
+  ],
+  "registers": {
+  },
+  "addresses": {
+  },
+  "symbols": {
+  },
+  "files": {
+  },
+  "_example": {
+    "registers": { "R4": "Player X", "R5": "Player Y" },
+    "addresses": { ">8320": "Which way the player faces" },
+    "symbols": { "VSBW": "Write one byte to the screen" },
+    "files": { "title.a99": { "registers": { "R4": "Next letter of the ticker" } } }
+  }
+}

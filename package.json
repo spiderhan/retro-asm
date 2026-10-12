@@ -1,0 +1,423 @@
+{
+  "name": "retro-asm",
+  "displayName": "Retro Assembly Helper",
+  "description": "Plain-English tooltips, colours and jump-around navigation for retro assembly: TMS9900 (TI-99/4A, xas99), 6502 (Commodore 64, KickAssembler; BBC Micro, BeebAsm) and Z80 (ZX Spectrum, sjasmplus). Other chips are added as data files.",
+  "version": "0.7.3",
+  "publisher": "hanmade",
+  "private": true,
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "assembly",
+    "TMS9900",
+    "TI-99/4A",
+    "xas99",
+    "Z80",
+    "retro",
+    "SkoolKit",
+    "6502",
+    "Commodore 64",
+    "C64",
+    "KickAssembler",
+    "ZX Spectrum",
+    "sjasmplus",
+    "BBC Micro",
+    "BeebAsm",
+    "Acorn"
+  ],
+  "main": "./extension.js",
+  "activationEvents": [
+    "onLanguage:retroasm"
+  ],
+  "scripts": {
+    "test": "node test/ext-test.js",
+    "test:vscode": "node test/vscode/run.js"
+  },
+  "devDependencies": {
+    "@vscode/test-electron": "^2.4.1"
+  },
+  "license": "MIT",
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "In a folder you have not trusted, tooltips, colours, links and navigation still work. Build, run and chip files from the project folder are switched off until you trust it.",
+      "restrictedConfigurations": [
+        "retroAsm.build.command",
+        "retroAsm.build.runCommand",
+        "retroAsm.build.xas99Path",
+        "retroAsm.build.python",
+        "retroAsm.dialectFolders"
+      ]
+    }
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "retroasm",
+        "aliases": [
+          "Retro Assembly",
+          "retroasm"
+        ],
+        "extensions": [
+          ".a99",
+          ".z80",
+          ".6502"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "retroasm",
+        "scopeName": "source.retroasm",
+        "path": "./syntaxes/retroasm.tmLanguage.json"
+      }
+    ],
+    "semanticTokenTypes": [
+      {
+        "id": "register",
+        "superType": "variable",
+        "description": "A register of the chip"
+      }
+    ],
+    "semanticTokenScopes": [
+      {
+        "language": "retroasm",
+        "scopes": {
+          "register": [
+            "variable.language.register.retroasm"
+          ],
+          "label": [
+            "entity.name.tag.label.retroasm"
+          ],
+          "keyword": [
+            "keyword.control.mnemonic.retroasm"
+          ],
+          "macro": [
+            "keyword.other.directive.retroasm",
+            "storage.type.directive.retroasm"
+          ]
+        }
+      }
+    ],
+    "commands": [
+      {
+        "command": "retroAsm.build",
+        "title": "Retro ASM: Build",
+        "icon": "$(tools)"
+      },
+      {
+        "command": "retroAsm.buildAndRun",
+        "title": "Retro ASM: Build and run in the emulator",
+        "icon": "$(play)"
+      },
+      {
+        "command": "retroAsm.toggleAddresses",
+        "title": "Retro ASM: Show or hide memory addresses beside the code",
+        "icon": "$(list-ordered)"
+      },
+      {
+        "command": "retroAsm.explainSelection",
+        "title": "Retro ASM: Explain these lines in plain English"
+      },
+      {
+        "command": "retroAsm.showReference",
+        "title": "Retro ASM: Show the cheat sheet for this chip",
+        "icon": "$(book)"
+      },
+      {
+        "command": "retroAsm.openOriginal",
+        "title": "Retro ASM: Show the original game's code at an address (.skool file)"
+      },
+      {
+        "command": "retroAsm.switchDialect",
+        "title": "Retro ASM: Switch chip (dialect)"
+      },
+      {
+        "command": "retroAsm.createNotesFile",
+        "title": "Retro ASM: Create or open my notes file (asm-notes.json)"
+      },
+      {
+        "command": "retroAsm.newDialect",
+        "title": "Retro ASM: Start a new chip file from the template"
+      },
+      {
+        "command": "retroAsm.reloadDialects",
+        "title": "Retro ASM: Reload chip files"
+      },
+      {
+        "command": "retroAsm.showPanel",
+        "title": "Retro ASM: Show the side panel"
+      },
+      {
+        "command": "retroAsm.panel.refresh",
+        "title": "Retro ASM: Refresh the side panel",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "retroAsm.panel.goto",
+        "title": "Retro ASM: Go to line"
+      },
+      {
+        "command": "retroAsm.panel.showOutput",
+        "title": "Retro ASM: Show what the assembler said"
+      },
+      {
+        "command": "retroAsm.panel.focusMap",
+        "title": "Retro ASM: Show the memory map"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "retroAsm.explainSelection",
+          "when": "editorLangId == retroasm",
+          "group": "navigation@90"
+        },
+        {
+          "command": "retroAsm.showReference",
+          "when": "editorLangId == retroasm",
+          "group": "navigation@91"
+        },
+        {
+          "command": "retroAsm.buildAndRun",
+          "when": "editorLangId == retroasm && isWorkspaceTrusted",
+          "group": "navigation@92"
+        },
+        {
+          "command": "retroAsm.toggleAddresses",
+          "when": "editorLangId == retroasm",
+          "group": "navigation@93"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "retroAsm.build",
+          "when": "isWorkspaceTrusted"
+        },
+        {
+          "command": "retroAsm.buildAndRun",
+          "when": "isWorkspaceTrusted"
+        },
+        {
+          "command": "retroAsm.panel.goto",
+          "when": "false"
+        },
+        {
+          "command": "retroAsm.panel.showOutput",
+          "when": "false"
+        },
+        {
+          "command": "retroAsm.panel.focusMap",
+          "when": "false"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "retroAsm.build",
+          "when": "view == retroAsm.project && isWorkspaceTrusted",
+          "group": "navigation@1"
+        },
+        {
+          "command": "retroAsm.buildAndRun",
+          "when": "view == retroAsm.project && isWorkspaceTrusted",
+          "group": "navigation@2"
+        },
+        {
+          "command": "retroAsm.panel.refresh",
+          "when": "view == retroAsm.project",
+          "group": "navigation@3"
+        },
+        {
+          "command": "retroAsm.showReference",
+          "when": "view == retroAsm.thisLine",
+          "group": "navigation@1"
+        },
+        {
+          "command": "retroAsm.toggleAddresses",
+          "when": "view == retroAsm.memoryMap",
+          "group": "navigation@1"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "retroAsm.explainSelection",
+        "key": "ctrl+alt+e",
+        "mac": "cmd+alt+e",
+        "when": "editorTextFocus && editorLangId == retroasm"
+      },
+      {
+        "command": "retroAsm.build",
+        "key": "ctrl+alt+b",
+        "mac": "cmd+alt+b",
+        "when": "editorLangId == retroasm && isWorkspaceTrusted"
+      },
+      {
+        "command": "retroAsm.buildAndRun",
+        "key": "f5",
+        "when": "editorTextFocus && editorLangId == retroasm && !inDebugMode && isWorkspaceTrusted"
+      },
+      {
+        "command": "retroAsm.toggleAddresses",
+        "key": "ctrl+alt+a",
+        "mac": "cmd+alt+a",
+        "when": "editorTextFocus && editorLangId == retroasm"
+      }
+    ],
+    "configuration": {
+      "title": "Retro Assembly Helper",
+      "properties": {
+        "retroAsm.defaultDialect": {
+          "type": "string",
+          "default": "tms9900",
+          "description": "The chip to assume when a file extension isn't matched to one."
+        },
+        "retroAsm.dialectByExtension": {
+          "type": "object",
+          "default": {},
+          "additionalProperties": {
+            "type": "string"
+          },
+          "markdownDescription": "Which chip to use for which file extension, for example `{ \".asm\": \"z80\" }`. The *Switch chip* command fills this in for you."
+        },
+        "retroAsm.dialectFolders": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "asm-dialects"
+          ],
+          "markdownDescription": "Folders holding your own chip files (`*.json`). A plain name is looked for inside the open project folder; a full path is used as it is. A chip file with the same `id` as a built-in one replaces it."
+        },
+        "retroAsm.checks": {
+          "type": "boolean",
+          "default": true,
+          "description": "Underline likely mistakes: misspelt instructions, the wrong number of operands, labels that don't exist, labels defined twice."
+        },
+        "retroAsm.hoverInComments": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show a tooltip (and allow jumping) when a label name is mentioned inside a comment."
+        },
+        "retroAsm.routineSummaries": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show a summary line above each routine: who calls it, where it sits in memory and how big it is, and which registers it changes."
+        },
+        "retroAsm.showAddresses": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show each line's memory address down the left of the code. Ctrl+Alt+A switches it on and off."
+        },
+        "retroAsm.loadAddress": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Where the program is loaded in memory, in hex, for code that doesn't say so itself with `AORG`. Leave empty to use the chip's usual place (`A000` for a TI-99/4A program loaded with Editor/Assembler)."
+        },
+        "retroAsm.pictures": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "always",
+            "never"
+          ],
+          "default": "auto",
+          "enumDescriptions": [
+            "Draw a block of bytes as a picture when its name or comments say it is one (PAT_..., sprite, drawing...).",
+            "Draw every block of bytes as a picture.",
+            "Never draw pictures."
+          ],
+          "description": "Show BYTE and DATA blocks as pictures in tooltips."
+        },
+        "retroAsm.original.skoolFile": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "The SkoolKit disassembly (`.skool` file) of the original game you are porting. Addresses such as `$A420` in your comments then open it at that address, and their tooltip shows the code there. A full path, a path from the project folder, or a folder holding the file. Leave empty to look for a `.skool` file in the source's folder (and two folders inside it), then in the folder above."
+        },
+        "retroAsm.build.command": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "The command that builds your program. Leave empty to work it out: a `build.bat` (or `build.sh`) next to the source is used if there is one, otherwise xas99 is run directly. You can use `${file}`, `${fileDirname}`, `${fileBasename}`, `${fileBasenameNoExtension}`, `${name}` (the TI file name) and `${workspaceFolder}`."
+        },
+        "retroAsm.build.runCommand": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "The command that starts your emulator after a good build. Leave empty to look for `classic99\\\\classic99.exe` near the source (Windows)."
+        },
+        "retroAsm.build.xas99Path": {
+          "type": "string",
+          "default": "",
+          "description": "Full path to xas99.py, if it isn't in an xdt99 folder near your source."
+        },
+        "retroAsm.build.python": {
+          "type": "string",
+          "default": "",
+          "description": "The command that runs Python. Leave empty for 'python' on Windows and 'python3' elsewhere."
+        },
+        "retroAsm.build.askFirst": {
+          "type": "boolean",
+          "default": true,
+          "scope": "application",
+          "markdownDescription": "Ask before running a build script, assembler or emulator that comes from the project (a `build.bat` near the source, a tool found in its folders, or a command in its own settings). Each command is asked about once per folder. Only your own user settings can switch this off."
+        }
+      }
+    },
+    "configurationDefaults": {
+      "[retroasm]": {
+        "editor.semanticHighlighting.enabled": true
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "retroAsm",
+          "title": "Retro ASM",
+          "icon": "images/activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "retroAsm": [
+        {
+          "id": "retroAsm.project",
+          "name": "Project",
+          "icon": "images/activity.svg"
+        },
+        {
+          "type": "webview",
+          "id": "retroAsm.thisLine",
+          "name": "This line",
+          "icon": "images/activity.svg"
+        },
+        {
+          "type": "webview",
+          "id": "retroAsm.memoryMap",
+          "name": "Memory map",
+          "icon": "images/activity.svg"
+        },
+        {
+          "id": "retroAsm.hardware",
+          "name": "Hardware used",
+          "icon": "images/activity.svg"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "retroAsm.project",
+        "contents": "Open an assembly file (.a99, .asm, .6502, .z80 ...) to see its chip, size, warnings and routines here."
+      },
+      {
+        "view": "retroAsm.hardware",
+        "contents": "The screen, sound, keyboard and ROM addresses your code uses will be listed here."
+      }
+    ]
+  },
+  "icon": "images/icon.png"
+}

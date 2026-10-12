@@ -1,0 +1,115 @@
+; =====================================================================
+; CRYSTAL ROVER - made-up test program for Retro Assembly Helper
+; =====================================================================
+
+       DEF  START           ; The loader looks for START
+
+VDPWD  EQU  >8C00           ; Video chip: write a data byte here
+VDPWA  EQU  >8C02           ; Video chip: set an address or a register here
+VDPST  EQU  >8802           ; Video chip: read its status byte here
+WRKSP  EQU  >8300           ; Our 16 registers live in the fast RAM here
+SCRTAB EQU  >0000           ; Video address of the screen grid
+PATTAB EQU  >0800           ; Video address of the character drawings
+ROVER_FACE  EQU >8322       ; Byte: which way the rover points
+POINTS      EQU >3400       ; 5 bytes: the points so far
+BONUS_DIGIT EQU POINTS+2    ; The hundreds digit earns a bonus
+BUDGET EQU  96              ; Steps the planner may take each frame
+MSG_ROW    EQU 20*32+SCRTAB ; Messages appear on screen row 20
+FIRST_ZONE  EQU 1           ; Zone to start in
+KEY_UP   EQU >0002          ; Up is held
+ZONE_BUF    EQU >3600       ; Working copy of the zone map
+SAVE_RET    EQU >3410       ; Word: GRAB keeps its way back (R11) here
+
+; @reg R4 = Rover X
+; @reg R5 = Rover Y
+
+; ---------------------------------------------------------------------
+; START: entry point, run once. Sets up the machine (original $8010).
+; ---------------------------------------------------------------------
+START  LIMI 0               ; No console interrupts while we set up
+       LWPI WRKSP           ; Registers go in the fast RAM at >8300
+       BL   @SET_VIDEO      ; Load the video registers (screen blank)
+       MOVB @ONE_BYTE,@ROVER_FACE ; Rover starts facing right
+;      ... then falls through into MENU (the timer waits $2710 ticks)
+
+; ---------------------------------------------------------------------
+; MENU: shows the menu screen, loops forever (original $8044).
+; ---------------------------------------------------------------------
+MENU
+       CLR  R0              ; Video address 0: the top left square
+       LI   R1,ZONE_LIST    ; R1 = the menu picture
+       LI   R2,768          ; 32 x 24 squares in all
+MN_FILL
+       MOVB *R1+,@VDPWD     ; Write one square, step along
+       DEC  R2              ; Count it off
+       JNE  MN_FILL         ; Until the screen is full
+       MOV  R7,R7           ; Any crystals left?
+       JNE  MENU
+       LI   R0,FIRST_ZONE*>100 ; Zone number in the left byte
+       MOV  @ZONE_LIST(R1),R1 ; R1 = start of that zone's map
+       MOVB @32(R3),R1      ; R1 = the square one row below
+       CB   @-1(R3),@ONE_BYTE ; Rock just to the left?
+       AI   R1,->0100       ; Take 1 off the left byte
+       SLA  R3,2            ; Times 4
+       SRL  R1,3
+       SLA  R4,0
+       MPY  R5,R1
+       AI   R3,ZONE_BUF-64  ; Map copy, two rows back
+       ANDI R1,KEY_UP       ; Keep just the Up bit
+       LI   R12,>0024       ; CRU address of the key column lines
+       LDCR R1,3            ; Pick the column (3 bits)
+       STCR R2,8            ; Read its 8 rows
+       BLWP @>0000          ; restart the console
+       CB   @BONUS_DIGIT,@ONE_BYTE ; test
+       MOV  R11,@SAVE_RET   ; Keep the way back
+       B    @MENU           ; round again
+       JMP  NOWHERE
+       MOVX R1,R2
+       MOV  R1
+       BLWP @VSBW
+
+; ---------------------------------------------------------------------
+; SET_VIDEO: send the 8 bytes at VIDEO_REGS to video registers 0-7
+; Uses R0, R1, R2
+; ---------------------------------------------------------------------
+SET_VIDEO
+       LI   R0,VIDEO_REGS   ; R0 walks through the table
+       LI   R1,>8000        ; >80 in the left byte marks "register 0"
+       LI   R2,8            ; Eight of them
+SV_NEXT
+       MOVB *R0+,@VDPWA     ; Value first, R0 steps on
+       MOVB R1,@VDPWA       ; Then the register number with >80 set
+       AI   R1,>0100        ; Next register
+       DEC  R2              ; One done
+       JNE  SV_NEXT         ; Until all eight are sent
+       B    *R11            ; Back to the caller
+
+TILE_ROCK   BYTE >90        ; Character code for rock
+ONE_BYTE    BYTE 1          ; A byte holding 1 (for byte sums)
+       EVEN                 ; Back to an even address
+
+VIDEO_REGS
+       BYTE >00             ; Reg 0: Graphics 1 mode
+       BYTE >E2             ; Reg 1
+       TEXT 'ROVER, GO; don''t stop'  ; text
+       EVEN
+
+CMP_LOOP
+       CB   *R0+,*R1+       ; Compare two digits, both pointers move on
+       JH   CMP_DONE        ; First is bigger: stop here
+       JL   CMP_LOOP        ; First is smaller: keep looking
+CMP_DONE
+       SRL  R2,1            ; Push the low bit out into carry
+       JOC  CMP_LOOP        ; Bit was 1: try again
+       COC  R1,R2           ; Are R1's bits all on in R2?
+       JNE  CMP_LOOP        ; No: round again
+       CI   R4,>F0          ; Past the right edge (X = 240 or more)?
+       JHE  CMP_DONE        ; Yes: stop
+       SB   *R1,*R1         ; Clear that byte (take it from itself)
+       JMP  !
+!      JMP  -!
+       .ifdef NOT_THERE
+       .endif
+
+       COPY "data.a99" ; The data lives in its own file
+       END  START           ; Finished; run from START
