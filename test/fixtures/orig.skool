@@ -1,0 +1,31 @@
+; Made-up SkoolKit file for the tests (not from any real game)
+@start=$8000
+
+@org=$8000
+; Program start
+;
+; Sets the border, then falls into the menu.
+@label=Boot
+c$8000 ld a,$01      ;
+ $8002 out ($fe),a   ; Border blue
+ $8004 jr $8010      ;
+
+; Unused
+s$8006 defs $0a
+
+; Real set-up, after the border
+;
+; Used by the routine at #R$8000.
+c$8010 ld sp,$ff00   ;
+ $8013 call $8044    ; {Show the menu
+; This entry point is used by the routine at #R$8044.
+*$8016 jr $8016      ; }
+
+; Menu screen
+@label=Menu
+c$8044 ld hl,$4000   ;
+ $8047 ld (hl),$ff   ;
+ $8049 ret           ;
+
+; Rock picture
+b$8050 defb $3c,$7e,$ff,$db,$ff,$7e,$3c,$18

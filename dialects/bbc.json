@@ -1,0 +1,2165 @@
+{
+  "id": "bbc",
+  "name": "6502 (BBC Micro, BeebAsm)",
+  "short": "BBC Micro",
+  "fileExtensions": [
+    ".6502",
+    ".asm",
+    ".s"
+  ],
+  "about": "The 6502 in the BBC Micro (and the 65C02 in the BBC Master), written the BeebAsm way, which follows the BBC's own BASIC assembler: .labels, &FFEE for hex, \\ or ; for comments and : between statements. The BBC's memory map, operating system calls and hardware (SHEILA) are explained.",
+  "syntax": {
+    "lineComment": [
+      ";",
+      "\\"
+    ],
+    "col0Comment": [],
+    "spaceStarComment": false,
+    "operandsEndAtSpace": false,
+    "col0IsAlwaysLabel": false,
+    "labelsNeedColon": true,
+    "dotLabels": true,
+    "colonStatements": true,
+    "assignments": true,
+    "indentedLabels": false,
+    "stringQuotes": [
+      "\"",
+      "'"
+    ],
+    "hexPrefixes": [
+      "&",
+      "$"
+    ],
+    "binPrefixes": [
+      "%"
+    ],
+    "hexSuffix": false,
+    "hexDisplay": "&",
+    "addressPrefix": "",
+    "leftToRightMath": false,
+    "wordBits": 16,
+    "byteName": "byte",
+    "wordName": "word",
+    "highByteName": "high byte",
+    "lowByteName": "low byte",
+    "braceBlocks": true,
+    "braceMacros": false,
+    "braceScopes": true,
+    "hereSymbol": "*",
+    "hereNames": [
+      "P%"
+    ],
+    "nameSuffix": "%",
+    "caseSensitive": true,
+    "tightOperands": true,
+    "decimals": true,
+    "lowHighBytes": true,
+    "basicMath": true,
+    "functions": [
+      "LO",
+      "HI",
+      "NOT",
+      "ABS",
+      "SGN",
+      "INT",
+      "SIN",
+      "COS",
+      "TAN",
+      "ASN",
+      "ACS",
+      "ATN",
+      "SQR",
+      "RAD",
+      "DEG",
+      "RND",
+      "LOG",
+      "LN",
+      "EXP",
+      "VAL",
+      "EVAL",
+      "LEN",
+      "ASC",
+      "STR$",
+      "CHR$",
+      "MID$",
+      "LEFT$",
+      "RIGHT$",
+      "STRING$",
+      "UPPER$",
+      "LOWER$",
+      "TIME$"
+    ],
+    "joinIndexed": true
+  },
+  "build": {
+    "_about": "How to build. With no build command or build.bat, BeebAsm is looked for next to the source (and a few folders up) and on the PATH. It makes a disc image (.ssd) that starts the program by itself.",
+    "tool": {
+      "name": "BeebAsm",
+      "find": [
+        "beebasm.exe",
+        "beebasm",
+        "beebasm/beebasm.exe",
+        "BeebAsm/beebasm.exe"
+      ],
+      "command": "\"${tool}\" -i \"${fileBasename}\" -do \"${fileBasenameNoExtension}.ssd\"${boot}",
+      "boot": " -boot \"${saveName}\""
+    },
+    "run": {
+      "find": [
+        "BeebEm/BeebEm.exe",
+        "beebem/BeebEm.exe",
+        "BeebEm.exe",
+        "C:/Program Files (x86)/BeebEm/BeebEm.exe",
+        "C:/Program Files/BeebEm/BeebEm.exe"
+      ],
+      "args": [
+        "${fileDirname}/${fileBasenameNoExtension}.ssd"
+      ]
+    },
+    "hint": "For BBC Micro code, put beebasm.exe next to your source (or in a folder above it, or on your PATH), or set \"retroAsm.build.command\", for example beebasm -i \"${file}\" -do \"${fileBasenameNoExtension}.ssd\" -boot MyProg. BeebEm is found the same way to run the disc; for another emulator set \"retroAsm.build.runCommand\"."
+  },
+  "sizing": {
+    "evenAlign": false,
+    "base": 1,
+    "jumpUnit": 1,
+    "jumpFrom": 2,
+    "jumpBack": 128,
+    "jumpForward": 127,
+    "loadAddress": "0000",
+    "loadNote": "With no ORG line, BeebAsm puts the code at &0000. Programs on a disc BBC usually start with ORG &1900",
+    "forms": [
+      {
+        "re": "^$",
+        "bytes": 1
+      },
+      {
+        "re": "^A$",
+        "bytes": 1
+      },
+      {
+        "re": "^#",
+        "bytes": 2
+      },
+      {
+        "re": "^\\(.*\\),Y$",
+        "bytes": 2
+      },
+      {
+        "re": "^\\(.*,X\\)$",
+        "only": [
+          "JMP"
+        ],
+        "bytes": 3
+      },
+      {
+        "re": "^\\(.*,X\\)$",
+        "bytes": 2
+      },
+      {
+        "re": "^\\(.*\\)$",
+        "only": [
+          "JMP"
+        ],
+        "bytes": 3
+      },
+      {
+        "re": "^\\(.*\\)$",
+        "bytes": 2
+      },
+      {
+        "re": "^(.*),X$",
+        "bytes": 3,
+        "zeroPage": {
+          "bytes": 2
+        }
+      },
+      {
+        "re": "^(.*),Y$",
+        "bytes": 3,
+        "zeroPage": {
+          "bytes": 2,
+          "only": [
+            "LDX",
+            "STX"
+          ]
+        }
+      },
+      {
+        "re": "^(.*)$",
+        "bytes": 3,
+        "zeroPage": {
+          "bytes": 2
+        }
+      }
+    ]
+  },
+  "checks": {},
+  "registers": {
+    "names": [
+      "A",
+      "X",
+      "Y"
+    ],
+    "about": "The 6502 has only three registers, one byte each: A for sums, and X and Y, mostly for counting and for stepping through tables. Most work is done in memory, especially the zero page (&00 to &FF); &70 to &8F is free for your own use.",
+    "notes": {
+      "A": "The accumulator: sums, comparisons and the bit instructions all work on A.",
+      "X": "An index register: added to an address with `,X`, and handy as a loop counter (DEX, BNE).",
+      "Y": "An index register: added to an address with `,Y`, and the only one that works with a zero-page pointer: `(&70),Y`."
+    }
+  },
+  "conditions": {},
+  "operandForms": [
+    {
+      "re": "^#\\s*LO\\s*[(\\[](.+)[)\\]]$",
+      "example": "#LO(label)",
+      "text": "the low byte of {v1}",
+      "name": "Low byte",
+      "help": "`LO(...)` (or `<`) takes the low (right-hand) byte of a 16-bit number such as an address. `#LO(label)` and `#HI(label)` are how an address is loaded one byte at a time."
+    },
+    {
+      "re": "^#\\s*HI\\s*[(\\[](.+)[)\\]]$",
+      "example": "#HI(label)",
+      "text": "the high byte of {v1}",
+      "name": "High byte",
+      "help": "`HI(...)` (or `>`) takes the high (left-hand) byte of a 16-bit number such as an address."
+    },
+    {
+      "re": "^#<(.+)$",
+      "example": "#<label",
+      "text": "the low byte of {v1}",
+      "name": "Low byte",
+      "help": "`<` takes the low (right-hand) byte of a 16-bit number such as an address. `#<label` and `#>label` are how an address is loaded one byte at a time."
+    },
+    {
+      "re": "^#>(.+)$",
+      "example": "#>label",
+      "text": "the high byte of {v1}",
+      "name": "High byte",
+      "help": "`>` takes the high (left-hand) byte of a 16-bit number such as an address."
+    },
+    {
+      "re": "^#(.+)$",
+      "example": "#&05",
+      "text": "the number {v1}",
+      "name": "A number (immediate)",
+      "help": "`#` means \"this number itself\". Without it, the same number means the byte stored at that address, which is a common mistake."
+    },
+    {
+      "re": "^\\((.+)\\),\\s*Y$",
+      "example": "(&70),Y",
+      "text": "the byte Y places past the address stored at {e1} (and the byte after it)",
+      "name": "Pointer in the zero page, plus Y",
+      "help": "The two bytes at a zero-page address hold another address, low byte first. Y is added to that and the byte there is used. The usual way to walk through memory with a pointer."
+    },
+    {
+      "re": "^\\((.+),\\s*X\\)$",
+      "example": "(&70,X)",
+      "text": "the byte at the address stored at {e1} + X",
+      "name": "Pointer picked by X",
+      "help": "X is added to the zero-page address first, then the two bytes there are read as an address. Rarely needed."
+    },
+    {
+      "re": "^\\((.+)\\)$",
+      "example": "(&20E)",
+      "text": "the address stored at {e1} (and the byte after it)",
+      "name": "Address stored in memory",
+      "help": "JMP uses this to jump to the address held in the two bytes there, low byte first (the BBC's vectors work this way). On the 65C02 in the BBC Master, other instructions can use it with a zero-page pointer: `LDA (&70)`."
+    },
+    {
+      "re": "^(.+),\\s*([XY])$",
+      "example": "&3000,X",
+      "text": "the byte at {e1} + {r2}",
+      "name": "Address plus X or Y",
+      "help": "The register is added to the address, so the same line reaches a different byte each time round a loop. Used for tables and for screen memory."
+    },
+    {
+      "re": "@REGISTER",
+      "example": "A",
+      "text": "{r1}",
+      "name": "Register"
+    },
+    {
+      "re": "^(.+)$",
+      "example": "&FE4E",
+      "text": "the byte at {e1}",
+      "quiet": true,
+      "name": "Byte at an address",
+      "help": "A number or label without `#` means the byte stored at that address. Addresses &00 to &FF (the zero page) make shorter, faster instructions."
+    }
+  ],
+  "instructions": {
+    "LDA": {
+      "group": "Moving data",
+      "name": "Load A",
+      "syntax": "LDA #5   or   LDA address",
+      "ops": {
+        "1": [
+          "g"
+        ],
+        "2": [
+          "g",
+          "r"
+        ]
+      },
+      "rw": [
+        "r",
+        "r"
+      ],
+      "implicit": {
+        "w": [
+          "A"
+        ]
+      },
+      "resultReg": "A",
+      "summary": "Puts a number, or the byte stored at an address, into A.",
+      "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+      "explain": "Put {1} into A.",
+      "size": "byte"
+    },
+    "STA": {
+      "group": "Moving data",
+      "name": "Store A",
+      "syntax": "STA address",
+      "ops": {
+        "1": [
+          "g"
+        ],
+        "2": [
+          "g",
+          "r"
+        ]
+      },
+      "rw": [
+        "r",
+        "r"
+      ],
+      "implicit": {
+        "r": [
+          "A"
+        ]
+      },
+      "summary": "Copies A into memory. A is not changed.",
+      "more": "There is no store-a-number instruction: load the number into a register first, then store it.",
+      "flags": "No flags change.",
+      "explain": "Copy A into {1}.",
+      "size": "byte"
+    },
+    "LDX": {
+      "group": "Moving data",
+      "name": "Load X",
+      "syntax": "LDX #5   or   LDX address",
+      "ops": {
+        "1": [
+          "g"
+        ],
+        "2": [
+          "g",
+          "r"
+        ]
+      },
+      "rw": [
+        "r",
+        "r"
+      ],
+      "implicit": {
+        "w": [
+          "X"
+        ]
+      },
+      "resultReg": "X",
+      "summary": "Puts a number, or the byte stored at an address, into X.",
+      "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+      "explain": "Put {1} into X.",
+      "size": "byte"
+    },
+    "STX": {
+      "group": "Moving data",
+      "name": "Store X",
+      "syntax": "STX address",
+      "ops": {
+        "1": [
+          "g"
+        ],
+        "2": [
+          "g",
+          "r"
+        ]
+      },
+      "rw": [
+        "r",
+        "r"
+      ],
+      "implicit": {
+        "r": [
+          "X"
+        ]
+      },
+      "summary": "Copies X into memory. X is not changed.",
+      "flags": "No flags change.",
+      "explain": "Copy X into {1}.",
+      "size": "byte"
+    },
+    "LDY": {
+      "group": "Moving data",
+      "name": "Load Y",
+      "syntax": "LDY #5   or   LDY address",
+      "ops": {
+        "1": [
+          "g"
+        ],
+        "2": [
+          "g",
+          "r"
+        ]
+      },
+      "rw": [
+        "r",
+        "r"
+      ],
+      "implicit": {
+        "w": [
+          "Y"
+        ]
+      },
+      "resultReg": "Y",
+      "summary": "Puts a number, or the byte stored at an address, into Y.",
+      "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+      "explain": "Put {1} into Y.",
+      "size": "byte"
+    },
+    "STY": {
+      "group": "Moving data",
+      "name": "Store Y",
+      "syntax": "STY address",
+      "ops": {
+        "1": [
+          "g"
+        ],
+        "2": [
+          "g",
+          "r"
+        ]
+      },
+      "rw": [
+        "r",
+        "r"
+      ],
+      "implicit": {
+        "r": [
+          "Y"
+        ]
+      },
+      "summary": "Copies Y into memory. Y is not changed.",
+      "flags": "No flags change.",
+      "explain": "Copy Y into {1}.",
+      "size": "byte"
+    },
+    "TAX": {
+      "group": "Moving data",
+      "name": "Copy A to X",
+      "syntax": "TAX",
+      "ops": [],
+      "implicit": {
+        "r": [
+          "A"
+        ],
+        "w": [
+          "X"
+        ]
+      },
+      "resultReg": "X",
+      "summary": "Copies A into X. A is not changed.",
+      "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+      "explain": "Copy A into X.",
+      "size": "byte"
+    },
+    "TAY": {
+      "group": "Moving data",
+      "name": "Copy A to Y",
+      "syntax": "TAY",
+      "ops": [],
+      "implicit": {
+        "r": [
+          "A"
+        ],
+        "w": [
+          "Y"
+        ]
+      },
+      "resultReg": "Y",
+      "summary": "Copies A into Y. A is not changed.",
+      "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+      "explain": "Copy A into Y.",
+      "size": "byte"
+    },
+    "TXA": {
+      "group": "Moving data",
+      "name": "Copy X to A",
+      "syntax": "TXA",
+      "ops": [],
+      "implicit": {
+        "r": [
+          "X"
+        ],
+        "w": [
+          "A"
+        ]
+      },
+      "resultReg": "A",
+      "summary": "Copies X into A. X is not changed.",
+      "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+      "explain": "Copy X into A.",
+      "size": "byte"
+    },
+    "TYA": {
+      "group": "Moving data",
+      "name": "Copy Y to A",
+      "syntax": "TYA",
+      "ops": [],
+      "implicit": {
+        "r": [
+          "Y"
+        ],
+        "w": [
+          "A"
+        ]
+      },
+      "resultReg": "A",
+      "summary": "Copies Y into A. Y is not changed.",
+      "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+      "explain": "Copy Y into A.",
+      "size": "byte"
+    },
+    "TSX": {
+      "group": "Stack",
+      "name": "Copy stack pointer to X",
+      "syntax": "TSX",
+      "ops": [],
+      "implicit": {
+        "w": [
+          "X"
+        ]
+      },
+      "resultReg": "X",
+      "summary": "Copies the stack pointer into X, so a routine can look at what is on the stack.",
+      "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+      "explain": "Copy the stack pointer into X.",
+      "size": "byte"
+    },
+    "TXS": {
+      "group": "Stack",
+      "name": "Copy X to stack pointer",
+      "syntax": "TXS",
+      "ops": [],
+      "implicit": {
+        "r": [
+          "X"
+        ]
+      },
+      "summary": "Sets the stack pointer from X. Usually only done once, at the start of a program that takes over the whole machine (`LDX #&FF` then `TXS`).",
+      "flags": "No flags change.",
+      "explain": "Set the stack pointer to X.",
+      "size": "byte"
+    },
+    "PHA": {
+      "group": "Stack",
+      "name": "Push A",
+      "syntax": "PHA",
+      "ops": [],
+      "implicit": {
+        "r": [
+          "A"
+        ]
+      },
+      "summary": "Puts a copy of A on the stack. Get it back later with PLA.",
+      "flags": "No flags change.",
+      "explain": "Push A onto the stack.",
+      "size": "byte"
+    },
+    "PLA": {
+      "group": "Stack",
+      "name": "Pull A",
+      "syntax": "PLA",
+      "ops": [],
+      "implicit": {
+        "w": [
+          "A"
+        ]
+      },
+      "resultReg": "A",
+      "summary": "Takes the top byte off the stack and puts it in A.",
+      "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+      "explain": "Take the top byte off the stack and put it in A.",
+      "size": "byte"
+    },
+    "PHP": {
+      "group": "Stack",
+      "name": "Push flags",
+      "syntax": "PHP",
+      "ops": [],
+      "summary": "Puts a copy of the flags on the stack. Get them back later with PLP.",
+      "flags": "No flags change.",
+      "explain": "Push the flags onto the stack.",
+      "size": "byte"
+    },
+    "PLP": {
+      "group": "Stack",
+      "name": "Pull flags",
+      "syntax": "PLP",
+      "ops": [],
+      "summary": "Takes the top byte off the stack and puts it back into the flags.",
+      "flags": "All flags come from the stack.",
+      "explain": "Take the top byte off the stack and put it back into the flags.",
+      "size": "byte"
+    },
+    "ADC": {
+      "group": "Sums",
+      "name": "Add with carry",
+      "syntax": "ADC #5   or   ADC address",
+      "ops": {
+        "1": [
+          "g"
+        ],
+        "2": [
+          "g",
+          "r"
+        ]
+      },
+      "rw": [
+        "r",
+        "r"
+      ],
+      "implicit": {
+        "r": [
+          "A"
+        ],
+        "w": [
+          "A"
+        ]
+      },
+      "resultReg": "A",
+      "summary": "Adds a number to A, plus 1 more if the carry flag is on.",
+      "more": "There is no plain add: put `CLC` before `ADC` so the carry starts off. After a sum that went past 255, the carry is on, which is how bigger numbers are added a byte at a time.",
+      "flags": "Carry (the sum went past 255), overflow, zero and negative.",
+      "explain": "Add {1} to A, plus 1 if the carry flag is on.",
+      "size": "byte"
+    },
+    "SBC": {
+      "group": "Sums",
+      "name": "Subtract with carry",
+      "syntax": "SBC #5   or   SBC address",
+      "ops": {
+        "1": [
+          "g"
+        ],
+        "2": [
+          "g",
+          "r"
+        ]
+      },
+      "rw": [
+        "r",
+        "r"
+      ],
+      "implicit": {
+        "r": [
+          "A"
+        ],
+        "w": [
+          "A"
+        ]
+      },
+      "resultReg": "A",
+      "summary": "Takes a number away from A, and 1 more if the carry flag is off.",
+      "more": "Put `SEC` before `SBC` so the carry starts on (the opposite of ADC). If the answer went below 0, the carry ends up off.",
+      "flags": "Carry (off if it went below 0), overflow, zero and negative.",
+      "explain": "Take {1} away from A, and 1 more if the carry flag is off.",
+      "size": "byte"
+    },
+    "INX": {
+      "group": "Sums",
+      "name": "Add 1 to X",
+      "syntax": "INX",
+      "ops": [],
+      "implicit": {
+        "r": [
+          "X"
+        ],
+        "w": [
+          "X"
+        ]
+      },
+      "resultReg": "X",
+      "summary": "Adds 1 to X. After 255 it goes back round to 0.",
+      "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+      "explain": "Add 1 to X.",
+      "size": "byte"
+    },
+    "DEX": {
+      "group": "Sums",
+      "name": "Take 1 from X",
+      "syntax": "DEX",
+      "ops": [],
+      "implicit": {
+        "r": [
+          "X"
+        ],
+        "w": [
+          "X"
+        ]
+      },
+      "resultReg": "X",
+      "summary": "Takes 1 from X. After 0 it goes back round to 255. With BNE, it makes a loop that runs until X reaches 0.",
+      "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+      "explain": "Take 1 from X.",
+      "size": "byte"
+    },
+    "INY": {
+      "group": "Sums",
+      "name": "Add 1 to Y",
+      "syntax": "INY",
+      "ops": [],
+      "implicit": {
+        "r": [
+          "Y"
+        ],
+        "w": [
+          "Y"
+        ]
+      },
+      "resultReg": "Y",
+      "summary": "Adds 1 to Y. After 255 it goes back round to 0.",
+      "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+      "explain": "Add 1 to Y.",
+      "size": "byte"
+    },
+    "DEY": {
+      "group": "Sums",
+      "name": "Take 1 from Y",
+      "syntax": "DEY",
+      "ops": [],
+      "implicit": {
+        "r": [
+          "Y"
+        ],
+        "w": [
+          "Y"
+        ]
+      },
+      "resultReg": "Y",
+      "summary": "Takes 1 from Y. After 0 it goes back round to 255. With BNE, it makes a loop that runs until Y reaches 0.",
+      "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+      "explain": "Take 1 from Y.",
+      "size": "byte"
+    },
+    "INC": {
+      "group": "Sums",
+      "name": "Add 1 to memory",
+      "syntax": "INC address",
+      "ops": {
+        "1": [
+          "g"
+        ],
+        "2": [
+          "g",
+          "r"
+        ]
+      },
+      "rw": [
+        "r",
+        "r"
+      ],
+      "sets": "result:1",
+      "summary": "Adds 1 to the byte stored at an address. After 255 it goes back round to 0. On the 65C02 (BBC Master), `INC A` adds 1 to A.",
+      "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+      "explain": "Add 1 to {1}.",
+      "size": "byte"
+    },
+    "DEC": {
+      "group": "Sums",
+      "name": "Take 1 from memory",
+      "syntax": "DEC address",
+      "ops": {
+        "1": [
+          "g"
+        ],
+        "2": [
+          "g",
+          "r"
+        ]
+      },
+      "rw": [
+        "r",
+        "r"
+      ],
+      "sets": "result:1",
+      "summary": "Takes 1 from the byte stored at an address. After 0 it goes back round to 255. On the 65C02 (BBC Master), `DEC A` takes 1 from A.",
+      "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+      "explain": "Take 1 from {1}.",
+      "size": "byte"
+    },
+    "AND": {
+      "group": "Bits",
+      "name": "And",
+      "syntax": "AND #%00001111",
+      "ops": {
+        "1": [
+          "g"
+        ],
+        "2": [
+          "g",
+          "r"
+        ]
+      },
+      "rw": [
+        "r",
+        "r"
+      ],
+      "implicit": {
+        "r": [
+          "A"
+        ],
+        "w": [
+          "A"
+        ]
+      },
+      "resultReg": "A",
+      "summary": "Keeps only the bits of A that are also on in the number. The rest are turned off.",
+      "more": "Handy for picking out part of a byte: `AND #%00001111` keeps the right-hand four bits.",
+      "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+      "explain": "Keep only the bits of A that are also on in {1}.",
+      "size": "byte"
+    },
+    "ORA": {
+      "group": "Bits",
+      "name": "Or",
+      "syntax": "ORA #%10000000",
+      "ops": {
+        "1": [
+          "g"
+        ],
+        "2": [
+          "g",
+          "r"
+        ]
+      },
+      "rw": [
+        "r",
+        "r"
+      ],
+      "implicit": {
+        "r": [
+          "A"
+        ],
+        "w": [
+          "A"
+        ]
+      },
+      "resultReg": "A",
+      "summary": "Turns on in A every bit that is on in the number. The others are left alone.",
+      "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+      "explain": "Turn on in A every bit that is on in {1}.",
+      "size": "byte"
+    },
+    "EOR": {
+      "group": "Bits",
+      "name": "Exclusive or (flip bits)",
+      "syntax": "EOR #%11111111",
+      "ops": {
+        "1": [
+          "g"
+        ],
+        "2": [
+          "g",
+          "r"
+        ]
+      },
+      "rw": [
+        "r",
+        "r"
+      ],
+      "implicit": {
+        "r": [
+          "A"
+        ],
+        "w": [
+          "A"
+        ]
+      },
+      "resultReg": "A",
+      "summary": "Flips the bits of A that are on in the number: on becomes off and off becomes on.",
+      "more": "`EOR #&FF` flips every bit.",
+      "flags": "Zero and negative flags show the result: BEQ, BNE, BMI and BPL can follow.",
+      "explain": "Flip the bits of A that are on in {1}.",
+      "size": "byte"
+    },
+    "BIT": {
+      "group": "Bits",
+      "name": "Test bits",
+      "syntax": "BIT address",
+      "ops": {
+        "1": [
+          "g"
+        ],
+        "2": [
+          "g",
+          "r"
+        ]
+      },
+      "implicit": {
+        "r": [
+          "A"
+        ]
+      },
+      "summary": "Tests a byte in memory without changing anything. The zero flag shows whether it shares any 'on' bits with A. Its top bit is copied into the negative flag and the next bit into the overflow flag.",
+      "more": "Often used just to look at the top bit of a hardware register or flag: `BIT &FF` then `BMI` tests whether Escape was pressed. On the 65C02 (BBC Master) it also works with a number: `BIT #&80`.",
+      "flags": "Zero (no bits shared with A), negative (bit 7 of the byte), overflow (bit 6).",
+      "explain": "Test {1} against A, without changing either.",
+      "size": "byte"
+    },
+    "ASL": {
+      "group": "Bits",
+      "name": "Shift left",
+      "syntax": "ASL   or   ASL address",
+      "ops": {
+        "0": [],
+        "1": [
+          "g"
+        ],
+        "2": [
+          "g",
+          "r"
+        ]
+      },
+      "rw": [
+        "rw",
+        "r"
+      ],
+      "summary": "Slides all the bits one place left, which doubles the number. A 0 comes in on the right; the bit pushed out on the left goes into the carry flag.",
+      "flags": "Carry (the bit pushed out), zero and negative.",
+      "explain": {
+        "0": "Shift A left one bit (doubling it).",
+        "1": "Shift {1} left one bit (doubling it)."
+      },
+      "size": "byte"
+    },
+    "LSR": {
+      "group": "Bits",
+      "name": "Shift right",
+      "syntax": "LSR   or   LSR address",
+      "ops": {
+        "0": [],
+        "1": [
+          "g"
+        ],
+        "2": [
+          "g",
+          "r"
+        ]
+      },
+      "rw": [
+        "rw",
+        "r"
+      ],
+      "summary": "Slides all the bits one place right, which halves the number (dropping any half). A 0 comes in on the left; the bit pushed out on the right goes into the carry flag.",
+      "flags": "Carry (the bit pushed out), zero and negative.",
+      "explain": {
+        "0": "Shift A right one bit (halving it).",
+        "1": "Shift {1} right one bit (halving it)."
+      },
+      "size": "byte"
+    },
+    "ROL": {
+      "group": "Bits",
+      "name": "Rotate left",
+      "syntax": "ROL   or   ROL address",
+      "ops": {
+        "0": [],
+        "1": [
+          "g"
+        ],
+        "2": [
+          "g",
+          "r"
+        ]
+      },
+      "rw": [
+        "rw",
+        "r"
+      ],
+      "summary": "Slides all the bits one place left. The carry flag comes in on the right, and the bit pushed out on the left becomes the new carry.",
+      "more": "Used after ASL to double a number bigger than one byte.",
+      "flags": "Carry (the bit pushed out), zero and negative.",
+      "explain": {
+        "0": "Rotate A left one bit through the carry flag.",
+        "1": "Rotate {1} left one bit through the carry flag."
+      },
+      "size": "byte"
+    },
+    "ROR": {
+      "group": "Bits",
+      "name": "Rotate right",
+      "syntax": "ROR   or   ROR address",
+      "ops": {
+        "0": [],
+        "1": [
+          "g"
+        ],
+        "2": [
+          "g",
+          "r"
+        ]
+      },
+      "rw": [
+        "rw",
+        "r"
+      ],
+      "summary": "Slides all the bits one place right. The carry flag comes in on the left, and the bit pushed out on the right becomes the new carry.",
+      "more": "Used after LSR to halve a number bigger than one byte.",
+      "flags": "Carry (the bit pushed out), zero and negative.",
+      "explain": {
+        "0": "Rotate A right one bit through the carry flag.",
+        "1": "Rotate {1} right one bit through the carry flag."
+      },
+      "size": "byte"
+    },
+    "CMP": {
+      "group": "Comparing",
+      "name": "Compare with A",
+      "syntax": "CMP #5   or   CMP address",
+      "ops": {
+        "1": [
+          "g"
+        ],
+        "2": [
+          "g",
+          "r"
+        ]
+      },
+      "rw": [
+        "r",
+        "r"
+      ],
+      "implicit": {
+        "r": [
+          "A"
+        ]
+      },
+      "sets": "compare",
+      "compareReg": "A",
+      "signed": false,
+      "summary": "Compares A with a number, without changing either. The flags then say how they compare.",
+      "flags": "Zero (equal), carry (A is the same or bigger), negative. Follow with BEQ, BNE, BCS (same or bigger) or BCC (smaller).",
+      "explain": "Compare A with {1}.",
+      "size": "byte"
+    },
+    "CPX": {
+      "group": "Comparing",
+      "name": "Compare with X",
+      "syntax": "CPX #5   or   CPX address",
+      "ops": {
+        "1": [
+          "g"
+        ]
+      },
+      "rw": [
+        "r",
+        "r"
+      ],
+      "implicit": {
+        "r": [
+          "X"
+        ]
+      },
+      "sets": "compare",
+      "compareReg": "X",
+      "signed": false,
+      "summary": "Compares X with a number, without changing either. The flags then say how they compare.",
+      "flags": "Zero (equal), carry (X is the same or bigger), negative. Follow with BEQ, BNE, BCS (same or bigger) or BCC (smaller).",
+      "explain": "Compare X with {1}.",
+      "size": "byte"
+    },
+    "CPY": {
+      "group": "Comparing",
+      "name": "Compare with Y",
+      "syntax": "CPY #5   or   CPY address",
+      "ops": {
+        "1": [
+          "g"
+        ]
+      },
+      "rw": [
+        "r",
+        "r"
+      ],
+      "implicit": {
+        "r": [
+          "Y"
+        ]
+      },
+      "sets": "compare",
+      "compareReg": "Y",
+      "signed": false,
+      "summary": "Compares Y with a number, without changing either. The flags then say how they compare.",
+      "flags": "Zero (equal), carry (Y is the same or bigger), negative. Follow with BEQ, BNE, BCS (same or bigger) or BCC (smaller).",
+      "explain": "Compare Y with {1}.",
+      "size": "byte"
+    },
+    "BEQ": {
+      "group": "Jumps",
+      "name": "Branch if equal",
+      "syntax": "BEQ label",
+      "ops": [
+        "t"
+      ],
+      "cond": "eq",
+      "local": true,
+      "bytes": 2,
+      "summary": "Jumps if the last result was 0, or the two things just compared were equal. Otherwise carries on with the next line.",
+      "more": "It can only reach 128 bytes back or 127 ahead. For further, branch the opposite way over a JMP.",
+      "flags": "No flags change.",
+      "explain": "Jump to {1t} if the last result was 0, or the two things just compared were equal.",
+      "size": "byte"
+    },
+    "BNE": {
+      "group": "Jumps",
+      "name": "Branch if not equal",
+      "syntax": "BNE label",
+      "ops": [
+        "t"
+      ],
+      "cond": "ne",
+      "local": true,
+      "bytes": 2,
+      "summary": "Jumps if the last result was not 0, or the two things just compared were different. Otherwise carries on with the next line.",
+      "more": "It can only reach 128 bytes back or 127 ahead. For further, branch the opposite way over a JMP.",
+      "flags": "No flags change.",
+      "explain": "Jump to {1t} if the last result was not 0, or the two things just compared were different.",
+      "size": "byte"
+    },
+    "BCS": {
+      "group": "Jumps",
+      "name": "Branch if carry set",
+      "syntax": "BCS label",
+      "ops": [
+        "t"
+      ],
+      "cond": "he",
+      "local": true,
+      "bytes": 2,
+      "summary": "Jumps if the carry flag is on (after a compare: the register was the same or bigger). Otherwise carries on with the next line.",
+      "more": "It can only reach 128 bytes back or 127 ahead. For further, branch the opposite way over a JMP.",
+      "flags": "No flags change.",
+      "explain": "Jump to {1t} if the carry flag is on (after a compare: the register was the same or bigger).",
+      "size": "byte"
+    },
+    "BCC": {
+      "group": "Jumps",
+      "name": "Branch if carry clear",
+      "syntax": "BCC label",
+      "ops": [
+        "t"
+      ],
+      "cond": "l",
+      "local": true,
+      "bytes": 2,
+      "summary": "Jumps if the carry flag is off (after a compare: the register was smaller). Otherwise carries on with the next line.",
+      "more": "It can only reach 128 bytes back or 127 ahead. For further, branch the opposite way over a JMP.",
+      "flags": "No flags change.",
+      "explain": "Jump to {1t} if the carry flag is off (after a compare: the register was smaller).",
+      "size": "byte"
+    },
+    "BMI": {
+      "group": "Jumps",
+      "name": "Branch if minus",
+      "syntax": "BMI label",
+      "ops": [
+        "t"
+      ],
+      "cond": "mi",
+      "local": true,
+      "bytes": 2,
+      "summary": "Jumps if the last result had its top bit on (a negative number). Otherwise carries on with the next line.",
+      "more": "It can only reach 128 bytes back or 127 ahead. For further, branch the opposite way over a JMP.",
+      "flags": "No flags change.",
+      "explain": "Jump to {1t} if the last result had its top bit on (a negative number).",
+      "size": "byte"
+    },
+    "BPL": {
+      "group": "Jumps",
+      "name": "Branch if plus",
+      "syntax": "BPL label",
+      "ops": [
+        "t"
+      ],
+      "cond": "pl",
+      "local": true,
+      "bytes": 2,
+      "summary": "Jumps if the last result had its top bit off (0 to 127). Otherwise carries on with the next line.",
+      "more": "It can only reach 128 bytes back or 127 ahead. For further, branch the opposite way over a JMP.",
+      "flags": "No flags change.",
+      "explain": "Jump to {1t} if the last result had its top bit off (0 to 127).",
+      "size": "byte"
+    },
+    "BVS": {
+      "group": "Jumps",
+      "name": "Branch if overflow set",
+      "syntax": "BVS label",
+      "ops": [
+        "t"
+      ],
+      "cond": "vs",
+      "local": true,
+      "bytes": 2,
+      "summary": "Jumps if the overflow flag is on. Otherwise carries on with the next line.",
+      "more": "It can only reach 128 bytes back or 127 ahead. For further, branch the opposite way over a JMP.",
+      "flags": "No flags change.",
+      "explain": "Jump to {1t} if the overflow flag is on.",
+      "size": "byte"
+    },
+    "BVC": {
+      "group": "Jumps",
+      "name": "Branch if overflow clear",
+      "syntax": "BVC label",
+      "ops": [
+        "t"
+      ],
+      "cond": "vc",
+      "local": true,
+      "bytes": 2,
+      "summary": "Jumps if the overflow flag is off. Otherwise carries on with the next line.",
+      "more": "It can only reach 128 bytes back or 127 ahead. For further, branch the opposite way over a JMP.",
+      "flags": "No flags change.",
+      "explain": "Jump to {1t} if the overflow flag is off.",
+      "size": "byte"
+    },
+    "JMP": {
+      "group": "Jumps",
+      "name": "Jump",
+      "syntax": "JMP label   or   JMP (&20E)",
+      "ops": [
+        "g"
+      ],
+      "far": true,
+      "bytes": 3,
+      "summary": "Jumps to any address. No way back is saved.",
+      "more": "With brackets it jumps to the address stored in memory there (low byte first), for example through a table of routines.",
+      "flags": "No flags change.",
+      "explain": "Jump to {1t}. No way back is saved.",
+      "special": [
+        {
+          "re": "^\\(",
+          "text": "Jump to {1}. No way back is saved."
+        }
+      ],
+      "size": "byte"
+    },
+    "JSR": {
+      "group": "Calling routines",
+      "name": "Jump to subroutine (call)",
+      "syntax": "JSR label",
+      "ops": [
+        "t"
+      ],
+      "call": true,
+      "bytes": 3,
+      "summary": "Calls a routine. The way back is saved on the stack, and the routine's RTS comes back to the next line.",
+      "flags": "No flags change.",
+      "explain": "Call the routine {1t}. The way back is saved on the stack.",
+      "size": "byte"
+    },
+    "RTS": {
+      "group": "Calling routines",
+      "name": "Return from subroutine",
+      "syntax": "RTS",
+      "ops": [],
+      "returns": true,
+      "summary": "Returns from a routine called with JSR, using the way back saved on the stack.",
+      "flags": "No flags change.",
+      "explain": "Return to the caller.",
+      "size": "byte"
+    },
+    "RTI": {
+      "group": "Calling routines",
+      "name": "Return from interrupt",
+      "syntax": "RTI",
+      "ops": [],
+      "returns": true,
+      "summary": "Ends an interrupt routine: gets the flags and the way back off the stack.",
+      "more": "On the BBC, an interrupt routine hooked into IRQ1V (&204) usually ends with `JMP` to the old address that was there, so the operating system's own work (keyboard, clock, sound) still gets done. The OS gets A back from &FC.",
+      "flags": "All flags come from the stack.",
+      "explain": "Return from the interrupt.",
+      "size": "byte"
+    },
+    "BRK": {
+      "group": "Calling routines",
+      "name": "Break",
+      "syntax": "BRK",
+      "ops": [],
+      "summary": "Stops the program and jumps to the break routine. On the BBC, BRK is how errors are reported: the bytes after it are an error number, then the message, then a 0. The OS (and BASIC) prints the message.",
+      "flags": "Sets the break and interrupt-disable flags.",
+      "explain": "Stop here (break).",
+      "size": "byte",
+      "more": "For your own errors: `BRK`, `EQUB 17`, `EQUS \"Escape\"`, `EQUB 0`."
+    },
+    "CLC": {
+      "group": "Flags",
+      "name": "Clear carry",
+      "syntax": "CLC",
+      "ops": [],
+      "summary": "Turns the carry flag off. Put it before ADC.",
+      "flags": "Only that flag changes.",
+      "explain": "Turn the carry flag off.",
+      "size": "byte"
+    },
+    "SEC": {
+      "group": "Flags",
+      "name": "Set carry",
+      "syntax": "SEC",
+      "ops": [],
+      "summary": "Turns the carry flag on. Put it before SBC.",
+      "flags": "Only that flag changes.",
+      "explain": "Turn the carry flag on.",
+      "size": "byte"
+    },
+    "CLI": {
+      "group": "Flags",
+      "name": "Allow interrupts",
+      "syntax": "CLI",
+      "ops": [],
+      "summary": "Turns the interrupt-disable flag off, so interrupts can happen again.",
+      "flags": "Only that flag changes.",
+      "explain": "Allow interrupts again.",
+      "size": "byte"
+    },
+    "SEI": {
+      "group": "Flags",
+      "name": "Stop interrupts",
+      "syntax": "SEI",
+      "ops": [],
+      "summary": "Turns the interrupt-disable flag on, so normal interrupts wait. Used while setting up an interrupt routine.",
+      "flags": "Only that flag changes.",
+      "explain": "Stop interrupts for now.",
+      "size": "byte"
+    },
+    "CLD": {
+      "group": "Flags",
+      "name": "Decimal mode off",
+      "syntax": "CLD",
+      "ops": [],
+      "summary": "Turns decimal mode off, so ADC and SBC work on ordinary binary numbers.",
+      "flags": "Only that flag changes.",
+      "explain": "Turn decimal mode off.",
+      "size": "byte"
+    },
+    "SED": {
+      "group": "Flags",
+      "name": "Decimal mode on",
+      "syntax": "SED",
+      "ops": [],
+      "summary": "Turns decimal mode on: ADC and SBC then treat each half of a byte as one decimal digit (0 to 9). Handy for scores.",
+      "flags": "Only that flag changes.",
+      "explain": "Turn decimal mode on.",
+      "size": "byte"
+    },
+    "CLV": {
+      "group": "Flags",
+      "name": "Clear overflow",
+      "syntax": "CLV",
+      "ops": [],
+      "summary": "Turns the overflow flag off.",
+      "flags": "Only that flag changes.",
+      "explain": "Turn the overflow flag off.",
+      "size": "byte"
+    },
+    "NOP": {
+      "group": "Other",
+      "name": "No operation",
+      "syntax": "NOP",
+      "ops": [],
+      "summary": "Does nothing for 2 cycles. Used for tiny delays or to leave room.",
+      "flags": "No flags change.",
+      "explain": "Do nothing.",
+      "size": "byte"
+    },
+    "BRA": {
+      "group": "Jumps",
+      "name": "Branch always",
+      "syntax": "BRA label",
+      "ops": [
+        "t"
+      ],
+      "local": true,
+      "bytes": 2,
+      "summary": "Always jumps to the label, like JMP, but in 2 bytes instead of 3. It can only reach 128 bytes back or 127 ahead.",
+      "more": "65C02 only: the BBC Master, or a second processor. Put `CPU 1` near the top for BeebAsm to accept it.",
+      "flags": "No flags change.",
+      "explain": "Jump to {1t}.",
+      "size": "byte"
+    },
+    "PHX": {
+      "group": "Stack",
+      "name": "Push X",
+      "syntax": "PHX",
+      "ops": [],
+      "implicit": {
+        "r": [
+          "X"
+        ]
+      },
+      "summary": "Puts a copy of X on the stack. Get it back later with PLX.",
+      "more": "65C02 only: the BBC Master, or a second processor. Put `CPU 1` near the top for BeebAsm to accept it.",
+      "flags": "No flags change.",
+      "explain": "Push X onto the stack.",
+      "size": "byte"
+    },
+    "PHY": {
+      "group": "Stack",
+      "name": "Push Y",
+      "syntax": "PHY",
+      "ops": [],
+      "implicit": {
+        "r": [
+          "Y"
+        ]
+      },
+      "summary": "Puts a copy of Y on the stack. Get it back later with PLY.",
+      "more": "65C02 only: the BBC Master, or a second processor. Put `CPU 1` near the top for BeebAsm to accept it.",
+      "flags": "No flags change.",
+      "explain": "Push Y onto the stack.",
+      "size": "byte"
+    },
+    "PLX": {
+      "group": "Stack",
+      "name": "Pull X",
+      "syntax": "PLX",
+      "ops": [],
+      "implicit": {
+        "w": [
+          "X"
+        ]
+      },
+      "resultReg": "X",
+      "summary": "Takes the top byte off the stack and puts it in X.",
+      "more": "65C02 only: the BBC Master, or a second processor. Put `CPU 1` near the top for BeebAsm to accept it.",
+      "flags": "Zero and negative flags show the value.",
+      "explain": "Pull the top of the stack into X.",
+      "size": "byte"
+    },
+    "PLY": {
+      "group": "Stack",
+      "name": "Pull Y",
+      "syntax": "PLY",
+      "ops": [],
+      "implicit": {
+        "w": [
+          "Y"
+        ]
+      },
+      "resultReg": "Y",
+      "summary": "Takes the top byte off the stack and puts it in Y.",
+      "more": "65C02 only: the BBC Master, or a second processor. Put `CPU 1` near the top for BeebAsm to accept it.",
+      "flags": "Zero and negative flags show the value.",
+      "explain": "Pull the top of the stack into Y.",
+      "size": "byte"
+    },
+    "STZ": {
+      "group": "Moving data",
+      "name": "Store zero",
+      "syntax": "STZ address",
+      "ops": {
+        "1": [
+          "g"
+        ],
+        "2": [
+          "g",
+          "r"
+        ]
+      },
+      "rw": [
+        "r",
+        "r"
+      ],
+      "summary": "Puts 0 into the byte at an address, without needing a register.",
+      "more": "65C02 only: the BBC Master, or a second processor. Put `CPU 1` near the top for BeebAsm to accept it.",
+      "flags": "No flags change.",
+      "explain": "Put 0 into {1}.",
+      "size": "byte"
+    },
+    "TSB": {
+      "group": "Bits",
+      "name": "Test and set bits",
+      "syntax": "TSB address",
+      "ops": {
+        "1": [
+          "g"
+        ]
+      },
+      "implicit": {
+        "r": [
+          "A"
+        ]
+      },
+      "summary": "Turns on, in the byte at an address, every bit that is on in A. The zero flag says whether any of those bits were already on.",
+      "more": "65C02 only: the BBC Master, or a second processor. Put `CPU 1` near the top for BeebAsm to accept it.",
+      "flags": "Zero (none of A's bits were on there before).",
+      "explain": "Turn on, in {1}, the bits that are on in A.",
+      "size": "byte"
+    },
+    "TRB": {
+      "group": "Bits",
+      "name": "Test and reset bits",
+      "syntax": "TRB address",
+      "ops": {
+        "1": [
+          "g"
+        ]
+      },
+      "implicit": {
+        "r": [
+          "A"
+        ]
+      },
+      "summary": "Turns off, in the byte at an address, every bit that is on in A. The zero flag says whether any of those bits were on before.",
+      "more": "65C02 only: the BBC Master, or a second processor. Put `CPU 1` near the top for BeebAsm to accept it.",
+      "flags": "Zero (none of A's bits were on there before).",
+      "explain": "Turn off, in {1}, the bits that are on in A.",
+      "size": "byte"
+    }
+  },
+  "directives": {
+    "ORG": {
+      "kind": "origin",
+      "name": "Where the code goes",
+      "syntax": "ORG &1900",
+      "ops": [
+        1,
+        1
+      ],
+      "summary": "Says where in memory the following code and data go. Programs on a disc machine usually start at &1900 (or &E00 on tape); `ORG &70` is used to name zero-page bytes with SKIP.",
+      "mode": "absolute",
+      "clearsRough": true
+    },
+    "GUARD": {
+      "kind": "other",
+      "name": "Guard",
+      "syntax": "GUARD &3000",
+      "ops": [
+        1,
+        1
+      ],
+      "summary": "Stops the build with an error if the code grows past this address, for example into screen memory."
+    },
+    "CLEAR": {
+      "kind": "other",
+      "name": "Clear",
+      "syntax": "CLEAR &1900, &3000",
+      "ops": [
+        2,
+        2
+      ],
+      "summary": "Lets this area of memory be filled again, so a second piece of code can be assembled to the same place (for example an overlay)."
+    },
+    "SAVE": {
+      "kind": "other",
+      "name": "Save to the disc",
+      "syntax": "SAVE \"Game\", start, end, exec",
+      "ops": [
+        2,
+        5
+      ],
+      "summary": "Puts the bytes from start up to (not including) end on the disc image as a file. The run address (exec) is where *RUN starts it, and is start if left out. Without a SAVE line, BeebAsm makes nothing."
+    },
+    "EQUB": {
+      "kind": "data",
+      "name": "Bytes",
+      "syntax": "EQUB 1, &FF, %1010, \"HI\"",
+      "ops": [
+        1,
+        999
+      ],
+      "summary": "Puts one or more single bytes into the program here. Text in quotes puts in one byte per letter.",
+      "unit": 1,
+      "mixed": true
+    },
+    "EQUW": {
+      "kind": "data",
+      "name": "Words",
+      "syntax": "EQUW &1234, label",
+      "ops": [
+        1,
+        999
+      ],
+      "summary": "Puts 2-byte numbers into the program, low byte first (the way the 6502 reads addresses).",
+      "unit": 2
+    },
+    "EQUD": {
+      "kind": "data",
+      "name": "Double words",
+      "syntax": "EQUD &12345678",
+      "ops": [
+        1,
+        999
+      ],
+      "summary": "Puts 4-byte numbers into the program, lowest byte first.",
+      "unit": 4
+    },
+    "EQUS": {
+      "kind": "text",
+      "name": "Text",
+      "syntax": "EQUS \"HELLO\", 13",
+      "ops": [
+        1,
+        999
+      ],
+      "summary": "Puts text into the program, one byte per letter. Numbers between the pieces of text go in as single bytes.",
+      "unit": 1,
+      "mixed": true
+    },
+    "SKIP": {
+      "kind": "space",
+      "name": "Leave a gap",
+      "syntax": "SKIP 2",
+      "ops": [
+        1,
+        1
+      ],
+      "summary": "Leaves this many bytes free. With a label in front (`.score SKIP 2`), it is how BeebAsm names a variable, usually in the zero page after `ORG &70`.",
+      "reserves": true
+    },
+    "SKIPTO": {
+      "kind": "skipto",
+      "name": "Leave a gap up to",
+      "syntax": "SKIPTO &3000",
+      "ops": [
+        1,
+        1
+      ],
+      "summary": "Leaves the bytes free up to this address. An error if the code is already past it.",
+      "reserves": true
+    },
+    "ALIGN": {
+      "kind": "other",
+      "name": "Align",
+      "syntax": "ALIGN &100",
+      "ops": [
+        1,
+        1
+      ],
+      "summary": "Moves on to the next address that is a multiple of the number, leaving a gap. Used so a table doesn't cross a page (which would cost an extra cycle).",
+      "alignTo": true
+    },
+    "INCLUDE": {
+      "kind": "include",
+      "name": "Include another file",
+      "syntax": "INCLUDE \"music.6502\"",
+      "ops": [
+        1,
+        1
+      ],
+      "summary": "Pulls in another source file here, as if its lines were written here.",
+      "symbolOperands": false
+    },
+    "INCBIN": {
+      "kind": "include",
+      "name": "Include a file of bytes",
+      "syntax": "INCBIN \"sprites.bin\"",
+      "ops": [
+        1,
+        1
+      ],
+      "summary": "Puts the bytes of a file (graphics, music, a screen) straight into the program here.",
+      "binary": true,
+      "symbolOperands": false
+    },
+    "PUTFILE": {
+      "kind": "other",
+      "name": "Put a file on the disc",
+      "syntax": "PUTFILE \"screen.bin\", \"SCREEN\", &3000",
+      "ops": [
+        2,
+        4
+      ],
+      "summary": "Copies a file from your computer onto the disc image, with the BBC file name, load address and run address given."
+    },
+    "PUTTEXT": {
+      "kind": "other",
+      "name": "Put a text file on the disc",
+      "syntax": "PUTTEXT \"readme.txt\", \"README\", 0",
+      "ops": [
+        2,
+        4
+      ],
+      "summary": "Copies a text file onto the disc image, changing its line endings to the BBC's."
+    },
+    "PUTBASIC": {
+      "kind": "other",
+      "name": "Put a BASIC program on the disc",
+      "syntax": "PUTBASIC \"loader.bas\", \"LOADER\"",
+      "ops": [
+        1,
+        2
+      ],
+      "summary": "Turns a BASIC program written as plain text into a real BBC BASIC program on the disc image. Handy for a loader."
+    },
+    "MAPCHAR": {
+      "kind": "other",
+      "name": "Change letters for EQUS",
+      "syntax": "MAPCHAR 'A', 'Z', 1",
+      "ops": [
+        2,
+        3
+      ],
+      "summary": "Changes which byte a letter becomes in the EQUS lines after it, for a game that keeps its own font in a different order."
+    },
+    "FOR": {
+      "kind": "for",
+      "name": "Repeat (for)",
+      "syntax": "FOR n, 0, 7 ... NEXT",
+      "ops": [
+        3,
+        4
+      ],
+      "summary": "Repeats the lines down to NEXT, counting n from the first number to the second (in steps of the third, if given). Each time round the lines are put into the program again, so `FOR n, 0, 7` with `EQUB n*2` puts in 8 bytes.",
+      "declares": "first",
+      "scope": "open"
+    },
+    "NEXT": {
+      "kind": "next",
+      "name": "End of the repeat",
+      "syntax": "NEXT",
+      "ops": [
+        0,
+        0
+      ],
+      "summary": "Ends a FOR block.",
+      "scope": "close"
+    },
+    "IF": {
+      "kind": "if",
+      "name": "If",
+      "syntax": "IF debug ... ELSE ... ENDIF",
+      "ops": [
+        1,
+        1
+      ],
+      "summary": "The lines down to ELSE (or ENDIF) are only put into the program if the test is true (not 0). Every IF needs an ENDIF, even on one line."
+    },
+    "ELIF": {
+      "kind": "elif",
+      "name": "Else if",
+      "syntax": "ELIF level = 2",
+      "ops": [
+        1,
+        1
+      ],
+      "summary": "Another test, tried when the ones above were false."
+    },
+    "ELSE": {
+      "kind": "else",
+      "name": "Else",
+      "syntax": "ELSE",
+      "ops": [
+        0,
+        0
+      ],
+      "summary": "The lines put in when the IF test was false."
+    },
+    "ENDIF": {
+      "kind": "endif",
+      "name": "End if",
+      "syntax": "ENDIF",
+      "ops": [
+        0,
+        0
+      ],
+      "summary": "Ends an IF block."
+    },
+    "MACRO": {
+      "kind": "macro",
+      "name": "Define a macro",
+      "syntax": "MACRO add16 addr, n ... ENDMACRO",
+      "ops": [
+        1,
+        99
+      ],
+      "summary": "A named group of lines that is copied in wherever you write its name, for example `add16 score, 10`. The names after the macro's name stand for the values given.",
+      "declares": "params",
+      "symbolOperands": false,
+      "scope": "open"
+    },
+    "ENDMACRO": {
+      "kind": "endmacro",
+      "name": "End of the macro",
+      "syntax": "ENDMACRO",
+      "ops": [
+        0,
+        0
+      ],
+      "summary": "Ends a MACRO block.",
+      "scope": "close"
+    },
+    "PRINT": {
+      "kind": "other",
+      "name": "Print while building",
+      "syntax": "PRINT \"Code ends at\", ~P%",
+      "ops": [
+        0,
+        99
+      ],
+      "summary": "Shows a message and numbers while the program is built (`~` shows a number in hex). It doesn't go into the program."
+    },
+    "ERROR": {
+      "kind": "other",
+      "name": "Stop with an error",
+      "syntax": "ERROR \"Too big\"",
+      "ops": [
+        1,
+        1
+      ],
+      "summary": "Stops the build with this message, usually inside an IF."
+    },
+    "ASSERT": {
+      "kind": "other",
+      "name": "Check",
+      "syntax": "ASSERT P% <= &3000",
+      "ops": [
+        1,
+        99
+      ],
+      "summary": "Stops the build with an error if a test is false."
+    },
+    "CPU": {
+      "kind": "other",
+      "name": "Which chip",
+      "syntax": "CPU 1",
+      "ops": [
+        1,
+        1
+      ],
+      "summary": "`CPU 0` (the usual) is the 6502 in the BBC Micro. `CPU 1` also allows the 65C02's extra instructions, for the BBC Master."
+    },
+    "COPYBLOCK": {
+      "kind": "other",
+      "name": "Copy a block",
+      "syntax": "COPYBLOCK start, end, dest",
+      "ops": [
+        3,
+        3
+      ],
+      "summary": "Copies bytes already assembled to another place in the output."
+    },
+    "RANDOMIZE": {
+      "kind": "other",
+      "name": "Seed the random numbers",
+      "syntax": "RANDOMIZE 42",
+      "ops": [
+        1,
+        1
+      ],
+      "summary": "Makes RND() give the same numbers each build."
+    },
+    "ASM": {
+      "kind": "other",
+      "name": "Assemble from text",
+      "syntax": "ASM \"LDA #\" + STR$(n)",
+      "ops": [
+        1,
+        1
+      ],
+      "summary": "Assembles an instruction made up as a piece of text."
+    },
+    "SOURCELINE": {
+      "kind": "other",
+      "name": "Report a different line",
+      "syntax": "SOURCELINE 100, \"game.bas\"",
+      "ops": [
+        1,
+        2
+      ],
+      "summary": "Makes error messages report this line number (and file) instead."
+    },
+    "=": {
+      "kind": "equ",
+      "name": "Give a name to a number",
+      "syntax": "name = value",
+      "ops": [
+        1,
+        1
+      ],
+      "summary": "Gives a name to a number, so the code can say `oswrch` instead of `&FFEE`. A name can only be set once (`name =? value` only sets it if it isn't set already)."
+    }
+  },
+  "symbols": {
+    "TRUE": {
+      "text": "BeebAsm's name for true, which is -1 (all bits on), as in BBC BASIC.",
+      "builtIn": true,
+      "value": -1
+    },
+    "FALSE": {
+      "text": "BeebAsm's name for false, which is 0.",
+      "builtIn": true,
+      "value": 0
+    },
+    "PI": {
+      "text": "BeebAsm's name for pi (3.14159...), for working out tables of sines and cosines with SIN() and COS().",
+      "builtIn": true,
+      "value": 3.141592653589793
+    },
+    "CPU": {
+      "text": "The chip set with the CPU line: 0 for the 6502, 1 for the 65C02.",
+      "builtIn": true,
+      "value": 0
+    }
+  },
+  "addresses": {
+    "0000": "Zero page: BASIC uses &00 to &6F for its own work. If your program never goes back to BASIC, it can use them too.",
+    "0070": "Free zero-page byte (&70 to &8F are left for your own programs). Two of them side by side make a pointer for `(&70),Y`.",
+    "00F4": "The paged ROM that is switched in now (a copy of what was written to &FE30).",
+    "00FC": "Where the OS keeps A while an interrupt is being dealt with.",
+    "00FD": "After a BRK (an error), &FD and &FE point to the error number and message.",
+    "00FE": "After a BRK (an error), the high byte of the pointer to the error message (low byte at &FD).",
+    "00FF": "The Escape flag: bit 7 is on when Escape has been pressed. `BIT &FF` then `BMI` tests it.",
+    "0200": "**USERV** (vector): The address the OS jumps to for the user vector (*CODE and *LINE), low byte here and high byte in the next byte. Change it to run your own routine instead (keep the old address to pass things on).",
+    "0202": "**BRKV** (vector): The address the OS jumps to for BRK, which is how errors are reported, low byte here and high byte in the next byte. Change it to run your own routine instead (keep the old address to pass things on).",
+    "0204": "**IRQ1V** (vector): The address the OS jumps to for every interrupt, first (point it at your own routine to run code 50 times a second), low byte here and high byte in the next byte. Change it to run your own routine instead (keep the old address to pass things on).",
+    "0206": "**IRQ2V** (vector): The address the OS jumps to for interrupts the OS didn't recognise, low byte here and high byte in the next byte. Change it to run your own routine instead (keep the old address to pass things on).",
+    "0208": "**CLIV** (vector): The address the OS jumps to for OSCLI (* commands), low byte here and high byte in the next byte. Change it to run your own routine instead (keep the old address to pass things on).",
+    "020A": "**BYTEV** (vector): The address the OS jumps to for OSBYTE, low byte here and high byte in the next byte. Change it to run your own routine instead (keep the old address to pass things on).",
+    "020C": "**WORDV** (vector): The address the OS jumps to for OSWORD, low byte here and high byte in the next byte. Change it to run your own routine instead (keep the old address to pass things on).",
+    "020E": "**WRCHV** (vector): The address the OS jumps to for OSWRCH (printing a character), low byte here and high byte in the next byte. Change it to run your own routine instead (keep the old address to pass things on).",
+    "0210": "**RDCHV** (vector): The address the OS jumps to for OSRDCH (reading a key), low byte here and high byte in the next byte. Change it to run your own routine instead (keep the old address to pass things on).",
+    "0212": "**FILEV** (vector): The address the OS jumps to for OSFILE, low byte here and high byte in the next byte. Change it to run your own routine instead (keep the old address to pass things on).",
+    "0214": "**ARGSV** (vector): The address the OS jumps to for OSARGS, low byte here and high byte in the next byte. Change it to run your own routine instead (keep the old address to pass things on).",
+    "0216": "**BGETV** (vector): The address the OS jumps to for OSBGET, low byte here and high byte in the next byte. Change it to run your own routine instead (keep the old address to pass things on).",
+    "0218": "**BPUTV** (vector): The address the OS jumps to for OSBPUT, low byte here and high byte in the next byte. Change it to run your own routine instead (keep the old address to pass things on).",
+    "021A": "**GBPBV** (vector): The address the OS jumps to for OSGBPB, low byte here and high byte in the next byte. Change it to run your own routine instead (keep the old address to pass things on).",
+    "021C": "**FINDV** (vector): The address the OS jumps to for OSFIND, low byte here and high byte in the next byte. Change it to run your own routine instead (keep the old address to pass things on).",
+    "021E": "**FSCV** (vector): The address the OS jumps to for filing system control, low byte here and high byte in the next byte. Change it to run your own routine instead (keep the old address to pass things on).",
+    "0220": "**EVNTV** (vector): The address the OS jumps to for events (such as vsync, event 4), low byte here and high byte in the next byte. Change it to run your own routine instead (keep the old address to pass things on).",
+    "0222": "**UPTV** (vector): The address the OS jumps to for the user print routine, low byte here and high byte in the next byte. Change it to run your own routine instead (keep the old address to pass things on).",
+    "0224": "**NETV** (vector): The address the OS jumps to for the network, low byte here and high byte in the next byte. Change it to run your own routine instead (keep the old address to pass things on).",
+    "0226": "**VDUV** (vector): The address the OS jumps to for VDU codes the OS doesn't know, low byte here and high byte in the next byte. Change it to run your own routine instead (keep the old address to pass things on).",
+    "0228": "**KEYV** (vector): The address the OS jumps to for the keyboard, low byte here and high byte in the next byte. Change it to run your own routine instead (keep the old address to pass things on).",
+    "022A": "**INSV** (vector): The address the OS jumps to for putting a byte into a buffer, low byte here and high byte in the next byte. Change it to run your own routine instead (keep the old address to pass things on).",
+    "022C": "**REMV** (vector): The address the OS jumps to for taking a byte out of a buffer, low byte here and high byte in the next byte. Change it to run your own routine instead (keep the old address to pass things on).",
+    "022E": "**CNPV** (vector): The address the OS jumps to for counting or emptying a buffer, low byte here and high byte in the next byte. Change it to run your own routine instead (keep the old address to pass things on).",
+    "0236": "The start of the OS's own variables (what OSBYTE &A6 reports).",
+    "0400": "BASIC's @% (how numbers are printed), then A% to Z%, 4 bytes each, up to &46B.",
+    "0404": "BASIC's A%. When BASIC CALLs or USRs machine code, the low byte of A% goes into A.",
+    "0460": "BASIC's X%. When BASIC CALLs machine code, the low byte of X% goes into X.",
+    "0464": "BASIC's Y%. When BASIC CALLs machine code, the low byte of Y% goes into Y.",
+    "0D00": "The NMI routine area (&D00 to &D5F), used by the disc and network systems.",
+    "0E00": "Where BASIC programs (PAGE) start on a tape-only BBC.",
+    "1900": "Where BASIC programs (PAGE) start on a BBC with a DFS disc system. A common start for machine code.",
+    "3000": "The start of screen memory in MODEs 0, 1 and 2 (20K, up to &7FFF).",
+    "4000": "The start of screen memory in MODE 3 (16K).",
+    "5800": "The start of screen memory in MODEs 4 and 5 (10K).",
+    "6000": "The start of screen memory in MODE 6 (8K).",
+    "7C00": "The start of screen memory in MODE 7, the Teletext mode (1K: 40 x 25 characters, one byte each).",
+    "8000": "The start of the paged ROM area (BASIC, or whichever language or utility ROM is switched in with &FE30).",
+    "C000": "The start of the operating system ROM.",
+    "FE00": "**6845 CRTC address** (SHEILA, &FE00): Picks which of the video chip's 18 registers the next write to &FE01 goes to (R12 and R13 set the screen start, R1 the width, R6 the height ...).",
+    "FE01": "**6845 CRTC data** (SHEILA, &FE01): The value for the CRTC register chosen at &FE00. Writing here changes the screen's size, position and where it starts in memory (for hardware scrolling).",
+    "FE08": "**6850 ACIA status/control** (SHEILA, &FE08): The serial port (RS423 and the cassette): status when read, set-up when written.",
+    "FE09": "**6850 ACIA data** (SHEILA, &FE09): The byte sent or received by the serial port.",
+    "FE10": "**Serial ULA** (SHEILA, &FE10): Chooses cassette or RS423, the cassette motor relay and the baud rates.",
+    "FE20": "**Video ULA control** (SHEILA, &FE20): Sets the screen mode's clock rate, characters per line, Teletext on or off, and which flashing colour is shown (the OS keeps a copy at &248).",
+    "FE21": "**Video ULA palette** (SHEILA, &FE21): Sets one colour: the high 4 bits say which logical colour, the low 4 bits the actual colour, written as 7 minus it (EOR 7). In MODE 2, logical colours 0 to 15 each need one write.",
+    "FE30": "**Paged ROM select** (SHEILA, &FE30): Switches which paged ROM (0 to 15) appears at &8000 to &BFFF. It can't be read back, so keep the number in &F4 as the OS does.",
+    "FE40": "**System VIA port B** (SHEILA, &FE40): Controls the addressable latch: write a bit number 0 to 7 plus 8 to turn it on (or plus 0 to turn it off). Bit 0 lets the sound chip read the byte at &FE41 (write 0 then 8), bit 3 lets the keyboard be read, bits 4 and 5 choose the screen wrap size, bits 6 and 7 are the Caps Lock and Shift Lock lights. Bits 4 and 5 read the joystick fire buttons.",
+    "FE41": "**System VIA port A** (SHEILA, &FE41): The byte for the sound chip (or the key number to test on the keyboard). The same as &FE4F, but with handshaking.",
+    "FE42": "**System VIA port B direction** (SHEILA, &FE42): Which bits of &FE40 are outputs (1) and inputs (0). The OS sets it to &0F.",
+    "FE43": "**System VIA port A direction** (SHEILA, &FE43): Which bits of &FE41 / &FE4F are outputs. &FF to send to the sound chip, &7F to read the keyboard.",
+    "FE44": "**System VIA timer 1 (low)** (SHEILA, &FE44): The low byte of timer 1. The OS uses timer 1 for its 100-times-a-second clock.",
+    "FE45": "**System VIA timer 1 (high)** (SHEILA, &FE45): The high byte of timer 1. Writing it starts the count.",
+    "FE46": "**System VIA timer 1 latch (low)** (SHEILA, &FE46): The value timer 1 restarts from (low byte).",
+    "FE47": "**System VIA timer 1 latch (high)** (SHEILA, &FE47): The value timer 1 restarts from (high byte).",
+    "FE48": "**System VIA timer 2 (low)** (SHEILA, &FE48): The low byte of timer 2, often used for split-screen timing in games.",
+    "FE49": "**System VIA timer 2 (high)** (SHEILA, &FE49): The high byte of timer 2. Writing it starts the count.",
+    "FE4A": "**System VIA shift register** (SHEILA, &FE4A): The VIA's shift register.",
+    "FE4B": "**System VIA auxiliary control** (SHEILA, &FE4B): Sets how the timers run: one-shot or free-running (bit 6 for timer 1, bit 5 for timer 2).",
+    "FE4C": "**System VIA peripheral control** (SHEILA, &FE4C): Sets how the control lines CA1, CA2, CB1 and CB2 behave.",
+    "FE4D": "**System VIA interrupt flags** (SHEILA, &FE4D): Which of the VIA's interrupts have happened: bit 1 vsync (the start of each screen frame, 50 times a second), bit 0 the keyboard, bit 6 timer 1, bit 5 timer 2. Write a 1 to a bit to clear it.",
+    "FE4E": "**System VIA interrupt enable** (SHEILA, &FE4E): Which interrupts are allowed: write bit 7 on plus the bits to switch on, or bit 7 off plus the bits to switch off. &7F switches them all off; &82 switches vsync back on.",
+    "FE4F": "**System VIA port A (no handshake)** (SHEILA, &FE4F): The byte for the sound chip, or the keyboard: write a key number with bit 7 off and read it back; bit 7 is then on if that key is pressed.",
+    "FE60": "**User VIA port B** (SHEILA, &FE60): The user port at the bottom of the BBC: 8 lines you can read and write (and the mouse on some programs).",
+    "FE61": "**User VIA port A** (SHEILA, &FE61): The printer (parallel) port.",
+    "FE62": "**User VIA port B direction** (SHEILA, &FE62): Which user port lines are outputs (1) and inputs (0).",
+    "FE63": "**User VIA port A direction** (SHEILA, &FE63): Which printer port lines are outputs.",
+    "FE64": "**User VIA timer 1 (low)** (SHEILA, &FE64): The low byte of the User VIA's timer 1, free for your own timing.",
+    "FE65": "**User VIA timer 1 (high)** (SHEILA, &FE65): The high byte of the User VIA's timer 1. Writing it starts the count.",
+    "FE66": "**User VIA timer 1 latch (low)** (SHEILA, &FE66): The value the User VIA's timer 1 restarts from (low byte).",
+    "FE67": "**User VIA timer 1 latch (high)** (SHEILA, &FE67): The value the User VIA's timer 1 restarts from (high byte).",
+    "FE68": "**User VIA timer 2 (low)** (SHEILA, &FE68): The low byte of the User VIA's timer 2.",
+    "FE69": "**User VIA timer 2 (high)** (SHEILA, &FE69): The high byte of the User VIA's timer 2.",
+    "FE6B": "**User VIA auxiliary control** (SHEILA, &FE6B): Sets how the User VIA's timers run (bit 6: timer 1 free-running).",
+    "FE6C": "**User VIA peripheral control** (SHEILA, &FE6C): Sets how the User VIA's control lines behave.",
+    "FE6D": "**User VIA interrupt flags** (SHEILA, &FE6D): Which of the User VIA's interrupts have happened (bit 6 timer 1, bit 5 timer 2). Write a 1 to clear one.",
+    "FE6E": "**User VIA interrupt enable** (SHEILA, &FE6E): Which User VIA interrupts are allowed: bit 7 on plus the bits to switch on, or off plus the bits to switch off.",
+    "FE6F": "**User VIA port A (no handshake)** (SHEILA, &FE6F): The printer port, without handshaking.",
+    "FE80": "**8271 disc controller** (SHEILA, &FE80): The disc controller of the Model B (&FE80 to &FE87). Leave it to the DFS.",
+    "FEC0": "**ADC status / start** (SHEILA, &FEC0): The analogue-to-digital converter for the joysticks: write the channel (0 to 3) to start a reading; bit 7 of the status is off when it is ready.",
+    "FEC1": "**ADC result (high)** (SHEILA, &FEC1): The top 8 bits of the last joystick reading (255 at one end, 0 at the other).",
+    "FEC2": "**ADC result (low)** (SHEILA, &FEC2): The bottom bits of the last joystick reading.",
+    "FEE0": "**Tube** (SHEILA, &FEE0): The link to a second processor (&FEE0 to &FEFF).",
+    "FFB9": "**OSRDRM** (OS routine): Reads a byte from a paged ROM. Y = the ROM number, and the address in &F6 and &F7. The byte comes back in A.",
+    "FFBC": "**VDUCHR** (OS routine): Sends the character in A to the screen driver directly, skipping *SPOOL and the printer.",
+    "FFBF": "**OSEVEN** (OS routine): Raises an event (Y = the event number), for anything waiting on EVNTV.",
+    "FFC2": "**GSINIT** (OS routine): Starts reading a string the way *commands do (quotes, |M for control codes). Used before GSREAD.",
+    "FFC5": "**GSREAD** (OS routine): Reads the next character of a string started with GSINIT.",
+    "FFC8": "**NVRDCH** (OS routine): Reads a key, like OSRDCH, without going through the vector.",
+    "FFCB": "**NVWRCH** (OS routine): Prints a character, like OSWRCH, without going through the vector.",
+    "FFCE": "**OSFIND** (OS routine): Opens or closes a file. A = &40 to read, &80 to write, &C0 for both (X and Y point to the name), or 0 to close (Y = the file handle). The handle comes back in A.",
+    "FFD1": "**OSGBPB** (OS routine): Reads or writes a block of bytes in an open file. A says which, and X and Y point to a 13-byte control block.",
+    "FFD4": "**OSBPUT** (OS routine): Writes the byte in A to the open file whose handle is in Y.",
+    "FFD7": "**OSBGET** (OS routine): Reads one byte from the open file whose handle is in Y into A. The carry flag is set at the end of the file.",
+    "FFDA": "**OSARGS** (OS routine): Reads or changes things about an open file, such as where in it the next byte comes from.",
+    "FFDD": "**OSFILE** (OS routine): Loads or saves a whole file. A = &FF to load, 0 to save; X and Y point to an 18-byte control block holding the name's address and the load, run, start and end addresses.",
+    "FFE0": "**OSRDCH** (OS routine): Waits for a key and puts its code in A. The carry flag is set if Escape was pressed (then acknowledge it with OSBYTE &7E).",
+    "FFE3": "**OSASCI** (OS routine): Prints the character in A, like OSWRCH, but a carriage return (13) also moves to a new line.",
+    "FFE7": "**OSNEWL** (OS routine): Moves to the start of a new line (prints 10 then 13).",
+    "FFEC": "**OSWRCR** (OS routine): Prints a carriage return (13): back to the start of the line.",
+    "FFEE": "**OSWRCH** (OS routine): Prints the character in A at the cursor, or obeys it if it is a control code (VDU 22 changes MODE, VDU 31 moves the cursor and so on). The most used OS call. A, X and Y are kept.",
+    "FFF1": "**OSWORD** (OS routine): Does one of the OS jobs that needs more than three bytes of information. A says which (0 reads a line of input, 7 makes a sound, 8 sets an envelope), and X (low) and Y (high) point to a block of memory holding the details.",
+    "FFF4": "**OSBYTE** (OS routine): Does one of many small OS jobs. A says which, and X and Y carry the values; answers come back in X and Y. For example A = &81 reads the keyboard, &13 waits for the next screen refresh (vsync), &0F clears the keyboard buffer, &7E acknowledges Escape.",
+    "FFF7": "**OSCLI** (OS routine): Runs a * command (such as `*FX 200,3` or `*LOAD`). X (low) and Y (high) point to the command text, which ends with 13.",
+    "FFFA": "**NMI vector** (OS routine): Where the 6502 goes on a non-maskable interrupt (used by the disc and network systems).",
+    "FFFC": "**RESET vector** (OS routine): Where the 6502 starts when the BBC is switched on or BREAK is pressed.",
+    "FFFE": "**IRQ/BRK vector** (OS routine): Where the 6502 goes on an interrupt or a BRK. The OS sorts them out and passes them on through BRKV (&202) and IRQ1V (&204)."
+  },
+  "moreAddresses": {
+    "0071": "Free zero-page byte (&70 to &8F are left for your own programs). Two of them side by side make a pointer for `(&70),Y`.",
+    "0072": "Free zero-page byte (&70 to &8F are left for your own programs). Two of them side by side make a pointer for `(&70),Y`.",
+    "0073": "Free zero-page byte (&70 to &8F are left for your own programs). Two of them side by side make a pointer for `(&70),Y`.",
+    "0074": "Free zero-page byte (&70 to &8F are left for your own programs). Two of them side by side make a pointer for `(&70),Y`.",
+    "0075": "Free zero-page byte (&70 to &8F are left for your own programs). Two of them side by side make a pointer for `(&70),Y`.",
+    "0076": "Free zero-page byte (&70 to &8F are left for your own programs). Two of them side by side make a pointer for `(&70),Y`.",
+    "0077": "Free zero-page byte (&70 to &8F are left for your own programs). Two of them side by side make a pointer for `(&70),Y`.",
+    "0078": "Free zero-page byte (&70 to &8F are left for your own programs). Two of them side by side make a pointer for `(&70),Y`.",
+    "0079": "Free zero-page byte (&70 to &8F are left for your own programs). Two of them side by side make a pointer for `(&70),Y`.",
+    "007A": "Free zero-page byte (&70 to &8F are left for your own programs). Two of them side by side make a pointer for `(&70),Y`.",
+    "007B": "Free zero-page byte (&70 to &8F are left for your own programs). Two of them side by side make a pointer for `(&70),Y`.",
+    "007C": "Free zero-page byte (&70 to &8F are left for your own programs). Two of them side by side make a pointer for `(&70),Y`.",
+    "007D": "Free zero-page byte (&70 to &8F are left for your own programs). Two of them side by side make a pointer for `(&70),Y`.",
+    "007E": "Free zero-page byte (&70 to &8F are left for your own programs). Two of them side by side make a pointer for `(&70),Y`.",
+    "007F": "Free zero-page byte (&70 to &8F are left for your own programs). Two of them side by side make a pointer for `(&70),Y`.",
+    "0080": "Free zero-page byte (&70 to &8F are left for your own programs). Two of them side by side make a pointer for `(&70),Y`.",
+    "0081": "Free zero-page byte (&70 to &8F are left for your own programs). Two of them side by side make a pointer for `(&70),Y`.",
+    "0082": "Free zero-page byte (&70 to &8F are left for your own programs). Two of them side by side make a pointer for `(&70),Y`.",
+    "0083": "Free zero-page byte (&70 to &8F are left for your own programs). Two of them side by side make a pointer for `(&70),Y`.",
+    "0084": "Free zero-page byte (&70 to &8F are left for your own programs). Two of them side by side make a pointer for `(&70),Y`.",
+    "0085": "Free zero-page byte (&70 to &8F are left for your own programs). Two of them side by side make a pointer for `(&70),Y`.",
+    "0086": "Free zero-page byte (&70 to &8F are left for your own programs). Two of them side by side make a pointer for `(&70),Y`.",
+    "0087": "Free zero-page byte (&70 to &8F are left for your own programs). Two of them side by side make a pointer for `(&70),Y`.",
+    "0088": "Free zero-page byte (&70 to &8F are left for your own programs). Two of them side by side make a pointer for `(&70),Y`.",
+    "0089": "Free zero-page byte (&70 to &8F are left for your own programs). Two of them side by side make a pointer for `(&70),Y`.",
+    "008A": "Free zero-page byte (&70 to &8F are left for your own programs). Two of them side by side make a pointer for `(&70),Y`.",
+    "008B": "Free zero-page byte (&70 to &8F are left for your own programs). Two of them side by side make a pointer for `(&70),Y`.",
+    "008C": "Free zero-page byte (&70 to &8F are left for your own programs). Two of them side by side make a pointer for `(&70),Y`.",
+    "008D": "Free zero-page byte (&70 to &8F are left for your own programs). Two of them side by side make a pointer for `(&70),Y`.",
+    "008E": "Free zero-page byte (&70 to &8F are left for your own programs). Two of them side by side make a pointer for `(&70),Y`.",
+    "008F": "Free zero-page byte (&70 to &8F are left for your own programs). Two of them side by side make a pointer for `(&70),Y`."
+  },
+  "addressGuess": {
+    "min": "0200",
+    "decimal": false
+  },
+  "regions": [
+    {
+      "from": "0000",
+      "to": "006F",
+      "text": "zero page: BASIC's working space"
+    },
+    {
+      "from": "0070",
+      "to": "008F",
+      "text": "zero page: free for your own use (&70 to &8F)"
+    },
+    {
+      "from": "0090",
+      "to": "00FF",
+      "text": "zero page: used by the operating system"
+    },
+    {
+      "from": "0100",
+      "to": "01FF",
+      "text": "the stack"
+    },
+    {
+      "from": "0200",
+      "to": "02FF",
+      "text": "the operating system's vectors and variables"
+    },
+    {
+      "from": "0300",
+      "to": "03FF",
+      "text": "the screen (VDU) and cassette working area"
+    },
+    {
+      "from": "0400",
+      "to": "07FF",
+      "text": "BASIC's working area (A% to Z% at &404)"
+    },
+    {
+      "from": "0800",
+      "to": "0DFF",
+      "text": "sound, printer and input buffers, function keys, user characters and the NMI area"
+    },
+    {
+      "from": "0E00",
+      "to": "18FF",
+      "text": "the disc system's working area (free on a tape-only BBC, where PAGE is &E00)"
+    },
+    {
+      "from": "1900",
+      "to": "2FFF",
+      "text": "free RAM for programs (from PAGE, &1900 on a disc BBC, up to the screen in MODEs 0 to 2)"
+    },
+    {
+      "from": "3000",
+      "to": "57FF",
+      "text": "screen memory in MODEs 0 to 3 (free RAM in MODEs 4 to 7)"
+    },
+    {
+      "from": "5800",
+      "to": "7BFF",
+      "text": "screen memory in MODEs 0 to 6 (MODE 4 and 5 start at &5800, MODE 6 at &6000)"
+    },
+    {
+      "from": "7C00",
+      "to": "7FFF",
+      "text": "screen memory (MODE 7, Teletext, uses just this 1K)"
+    },
+    {
+      "from": "8000",
+      "to": "BFFF",
+      "text": "paged ROM (BASIC, or the ROM chosen with &FE30)"
+    },
+    {
+      "from": "C000",
+      "to": "FBFF",
+      "text": "the operating system ROM"
+    },
+    {
+      "from": "FC00",
+      "to": "FCFF",
+      "text": "FRED: the 1MHz bus for add-ons"
+    },
+    {
+      "from": "FD00",
+      "to": "FDFF",
+      "text": "JIM: the 1MHz bus's paged memory"
+    },
+    {
+      "from": "FE00",
+      "to": "FEFF",
+      "text": "SHEILA: the BBC's own chips (video, VIAs, sound, disc)"
+    },
+    {
+      "from": "FF00",
+      "to": "FFFF",
+      "text": "operating system calls (OSWRCH, OSBYTE ...) and the 6502's vectors"
+    }
+  ]
+}

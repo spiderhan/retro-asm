@@ -1,0 +1,75 @@
+\ ******************************************************************
+\ *  Made-up BBC Micro demo for the Retro ASM tests (BeebAsm)
+\ ******************************************************************
+
+oswrch = &FFEE
+osbyte = &FFF4
+numstars = 8
+debug = FALSE
+
+ORG &70
+.ptr        SKIP 2      ; a pointer for (ptr),Y
+.counter    SKIP 1
+.speed      SKIP 1
+
+MACRO SETPTR addr
+    LDA #LO(addr):STA ptr
+    LDA #HI(addr):STA ptr+1
+ENDMACRO
+
+ORG &1900
+GUARD &3000
+
+\ Start: clear the screen and print the title
+.start
+    LDA #22:JSR oswrch
+    LDA #7:JSR oswrch       ; MODE 7
+    SETPTR title
+    JSR print
+    LDX #numstars
+.wait
+{
+    LDA #19:JSR osbyte      ; wait for vsync
+    DEX:BNE wait
+}
+    IF debug
+        LDA #&41:JSR oswrch
+    ELSE
+        NOP
+    ENDIF
+    RTS
+
+\ Print the text at ptr until a 0 byte
+.print
+{
+    LDY #0
+.loop
+    LDA (ptr),Y
+    BEQ done
+    JSR oswrch
+    INY:BNE loop
+.done
+    RTS
+}
+
+\ Fill a small table, one entry each time round
+.fill
+{
+    LDX #0
+.loop
+    TXA:STA table,X
+    INX:CPX #16:BNE loop
+    RTS
+}
+
+.table
+FOR n, 0, 7
+    EQUB n*2, &FF
+NEXT
+.speeds  EQUW &1234, start
+.flags   EQUB %1010, 'A', "HI", 0
+
+INCLUDE "bbcdata.6502"
+
+.end
+SAVE "DEMO", start, end

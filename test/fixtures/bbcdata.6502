@@ -1,0 +1,3 @@
+\ Made-up text for the BBC demo
+.title  EQUS "STARS", 13, 10, 0
+.lookup EQUB LO(title), HI(title)
