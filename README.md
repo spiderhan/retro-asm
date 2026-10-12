@@ -19,9 +19,10 @@ Each chip is one data file, so other chips can be added without touching the cod
 
 ## Install
 
-1. In VS Code, open the Extensions panel.
-2. Click the `...` menu at the top of the panel and choose **Install from VSIX...**
-3. Pick `retro-asm-0.7.3.vsix`.
+1. Download the newest `retro-asm-<version>.vsix` from the [Releases page](https://github.com/spiderhan/retro-asm/releases).
+2. In VS Code, open the Extensions panel.
+3. Click the `...` menu at the top of the panel and choose **Install from VSIX...**
+4. Pick the file you downloaded.
 
 Open an assembly file: `.a99`, `.z80` or `.6502` open by themselves. The bottom-right corner of the window shows the chip it is reading the file as (for example **TMS9900**, **Z80** or **6502 (BBC Micro)**), and a chip icon appears on the bar down the left of the window.
 
