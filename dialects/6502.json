@@ -2233,5 +2233,51 @@
    "to": "FFFF",
    "text": "KERNAL ROM, with RAM underneath"
   }
- ]
+ ],
+ "snippets": {
+  "_help": "Starter code. Type the name (in lower case) on an empty line and pick it from the list, or run Retro ASM: Insert starter code. ${1:NAME} is a spot to fill in (Tab moves to the next one; the same number is filled in everywhere at once), $0 is where the cursor ends up, and a real $ is written \\$ (in this file, \"\\\\$\").",
+  "program": {
+   "name": "A whole program to start from",
+   "about": "A Commodore 64 program for KickAssembler. BasicUpstart2 adds the BASIC line that starts it, so LOAD then RUN works. Your code goes in the middle; at the end it goes back to BASIC, leaving the screen as it is.",
+   "body": [
+    "// ${1:What this program does}",
+    "BasicUpstart2(start)        // A BASIC line, so RUN starts the program",
+    "",
+    "start:",
+    "        $0",
+    "        rts                 // Back to BASIC (the screen stays as it is)"
+   ]
+  },
+  "routine": {
+   "name": "A routine you call",
+   "about": "A block of code you call with jsr name, which comes back with rts.",
+   "body": [
+    "// ${1:name}: ${2:what it does}",
+    "// Call it with:  jsr ${1:name}",
+    "${1:name}:",
+    "        $0",
+    "        rts                 // Back to the line after the jsr"
+   ]
+  },
+  "loop": {
+   "name": "Do something a number of times",
+   "about": "Counts X down to 0, going round once for each count (up to 255). Keep X for the count: the code inside can use A and Y.",
+   "body": [
+    "        ldx #${1:10}             // How many times round",
+    "${2:loop}:",
+    "        $0",
+    "        dex                 // One fewer to go",
+    "        bne ${2:loop}            // Not 0 yet: go round again"
+   ]
+  },
+  "printchar": {
+   "name": "Print a letter on the screen",
+   "about": "Uses the KERNAL's CHROUT routine to print one character where the cursor is.",
+   "body": [
+    "// Print one letter where the cursor is",
+    "        lda #${1:\\$41}            // The letter to print, as a PETSCII code (\\$41 is \"A\")",
+    "        jsr \\$FFD2           // CHROUT: print the character in A"
+   ]
+  }
+ }
 }

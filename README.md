@@ -94,7 +94,20 @@ TI-99/4A (TMS9900):
 | `loop` | Count a register down to 0, going round once for each count (`LI`, `DEC`, `JNE`). |
 | `vdpwrite` | Write one byte to video memory by talking to the video chip directly (put a letter on the screen). |
 
-The other computers don't have starter code yet. It all comes from the chip files (see **Adding a chip of your own**), and it is part of the extension, so there is nothing else to install.
+ZX Spectrum (Z80, sjasmplus), Commodore 64 (6502, KickAssembler) and BBC Micro (6502, BeebAsm) have the same set, written their own way:
+
+| Name | Spectrum | C64 | BBC Micro |
+|---|---|---|---|
+| `program` | `DEVICE ZXSPECTRUM48`, `ORG $8000`, `ei`, room for your code, a wait at the end, and `SAVESNA` to make a snapshot (.sna) for an emulator. | `BasicUpstart2(start)` (so `RUN` starts it), room for your code, `rts` back to BASIC. | `ORG &1900`, room for your code, `RTS` back to BASIC, and `SAVE` so **Build** puts it on a disc that runs by itself. |
+| `routine` | Called with `call`, back with `ret`. | Called with `jsr`, back with `rts`. | Called with `JSR`, back with `RTS`. |
+| `loop` | Count B down with `djnz`. | Count X down with `dex` / `bne`. | Count X down with `DEX` / `BNE`. |
+| `printchar` | Print a letter with the ROM (`CHAN-OPEN`, then `rst $10`). | Print a letter with the KERNAL's `CHROUT` (`jsr $FFD2`). | Print a letter with `OSWRCH` (`JSR &FFEE`). |
+
+On the Spectrum and the BBC, put your routines where `program` says (before `SAVESNA` or `.end`), or they won't be saved with the rest.
+
+The starter code offered is for the chip shown in the bottom-right corner. An empty `.asm` or `.6502` file could be for more than one computer, so check that first and click it to switch if needed (`.a99` and `.z80` files are always clear).
+
+It all comes from the chip files (see **Adding a chip of your own**), and it is part of the extension, so there is nothing else to install.
 
 ### Build and run
 
@@ -324,7 +337,7 @@ The `timing` section and each instruction's `cycles` give the time in the toolti
 
 `bbc.json` shows the directive kinds `if`, `elif`, `else`, `endif`, `for`, `next` and `skipto`, `reserves` (a gap that puts nothing into the program file), and a `build` section that names the assembler and the emulator to look for (`tool`, `run`), with the command to run each.
 
-The `snippets` section is the starter code (see **Starter code**). Each one is named by what you type (lower-case letters and digits only) and has a `name`, an `about` line and a `body`: the lines to put in. In the body, `${1:NAME}` is a spot to fill in (Tab moves to the next; the same number is filled in everywhere at once), `$0` is where the cursor ends up, and a real `$` (a hex number on the C64 or Spectrum) is written `\$`, which in the JSON file itself is `"\\$"`. `tms9900.json` has examples.
+The `snippets` section is the starter code (see **Starter code**). Each one is named by what you type (lower-case letters and digits only) and has a `name`, an `about` line and a `body`: the lines to put in. In the body, `${1:NAME}` is a spot to fill in (Tab moves to the next; the same number is filled in everywhere at once), `$0` is where the cursor ends up, and a real `$` (a hex number on the C64 or Spectrum) is written `\$`, which in the JSON file itself is `"\\$"`. All four built-in chip files have examples (`tms9900.json`, `z80.json`, `6502.json` and `bbc.json`).
 
 `z80.json` also shows `ioPorts` (hardware reached with IN and OUT, and how to read a value sent there), `addressGuess` (when a plain number is probably an address), `build` (what to say when no build command is set) and, in `registers`, which registers are pairs.
 

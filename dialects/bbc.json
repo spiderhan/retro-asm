@@ -2242,5 +2242,57 @@
       "to": "FFFF",
       "text": "operating system calls (OSWRCH, OSBYTE ...) and the 6502's vectors"
     }
-  ]
+  ],
+  "snippets": {
+    "_help": "Starter code. Type the name (in lower case) on an empty line and pick it from the list, or run Retro ASM: Insert starter code. ${1:NAME} is a spot to fill in (Tab moves to the next one; the same number is filled in everywhere at once), $0 is where the cursor ends up, and a real $ is written \\$ (in this file, \"\\\\$\").",
+    "program": {
+      "name": "A whole program to start from",
+      "about": "A BBC Micro program for BeebAsm. Building it makes a disc image that runs it by itself. Your code goes in the middle; at the end it goes back to BASIC, leaving the screen as it is.",
+      "body": [
+        "\\ ${1:What this program does}",
+        "ORG &1900                   ; Where the program goes in memory",
+        "",
+        ".start",
+        "    $0",
+        "    RTS                     ; Back to BASIC (the screen stays as it is)",
+        "",
+        "\\ Put your routines here, before .end, so they are saved on the disc too",
+        "",
+        ".end",
+        "",
+        "SAVE \"${2:PROG}\", start, end     ; Put it on the disc (a name of up to 7 letters)"
+      ]
+    },
+    "routine": {
+      "name": "A routine you call",
+      "about": "A block of code you call with JSR name, which comes back with RTS.",
+      "body": [
+        "\\ ${1:name}: ${2:what it does}",
+        "\\ Call it with:  JSR ${1:name}",
+        ".${1:name}",
+        "    $0",
+        "    RTS                     ; Back to the line after the JSR"
+      ]
+    },
+    "loop": {
+      "name": "Do something a number of times",
+      "about": "Counts X down to 0, going round once for each count (up to 255). Keep X for the count: the code inside can use A and Y.",
+      "body": [
+        "    LDX #${1:10}                 ; How many times round",
+        ".${2:loop}",
+        "    $0",
+        "    DEX                     ; One fewer to go",
+        "    BNE ${2:loop}                ; Not 0 yet: go round again"
+      ]
+    },
+    "printchar": {
+      "name": "Print a letter on the screen",
+      "about": "Uses the operating system's OSWRCH call to print one character where the cursor is.",
+      "body": [
+        "\\ Print one letter where the cursor is",
+        "    LDA #ASC(\"${1:A}\")           ; The letter to print",
+        "    JSR &FFEE               ; OSWRCH: print the character in A"
+      ]
+    }
+  }
 }
