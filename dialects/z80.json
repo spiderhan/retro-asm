@@ -3718,5 +3718,58 @@
   "370C": "**RESULT-OK** (inside the ROM routine exp): a point part-way through exp (at $36C4) that the ROM jumps to. Hover exp's address for what the routine does.",
   "370E": "**RSLT-ZERO** (inside the ROM routine exp): a point part-way through exp (at $36C4) that the ROM jumps to. Hover exp's address for what the routine does.",
   "37F8": "**SMALL** (inside the ROM routine atn): a point part-way through atn (at $37E2) that the ROM jumps to. Hover atn's address for what the routine does."
+ },
+ "snippets": {
+  "_help": "Starter code. Type the name (in lower case) on an empty line and pick it from the list, or run Retro ASM: Insert starter code. ${1:NAME} is a spot to fill in (Tab moves to the next one; the same number is filled in everywhere at once), $0 is where the cursor ends up, and a real $ is written \\$ (in this file, \"\\\\$\").",
+  "program": {
+   "name": "A whole program to start from",
+   "about": "A ZX Spectrum 48K program for sjasmplus. Your code goes in the middle. Building it makes a snapshot (.sna) to open in an emulator. At the end it waits, so you can see what it did.",
+   "body": [
+    "; ${1:What this program does}",
+    "        DEVICE ZXSPECTRUM48     ; Build for a 48K Spectrum",
+    "        ORG \\$8000               ; Put the code at 32768",
+    "start:  ei                      ; Let the Spectrum's 50-times-a-second tick run (halt waits for it)",
+    "        $0",
+    "stay:   halt                    ; Wait here, so you can see what happened",
+    "        jr stay",
+    "; (Started from BASIC with RANDOMIZE USR 32768 instead? Use ret to go back to BASIC.)",
+    "",
+    "; Put your routines here, before SAVESNA, so they are in the snapshot too",
+    "",
+    "        SAVESNA \"${2:program}.sna\",start ; Make a snapshot that starts at start"
+   ]
+  },
+  "routine": {
+   "name": "A routine you call",
+   "about": "A block of code you call with call name, which comes back with ret.",
+   "body": [
+    "; ${1:name}: ${2:what it does}",
+    "; Call it with:  call ${1:name}",
+    "${1:name}:",
+    "        $0",
+    "        ret                     ; Back to the line after the call"
+   ]
+  },
+  "loop": {
+   "name": "Do something a number of times",
+   "about": "Counts B down to 0 with djnz, going round once for each count (up to 255; 0 means 256). Keep B for the count: save it with push bc / pop bc if the code inside needs it. The code inside must be short (djnz can only jump back about 126 bytes).",
+   "body": [
+    "        ld b,${1:10}                 ; How many times round",
+    "${2:loop}:",
+    "        $0",
+    "        djnz ${2:loop}               ; One fewer to go; not 0 yet: go round again"
+   ]
+  },
+  "printchar": {
+   "name": "Print a letter on the screen",
+   "about": "Uses the Spectrum's ROM to print one character where the print position is (the top-left to start with).",
+   "body": [
+    "; Print one letter on the screen",
+    "        ld a,2                  ; Channel 2 is the main screen",
+    "        call \\$1601              ; CHAN-OPEN: print there from now on",
+    "        ld a,'${1:A}'                ; The letter to print",
+    "        rst \\$10                 ; PRINT-A: print the character in A"
+   ]
+  }
  }
 }
