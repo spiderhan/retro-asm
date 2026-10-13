@@ -76,6 +76,26 @@ Shortcuts are shown as Windows / Mac.
 - Suggestions as you type: instructions (with their explanation) and your own labels and registers.
 - Wavy underlines for likely mistakes: a misspelt instruction, the wrong number of operands, a label that doesn't exist, a label defined twice. Turn this off with the `retroAsm.checks` setting.
 
+### Starter code
+
+Ready-made pieces of code, so you don't have to remember the usual start and end of a program. Two ways to use them:
+
+- **Type its name** in lower case on an empty line and pick it from the suggestions (two letters are enough in the label column, for example `pr` for `program`). The code replaces the line, with its labels in the first column. **Tab** jumps to each spot to fill in; a name used twice (such as a loop's label) changes everywhere at once.
+- **Right-click** in the code and choose **Retro ASM: Insert starter code** (or run it from the command palette), then pick one. On an empty line it replaces the line; otherwise it goes on the lines below.
+
+Only lower-case names bring them up, so typing a label such as `LOOP` or `PRINT` won't offer them.
+
+TI-99/4A (TMS9900):
+
+| Name | What you get |
+|---|---|
+| `program` | A whole program to start from: `DEF START`, `LWPI` to set up the registers, `LIMI 0`, room for your code, then a wait at the end so you can see what it did (**FCTN =** goes back to the title screen), the 32 bytes for the registers and `END START`. |
+| `routine` | A routine called with `BL @NAME` that comes back with `RT`. |
+| `loop` | Count a register down to 0, going round once for each count (`LI`, `DEC`, `JNE`). |
+| `vdpwrite` | Write one byte to video memory by talking to the video chip directly (put a letter on the screen). |
+
+The other computers don't have starter code yet. It all comes from the chip files (see **Adding a chip of your own**), and it is part of the extension, so there is nothing else to install.
+
 ### Build and run
 
 - **Ctrl+Alt+B** (Cmd+Alt+B) builds. **F5** builds, then starts the emulator.
@@ -304,6 +324,8 @@ The `timing` section and each instruction's `cycles` give the time in the toolti
 
 `bbc.json` shows the directive kinds `if`, `elif`, `else`, `endif`, `for`, `next` and `skipto`, `reserves` (a gap that puts nothing into the program file), and a `build` section that names the assembler and the emulator to look for (`tool`, `run`), with the command to run each.
 
+The `snippets` section is the starter code (see **Starter code**). Each one is named by what you type (lower-case letters and digits only) and has a `name`, an `about` line and a `body`: the lines to put in. In the body, `${1:NAME}` is a spot to fill in (Tab moves to the next; the same number is filled in everywhere at once), `$0` is where the cursor ends up, and a real `$` (a hex number on the C64 or Spectrum) is written `\$`, which in the JSON file itself is `"\\$"`. `tms9900.json` has examples.
+
 `z80.json` also shows `ioPorts` (hardware reached with IN and OUT, and how to read a value sent there), `addressGuess` (when a plain number is probably an address), `build` (what to say when no build command is set) and, in `registers`, which registers are pairs.
 
 ## Settings
@@ -333,6 +355,13 @@ The `timing` section and each instruction's `cycles` give the time in the toolti
 - Sums are worked out left to right for TMS9900, the same as xas99 does (`2+3*4` is 20).
 - xas99 local labels (`!`) and macros are coloured but not followed.
 - Addresses of the original game are read from SkoolKit `.skool` files only (not `.ctl` files or plain Z80 source).
+- **Grey "ghost text" suggestions are not from this extension.** If you use an AI helper such as GitHub Copilot, it may suggest lines in grey that you accept with Tab. It doesn't know which chip you are writing for, so it can suggest instructions from another one (`ADD` is a Z80 instruction; the TMS9900's is `A`). The extension underlines these. To turn the grey suggestions off in assembly files only, add this to your VS Code settings (`settings.json`):
+
+  ```json
+  "[retroasm]": { "editor.inlineSuggest.enabled": false }
+  ```
+
+  The extension's own suggestions (the pop-up list of instructions, labels and starter code) keep working.
 
 ## Safety
 

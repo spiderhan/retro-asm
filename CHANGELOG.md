@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.9.1
+
+- **Fix: `program` now waits at the end.** It used to go straight back to the title screen with `BLWP @>0000`, so anything your code drew (such as the letter from `vdpwrite`) vanished at once. It now waits, still letting the console notice **FCTN =** (QUIT) to go back to the title screen. The `BLWP @>0000` way out is left as a comment.
+- README, **Things to know**: grey "ghost text" suggestions come from an AI helper such as Copilot, not from this extension, and can be from the wrong chip (`ADD` in TI code). It shows the one setting that turns them off in assembly files only.
+
+## 0.9.0
+
+New: **starter code** (snippets) for the TI-99/4A.
+
+- Type `program`, `routine`, `loop` or `vdpwrite` in lower case on an empty line and pick it from the suggestions, or right-click and choose **Retro ASM: Insert starter code**. `program` gives the usual start and end of a TI-99/4A program (`DEF`, `LWPI`, `LIMI 0`, `BLWP @>0000`, the registers' `BSS 32`, `END`); Tab then moves between the spots to fill in.
+- Only lower-case names bring them up, so typing a label such as `LOOP` doesn't. In the label column they wait for a second letter.
+- The starter code lives in the chip files (a new `snippets` section), so it ships inside the extension and a chip file of your own can have its own. The other three computers will get theirs next. The new-chip template has an example.
+- New tests: the suggestions, the command, and a check that each chip's starter code gives no warnings.
+
 ## 0.8.0
 
 New: **how long each instruction takes.** The tooltip for an instruction now has a *Time* line with its clock cycles, for the way it is written on that line, and **This line** in the side panel shows it too.

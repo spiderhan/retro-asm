@@ -570,6 +570,46 @@ const semanticProvider = {
   }
 };
 
+/**
+ * Starter code from the chip file ("snippets"), offered while a lower-case word that starts one of
+ * their names is the only thing on the line. Picking one replaces the whole line, so the labels in
+ * it land in the first column. Lower case only, so typing a label such as LOOP doesn't offer them.
+ */
+function snippetItems(D, before, pos) {
+  const m = /^(\s*)([a-z][a-z0-9]*)$/.exec(before);
+  if (!m || !D.snippets || !D.snippets.length) return [];
+  if (!m[1] && m[2].length < 2) return [];           // in the label column, wait for a second letter
+  const out = [];
+  for (const s of D.snippets) {
+    if (!s.key.startsWith(m[2])) continue;
+    const item = new vscode.CompletionItem(s.key, vscode.CompletionItemKind.Snippet);
+    item.detail = s.name + ' (starter code)';
+    item.documentation = md((s.about ? s.about + '\n\n' : '') + '```\n' + s.preview + '\n```');
+    item.insertText = new vscode.SnippetString(s.text);
+    item.range = new vscode.Range(pos.line, 0, pos.line, pos.character);
+    item.filterText = m[1] + s.key;
+    item.sortText = '~' + s.key;                          // after the instructions
+    out.push(item);
+  }
+  return out;
+}
+
+/** Retro ASM: Insert starter code. Pick one of the chip's snippets and put it at the cursor's line. */
+async function cmdInsertSnippet() {
+  const ed = vscode.window.activeTextEditor;
+  if (!ed || !isOurs(ed.document)) { vscode.window.showInformationMessage('Open an assembly file first, then insert starter code.'); return false; }
+  const model = modelFor(ed.document);
+  const D = model && model.D;
+  if (!D || !D.snippets || !D.snippets.length) { vscode.window.showInformationMessage(`There is no starter code for ${D ? D.name : 'this chip'} yet.`); return false; }
+  const pick = await vscode.window.showQuickPick(D.snippets.map(s => ({ label: s.key, description: s.name, detail: s.about, s })), { placeHolder: 'Which starter code?' });
+  if (!pick) return false;
+  const line = ed.selection.start.line;
+  const text = ed.document.lineAt(line).text;
+  // a blank line is replaced; otherwise the code goes on new lines below this one
+  if (!text.trim()) return ed.insertSnippet(new vscode.SnippetString(pick.s.text), new vscode.Range(line, 0, line, text.length));
+  return ed.insertSnippet(new vscode.SnippetString('\n' + pick.s.text), new vscode.Position(line, text.length));
+}
+
 const completionProvider = {
   provideCompletionItems(doc, pos) {
     const model = modelFor(doc);
@@ -587,7 +627,8 @@ const completionProvider = {
     if (pl.comment && pos.character > pl.comment.start) return [];               // typing a comment
     const endsInSpace = /\s$/.test(before);
     const inLabelColumn = !pl.mnem && !/\s/.test(before) && D.syntax.col0IsAlwaysLabel;
-    if (inLabelColumn) return [];
+    const snips = snippetItems(D, before, pos);
+    if (inLabelColumn) return snips;
     const typingMnemonic = (!pl.mnem && endsInSpace) || (pl.mnem && !endsInSpace && pl.operands.length === 0 && pos.character <= pl.mnem.end) || (!pl.mnem && !pl.label);
     const out = [];
     // past the end of the operands (and not straight after a comma): that is comment space
@@ -610,8 +651,9 @@ const completionProvider = {
       };
       for (const i of D.instructions.values()) add(i, vscode.CompletionItemKind.Keyword, false);
       for (const d of D.directives.values()) add(d, vscode.CompletionItemKind.Struct, true);
-      return out;
+      return out.concat(snips);
     }
+    if (snips.length) return snips;      // a lone word on the line: it can only be starter code
 
     // operands: labels and registers
     const seen = new Set();
@@ -1151,6 +1193,7 @@ function activate(context) {
     vscode.commands.registerCommand('retroAsm.explainSelection', cmdExplain),
     vscode.commands.registerCommand('retroAsm.showReference', cmdReference),
     vscode.commands.registerCommand('retroAsm.switchDialect', cmdSwitch),
+    vscode.commands.registerCommand('retroAsm.insertSnippet', cmdInsertSnippet),
     vscode.commands.registerCommand('retroAsm.createNotesFile', cmdNotes),
     vscode.commands.registerCommand('retroAsm.newDialect', cmdNewDialect),
     vscode.commands.registerCommand('retroAsm.reloadDialects', cmdReload),

@@ -252,6 +252,64 @@
     "9C02": "GROM: write an address here (two bytes, high byte first)."
   },
 
+  "snippets": {
+    "_help": "Starter code. Type the name (in lower case) at the start of a line and pick it from the list, or run Retro ASM: Insert starter code. ${1:NAME} is a spot to fill in (Tab moves to the next one; the same number is filled in everywhere at once), $0 is where the cursor ends up.",
+    "program": {
+      "name": "A whole program to start from",
+      "about": "The usual start and end of a TI-99/4A program loaded with Editor/Assembler (option 3). Your code goes in the middle. At the end it waits, so you can see what it did; FCTN = (QUIT) goes back to the title screen.",
+      "body": [
+        "; ${1:What this program does}",
+        "       DEF  START           ; The loader looks for START",
+        "START  LWPI WRKSPC          ; Use our own 16 registers",
+        "       LIMI 0               ; Turn off interrupts",
+        "       $0",
+        "STAY   LIMI 2               ; Let the console check FCTN = (QUIT)",
+        "       LIMI 0",
+        "       JMP  STAY            ; Wait here, so you can see what happened",
+        "; (To go straight back to the title screen instead: BLWP @>0000)",
+        "WRKSPC BSS  32              ; Room for R0-R15 (16 words)",
+        "       END  START           ; The end; start running at START"
+      ]
+    },
+    "routine": {
+      "name": "A routine called with BL",
+      "about": "A block of code you call with BL @NAME, which comes back with RT. If it calls another routine with BL itself, save R11 first, or the way back is lost.",
+      "body": [
+        "; ${1:NAME}: ${2:what it does}",
+        "; Call it with:  BL   @${1:NAME}",
+        "${1:NAME}",
+        "       $0",
+        "       RT                   ; Back to the line after the BL"
+      ]
+    },
+    "loop": {
+      "name": "Do something a number of times",
+      "about": "Counts a register down to 0, going round once for each count.",
+      "body": [
+        "       LI   R${1:1},${2:10}           ; How many times round",
+        "${3:LOOP}",
+        "       $0",
+        "       DEC  R${1:1}              ; One fewer to go",
+        "       JNE  ${3:LOOP}            ; Not 0 yet: go round again"
+      ]
+    },
+    "vdpwrite": {
+      "name": "Write a byte to video memory",
+      "about": "Talks to the video chip directly: sends it an address, then the byte. Put a letter on the screen this way (address >0000 is the top-left corner).",
+      "body": [
+        "; Write one byte to video memory",
+        "       LI   R0,${1:>0000}        ; Video address (>0000 is the top-left of the screen)",
+        "       ORI  R0,>4000        ; Set the \"write\" bit",
+        "       SWPB R0",
+        "       MOVB R0,@>8C02       ; Send the address: right byte first ...",
+        "       SWPB R0",
+        "       MOVB R0,@>8C02       ; ... then the left byte",
+        "       LI   R1,${2:>4100}        ; The byte goes in the left byte (>41 is \"A\")",
+        "       MOVB R1,@>8C00       ; Write it"
+      ]
+    }
+  },
+
   "regions": [
     { "from": "0000", "to": "1FFF", "text": "console ROM (the built-in program)" },
     { "from": "2000", "to": "3FFF", "text": "the low part of the 32K memory expansion (8K of RAM)" },

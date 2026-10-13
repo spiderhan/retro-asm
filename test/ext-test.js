@@ -59,6 +59,29 @@ const at=(doc,needle,sub)=>{const lines=doc.getText().split(/\r?\n/);const l=lin
  const c2=typing('       BL   @');ok('suggest labels',c2.some(i=>i.label==='SET_VIDEO')&&c2.some(i=>i.label==='R4'&&i.detail==='Rover X'),c2.length);
  ok('no suggestions in label column',typing('LAB').length===0);ok('no suggestions in a comment',typing('       CLR  R0  ; cle').length===0&&typing('; hello').length===0&&typing('       CLR  R0  ').length===0);
  ok('lowercase typing gets lowercase',typing('       mo').some(i=>i.insertText==='mov  '));
+ // ---- version 0.9: starter code (snippets) ----
+ { const s1=typing('pr');const pg=s1.find(i=>i.label==='program');
+   ok('starter code offered in the label column',pg&&pg.insertText instanceof mock.SnippetString&&pg.insertText.value.includes('LWPI WRKSPC')&&pg.range.start.character===0&&pg.range.end.character===2,s1.map(i=>i.label));
+   const s2=typing('       lo');ok('starter code offered with the instructions',s2.some(i=>i.label==='loop'&&i.range.start.character===0&&i.filterText==='       loop'),s2.map(i=>i.label));
+   ok('a capital label does not offer starter code',typing('LOOP').length===0&&typing('PR').length===0);
+   ok('one letter in the label column is not enough',typing('p').length===0);
+   ok('starter code only while the word is alone on the line',!typing('       CLR  pr').some(i=>i.label==='program')&&!typing('START  lo').some(i=>i.label==='loop'));
+   ok('a tooltip shows the code',pg&&pg.documentation.value.includes('END  START')&&!pg.documentation.value.includes('$'),pg&&pg.documentation.value);
+   // every chip's starter code passes the checks
+   const {loadFile}=require('../lib/dialect');const {Project}=require('../lib/project');const F=require('../lib/features');
+   for(const n of ['tms9900','z80','6502','bbc']){const D=loadFile(path.join(__dirname,'../dialects/'+n+'.json'));
+     const prog=D.snippets.find(s=>s.key==='program');const rest=D.snippets.filter(s=>s!==prog).map(s=>s.preview).join('\n');
+     if(!prog){ok(n+': no starter code yet',D.snippets.length===0);continue;}
+     const PJ=new Project();PJ.set('/x/s.a99',prog.preview.replace(/^\s*$/m,'       JMP  STAY\n'+rest),D);const w=F.check(PJ,'/x/s.a99');
+     ok(n+': starter code gives no warnings',w.length===0,w.map(x=>[x.line+1,x.message]));}
+   // Retro ASM: Insert starter code
+   const lines=game.getText().split(/\r?\n/);const inserted=[];
+   const fake=(lineText)=>{const doc=Object.assign({},game,{lineAt:(i)=>({text:i===3?lineText:lines[i]})});return {document:doc,selection:{start:new Position(3,0),end:new Position(3,0),isEmpty:true},insertSnippet:async(sn,where)=>{inserted.push({sn,where});return true;}};};
+   mock.window.activeTextEditor=fake('');let r1=await C['retroAsm.insertSnippet']();
+   ok('insert starter code on a blank line',r1===true&&inserted[0].sn.value.includes('MOVB R1,@>8C00')&&inserted[0].where.start.line===3&&inserted[0].where.start.character===0,inserted[0]);
+   mock.window.activeTextEditor=fake('       CLR  R0');await C['retroAsm.insertSnippet']();
+   ok('insert starter code below a line that has code',inserted[1]&&inserted[1].sn.value.startsWith('\n')&&inserted[1].where.line===3&&inserted[1].where.character===14,inserted[1]);
+   mock.window.activeTextEditor=null; }
  // checks
  await new Promise(r=>setTimeout(r,500));
  // explain + cheat sheet + notes + new chip

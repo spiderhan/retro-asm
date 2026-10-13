@@ -59,6 +59,19 @@
     "DW":  { "kind": "data", "unit": 2, "name": "Words", "syntax": "DW value,value,...", "ops": [1, 999], "summary": "Puts words (2 bytes each) into the program." }
   },
 
+  "snippets": {
+    "_help": "Starter code: type the name (lower case) on an empty line, or run 'Retro ASM: Insert starter code'. ${1:NAME} is a spot to fill in (Tab moves on; the same number changes everywhere), $0 is where the cursor ends up, and a real $ is written \\$ here.",
+    "routine": {
+      "name": "A routine",
+      "about": "A block of code you call, which comes back with RTS.",
+      "body": [
+        "${1:name}:",
+        "        $0",
+        "        RTS"
+      ]
+    }
+  },
+
   "addresses": {
     "_help": "Hex address (no prefix) and what lives there. Shown when that address is hovered.",
     "FFFC": "Example: the reset vector."
