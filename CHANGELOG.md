@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.10.0
+
+New: **starter code for the ZX Spectrum, Commodore 64 and BBC Micro**, the same set as the TI-99/4A: `program`, `routine`, `loop`, and `printchar` (print a letter on the screen with the machine's own ROM routine).
+
+- **Spectrum (sjasmplus):** `program` builds a 48K snapshot with `SAVESNA`, turns interrupts on so `halt` works, and waits at the end.
+- **C64 (KickAssembler):** `program` uses `BasicUpstart2`, so LOAD and RUN start it, and goes back to BASIC at the end.
+- **BBC Micro (BeebAsm):** `program` starts at `&1900` and has the `SAVE` line that **Build** uses to make a disc that runs by itself.
+- On the Spectrum and the BBC, `program` marks where routines go, so they are saved with the rest.
+- Checked: the Spectrum code was built with sjasmplus and run in SkoolKit's Spectrum simulator, which showed the "A" on screen. The BBC code was built with BeebAsm and makes a working disc image. The C64 code passes the extension's checks but hasn't been through KickAssembler yet.
+- Tests: every chip now has its four, and each set gives no warnings.
+
 ## 0.9.1
 
 - **Fix: `program` now waits at the end.** It used to go straight back to the title screen with `BLWP @>0000`, so anything your code drew (such as the letter from `vdpwrite`) vanished at once. It now waits, still letting the console notice **FCTN =** (QUIT) to go back to the title screen. The `BLWP @>0000` way out is left as a comment.
