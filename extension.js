@@ -7,7 +7,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const crypto = require('crypto');
-const { loadFolder, guessDialect } = require('./lib/dialect');
+const { loadFolder, guessDialect, snippetPreview } = require('./lib/dialect');
 const { Project } = require('./lib/project');
 const { parseLine, statements } = require('./lib/parser');
 const F = require('./lib/features');
@@ -577,12 +577,12 @@ const semanticProvider = {
  * their names is the only thing on the line. Picking one replaces the whole line, so the labels in
  * it land in the first column. Lower case only, so typing a label such as LOOP doesn't offer them.
  */
-function snippetItems(D, before, pos) {
+function snippetItems(D, before, pos, file) {
   const m = /^(\s*)([a-z][a-z0-9]*)$/.exec(before);
-  if (!m || !D.snippets || !D.snippets.length) return [];
+  if (!m) return [];
   if (!m[1] && m[2].length < 2) return [];           // in the label column, wait for a second letter
-  const out = [];
-  for (const s of D.snippets) {
+  const out = spriteItems(D, m, pos, file);
+  for (const s of D.snippets || []) {
     if (!s.key.startsWith(m[2])) continue;
     const item = new vscode.CompletionItem(s.key, vscode.CompletionItemKind.Snippet);
     item.detail = s.name + ' (starter code)';
@@ -593,6 +593,54 @@ function snippetItems(D, before, pos) {
     item.sortText = '~' + s.key;                          // after the instructions
     out.push(item);
   }
+  return out;
+}
+
+/** A free label for a new picture: SPR1, SPR2 ... on the TI, sprite1, sprite2 ... elsewhere. */
+function freeSpriteName(D, file) {
+  const base = D.id === 'tms9900' ? 'SPR' : 'sprite';
+  let n = 1;
+  while (project.findDefs(file, base + n).length) n++;
+  return base + n;
+}
+
+/**
+ * Typing "sprite" alone on a line offers an empty picture of each of the chip's shapes
+ * ("sprite 8x8", "sprite 16x16" ...), ready marked with @sprite and named with a free label.
+ * Typing a size straight after it ("sprite24x16") offers that size too. "sprite ..." runs
+ * New picture here, for other sizes and animation frames.
+ */
+function spriteItems(D, m, pos, file) {
+  const word = m[2];
+  if (!file || !('sprite'.startsWith(word) || word.startsWith('sprite'))) return [];
+  const specs = SPR.shapeList(D).map(s => s.spec);
+  const sized = /^sprite(\d+x\d+)$/.exec(word);
+  if (sized && !specs.includes(sized[1]) && !SPR.shapeFor(D, sized[1]).error) specs.push(sized[1]);
+  const range = new vscode.Range(pos.line, 0, pos.line, pos.character);
+  const name = freeSpriteName(D, file);
+  const out = [];
+  specs.forEach((spec, i) => {
+    const shape = SPR.shapeFor(D, spec);
+    if (shape.error) return;
+    const text = SPR.blankSnippet(D, shape, name);
+    const item = new vscode.CompletionItem('sprite ' + spec, vscode.CompletionItemKind.Snippet);
+    const known = SPR.shapeList(D).find(s => s.spec === spec);
+    item.detail = (known ? known.name : `${spec} picture`) + ` (empty, ${shape.frameBytes} bytes)`;
+    item.documentation = md('An empty picture, marked so **Edit picture** opens it. Tab moves past the name.\n\n```\n' + snippetPreview(text) + '\n```');
+    item.insertText = new vscode.SnippetString(text);
+    item.range = range;
+    item.filterText = m[1] + 'sprite' + spec;
+    item.sortText = '~sprite' + String(i).padStart(2, '0');
+    out.push(item);
+  });
+  const more = new vscode.CompletionItem('sprite ...', vscode.CompletionItemKind.Snippet);
+  more.detail = 'Another size, or several frames (New picture here)';
+  more.insertText = '';
+  more.range = range;
+  more.filterText = m[1] + 'sprite';
+  more.sortText = '~sprite99';
+  more.command = { command: 'retroAsm.newSprite', title: 'New picture here' };
+  out.push(more);
   return out;
 }
 
@@ -629,7 +677,7 @@ const completionProvider = {
     if (pl.comment && pos.character > pl.comment.start) return [];               // typing a comment
     const endsInSpace = /\s$/.test(before);
     const inLabelColumn = !pl.mnem && !/\s/.test(before) && D.syntax.col0IsAlwaysLabel;
-    const snips = snippetItems(D, before, pos);
+    const snips = snippetItems(D, before, pos, file);
     if (inLabelColumn) return snips;
     const typingMnemonic = (!pl.mnem && endsInSpace) || (pl.mnem && !endsInSpace && pl.operands.length === 0 && pos.character <= pl.mnem.end) || (!pl.mnem && !pl.label);
     const out = [];
@@ -824,11 +872,7 @@ async function cmdNewSprite() {
   if (!spec) return false;
   const shape = SPR.shapeFor(D, spec);
   if (shape.error) { vscode.window.showWarningMessage(shape.error); return false; }
-  const upper = D.id === 'tms9900';
-  let n = 1;
-  const base = upper ? 'SPR' : 'sprite';
-  while (project.findDefs(file, base + n).length) n++;
-  const name = await vscode.window.showInputBox({ prompt: 'A name (label) for the picture', value: base + n,
+  const name = await vscode.window.showInputBox({ prompt: 'A name (label) for the picture', value: freeSpriteName(D, file),
     validateInput: (v) => !/^[A-Za-z_][A-Za-z0-9_]*$/.test(v) ? 'Letters, digits and _ only, starting with a letter' : project.findDefs(file, v).length ? `${v} is already used` : null });
   if (!name) return false;
   const count = await vscode.window.showInputBox({ prompt: 'How many pictures (for animation frames)?', value: '1', validateInput: (v) => /^([1-9]|[1-5][0-9]|6[0-4])$/.test(v.trim()) ? null : 'A number from 1 to 64' });

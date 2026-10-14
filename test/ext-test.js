@@ -67,6 +67,13 @@ const at=(doc,needle,sub)=>{const lines=doc.getText().split(/\r?\n/);const l=lin
    ok('one letter in the label column is not enough',typing('p').length===0);
    ok('starter code only while the word is alone on the line',!typing('       CLR  pr').some(i=>i.label==='program')&&!typing('START  lo').some(i=>i.label==='loop'));
    ok('a tooltip shows the code',pg&&pg.documentation.value.includes('END  START')&&!pg.documentation.value.includes('$'),pg&&pg.documentation.value);
+   // ---- 0.12: typing "sprite" offers an empty picture of each shape ----
+   const sp=typing('sprite');const s16=sp.find(i=>i.label==='sprite 16x16');
+   ok('"sprite" offers each shape and "sprite ..."',sp.some(i=>i.label==='sprite 8x8')&&s16&&sp.some(i=>i.label==='sprite ...'&&i.command&&i.command.command==='retroAsm.newSprite'),sp.map(i=>i.label));
+   ok('... a marked, empty 16x16 with a free name',s16&&s16.insertText.value.startsWith('* @sprite 16x16\n${1:SPR1}')&&(s16.insertText.value.match(/>00/g)||[]).length===32&&s16.range.start.character===0,s16&&s16.insertText.value);
+   ok('"sprite24x16" offers that size',typing('       sprite24x16').some(i=>i.label==='sprite 24x16'&&(i.insertText.value.match(/>00/g)||[]).length===48));
+   ok('a size that cannot be is not offered',!typing('sprite0x5').some(i=>i.label==='sprite 0x5'));
+   ok('"SPRITE" in capitals is a label, not a picture',typing('SPRITE').length===0);
    // every chip's starter code passes the checks
    const {loadFile,snippetPreview}=require('../lib/dialect');const {Project}=require('../lib/project');const F=require('../lib/features');
    for(const n of ['tms9900','z80','6502','bbc']){const D=loadFile(path.join(__dirname,'../dialects/'+n+'.json'));
