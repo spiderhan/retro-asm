@@ -1,0 +1,85 @@
+* Picture examples for the TI-99/4A (made up, for trying the Retro ASM picture editor).
+*
+* Click "Edit picture" above a block to draw it. Each click changes the numbers in the
+* BYTE or DATA lines here, and typing new numbers changes the picture.
+* The @sprite comment above a block says what shape it is.
+*
+* Builds with xas99 (xas99.py -R -i sprites.a99) and runs from Editor/Assembler
+* option 3 (or 5 as a program file): it shows MAN as a 16x16 sprite.
+
+       DEF  START
+VDPWD  EQU  >8C00           ; Video chip: write a byte of data
+VDPWA  EQU  >8C02           ; Video chip: set the address (or a register)
+FULL   EQU  >FF             ; A name for a full row, used in SHIELD below
+
+START  LWPI WRKSP
+       LIMI 0
+       LI   R0,>01E2        ; Register 1: screen on, 16x16 sprites
+       BL   @VWREG
+       LI   R0,>0506        ; Register 5: the sprite list is at >0300
+       BL   @VWREG
+       LI   R0,>0601        ; Register 6: sprite drawings start at >0800
+       BL   @VWREG
+       LI   R0,>0C00        ; Drawing number >80 is at >0800 + >80*8 = >0C00
+       LI   R1,MAN
+       LI   R2,32           ; A 16x16 sprite is 32 bytes
+       BL   @VMBW
+       LI   R0,>0300        ; Sprite 0 in the sprite list
+       LI   R1,SPRLST
+       LI   R2,5
+       BL   @VMBW
+STAY   LIMI 2               ; Let the console check FCTN = (QUIT)
+       LIMI 0
+       JMP  STAY
+
+* VWREG: set a video register. R0 holds the register number (left byte) and value (right byte).
+VWREG  ORI  R0,>8000        ; The chip wants >80 + the register number
+       SWPB R0
+       MOVB R0,@VDPWA       ; The value goes first
+       SWPB R0
+       MOVB R0,@VDPWA       ; ... then the register number
+       B    *R11
+
+* VMBW: copy R2 bytes from R1 to video memory address R0.
+VMBW   ORI  R0,>4000        ; >4000 means "about to write"
+       SWPB R0
+       MOVB R0,@VDPWA       ; Right byte of the address first
+       SWPB R0
+       MOVB R0,@VDPWA
+VMBW1  MOVB *R1+,@VDPWD     ; Each byte sent moves the address on by one
+       DEC  R2
+       JNE  VMBW1
+       B    *R11
+
+WRKSP  BSS  32              ; Room for R0-R15
+
+* Sprite 0: Y, X, drawing number, colour (15 = white), then >D0 to end the list
+SPRLST BYTE >50,>78,>80,>0F,>D0
+       EVEN
+
+* A 16x16 sprite is stored as four 8x8 blocks: top-left, bottom-left, top-right,
+* bottom-right. The editor shows it the right way round.
+* @sprite 16x16
+MAN    BYTE >03,>07,>05,>07,>02,>01,>0F,>1F
+       BYTE >37,>27,>07,>06,>06,>06,>0E,>00
+       BYTE >C0,>E0,>A0,>E0,>40,>80,>F0,>F8
+       BYTE >EC,>E4,>E0,>60,>60,>60,>70,>00
+
+* Two pictures in a row make an animation: the editor shows "1 of 2" and lets you flip between them.
+* @sprite 8x8
+ALIEN  BYTE >24,>18,>7E,>DB,>FF,>24,>5A,>A5
+       BYTE >24,>99,>BD,>FF,>DB,>7E,>24,>42
+
+* DATA works too: each word is two rows.
+* @sprite 8x8
+COIN   DATA >3C42,>99A5,>A199,>423C
+
+* This one has no @sprite comment, but its name starts PAT_, so it gets an
+* "Edit as a picture?" link. Choosing a shape adds the @sprite line for you.
+PAT_HEART BYTE >66,>FF,>FF,>FF,>7E,>3C,>18,>00
+
+* Uses a name (FULL) instead of a number, so the editor can show it but not change it.
+* @sprite 8x8
+SHIELD BYTE FULL,>81,>BD,>A5,>A5,>BD,>81,FULL
+
+       END  START

@@ -34,6 +34,7 @@
   "addressPrefix": "",
   "leftToRightMath": false,
   "wordBits": 16,
+  "littleEndian": true,
   "byteName": "byte",
   "wordName": "word",
   "highByteName": "high byte",
@@ -3718,6 +3719,32 @@
   "370C": "**RESULT-OK** (inside the ROM routine exp): a point part-way through exp (at $36C4) that the ROM jumps to. Hover exp's address for what the routine does.",
   "370E": "**RSLT-ZERO** (inside the ROM routine exp): a point part-way through exp (at $36C4) that the ROM jumps to. Hover exp's address for what the routine does.",
   "37F8": "**SMALL** (inside the ROM routine atn): a point part-way through atn (at $37E2) that the ROM jumps to. Hover atn's address for what the routine does."
+ },
+ "sprites": {
+  "_help": "Pictures kept as DEFB lines. Put a comment with @sprite (and a shape or size) just above the block to draw and edit it.",
+  "about": "The Spectrum has no sprite hardware: a program copies its pictures to the screen itself, so it can keep them in any order. Most keep them a row at a time, the left-most pixel in the top bit. Colours are set separately, for each 8x8 square (the attributes).",
+  "default": "8x8",
+  "order": "rows",
+  "shapes": {
+   "8x8": {
+    "name": "8x8 character (a UDG)",
+    "width": 8,
+    "height": 8,
+    "about": "8 bytes, one a row, top row first."
+   },
+   "16x16": {
+    "name": "16x16 sprite",
+    "width": 16,
+    "height": 16,
+    "about": "32 bytes, a row at a time: 2 bytes a row."
+   }
+  },
+  "newSprite": {
+   "directive": "DEFB",
+   "indent": 8,
+   "labelOnOwnLine": true,
+   "labelSuffix": ":"
+  }
  },
  "snippets": {
   "_help": "Starter code. Type the name (in lower case) on an empty line and pick it from the list, or run Retro ASM: Insert starter code. ${1:NAME} is a spot to fill in (Tab moves to the next one; the same number is filled in everywhere at once), $0 is where the cursor ends up, and a real $ is written \\$ (in this file, \"\\\\$\").",

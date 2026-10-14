@@ -23,6 +23,7 @@
     "hexSuffix": true,
     "hexDisplay": "$",
     "leftToRightMath": false,
+    "littleEndian": true,
     "highByteName": "high byte",
     "lowByteName": "low byte"
   },
@@ -57,6 +58,16 @@
     "ORG": { "kind": "origin", "name": "Origin", "syntax": "ORG address", "ops": [1, 1], "summary": "Says where in memory the following code goes." },
     "DB":  { "kind": "data", "unit": 1, "name": "Bytes", "syntax": "DB value,value,...", "ops": [1, 999], "summary": "Puts bytes into the program." },
     "DW":  { "kind": "data", "unit": 2, "name": "Words", "syntax": "DW value,value,...", "ops": [1, 999], "summary": "Puts words (2 bytes each) into the program." }
+  },
+
+  "sprites": {
+    "_help": "Shapes for the picture editor. Put a comment starting '@sprite 8x8' (or another shape name) above a block of DB lines to draw it. order: rows (one row after another), columns (8-row strips, down then across) or cells (8-row cells, across then down).",
+    "default": "8x8",
+    "order": "rows",
+    "shapes": {
+      "8x8": { "name": "8x8 character", "width": 8, "height": 8, "about": "8 bytes, one a row, top row first." }
+    },
+    "newSprite": { "directive": "DB", "indent": 8, "labelOnOwnLine": true, "labelSuffix": ":" }
   },
 
   "snippets": {
