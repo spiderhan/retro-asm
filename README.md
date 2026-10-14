@@ -28,6 +28,10 @@ Open an assembly file: `.a99`, `.z80` or `.6502` open by themselves. The bottom-
 
 ## What you get
 
+### File icons
+
+Assembly files get a small orange chip icon in the Explorer and on editor tabs. VS Code shows it when your file icon theme has no icon of its own for these files (the built-in theme doesn't), so other files keep their usual icons. A `.asm` file shows it once it is opened as Retro Assembly (see **Changing the chip**).
+
 ### The side panel
 
 Click the chip icon on the bar down the left of VS Code (or run **Retro ASM: Show the side panel**). It has four parts, each of which can be folded away or dragged into a different order:

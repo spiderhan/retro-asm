@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.1
+
+- **File icons:** assembly files (`.a99`, `.z80`, `.6502`, and any others opened as Retro Assembly) now show a small orange chip in the Explorer and on editor tabs, instead of a blank page. VS Code uses it when your file icon theme has no icon of its own for these files, so it works with the built-in theme and doesn't change any other file's icon.
+
 ## 0.11.0
 
 New: **the picture editor.** Draw sprites, characters and tiles with the mouse, and the numbers in your code change to match.
