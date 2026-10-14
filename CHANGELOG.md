@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.12.0
+
+- **A blank picture, quickly.** Type `sprite` (lower case) on an empty line and pick a size from the suggestions (`sprite 8x8`, `sprite 16x16`, and each computer's other shapes, such as `sprite c64` or `sprite mode1`). An empty picture goes in, with its `@sprite` line and a free name (`SPR1`, `sprite1`...) ready to type over. Type a size on the end (`sprite24x16`) for any other size. **sprite ...** runs **New picture here** for several frames.
+- New tests: every shape on every computer goes in with no warnings, at the right size, and empty; the suggestions in `test/ext-test.js`.
+
 ## 0.11.1
 
 - **File icons:** assembly files (`.a99`, `.z80`, `.6502`, and any others opened as Retro Assembly) now show a small orange chip in the Explorer and on editor tabs, instead of a blank page. VS Code uses it when your file icon theme has no icon of its own for these files, so it works with the built-in theme and doesn't change any other file's icon.
