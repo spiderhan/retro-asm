@@ -252,6 +252,30 @@
     "9C02": "GROM: write an address here (two bytes, high byte first)."
   },
 
+  "sprites": {
+    "_help": "Pictures kept as BYTE or DATA lines. Put a comment with @sprite (and a shape or size) just above the block to draw and edit it.",
+    "about": "The TI-99/4A's video chip (the TMS9918A) draws characters and sprites from 8 bytes each, one byte a row, the left-most pixel in the top bit.",
+    "default": "8x8",
+    "order": "columns",
+    "shapes": {
+      "8x8": {
+        "name": "8x8 character or sprite",
+        "width": 8,
+        "height": 8,
+        "about": "8 bytes, one a row, top row first."
+      },
+      "16x16": {
+        "name": "16x16 sprite",
+        "width": 16,
+        "height": 16,
+        "about": "32 bytes, as four 8x8 blocks: top-left, bottom-left, top-right, bottom-right. Switch on 16x16 sprites with bit 1 of video register 1."
+      }
+    },
+    "newSprite": {
+      "directive": "BYTE",
+      "indent": 7
+    }
+  },
   "snippets": {
     "_help": "Starter code. Type the name (in lower case) at the start of a line and pick it from the list, or run Retro ASM: Insert starter code. ${1:NAME} is a spot to fill in (Tab moves to the next one; the same number is filled in everywhere at once), $0 is where the cursor ends up.",
     "program": {

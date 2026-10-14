@@ -1,0 +1,78 @@
+; Picture examples for the ZX Spectrum (made up, for trying the Retro ASM picture editor).
+;
+; Click "Edit picture" above a block to draw it. Each click changes the numbers in the
+; DEFB lines here, and typing new numbers changes the picture.
+; The @sprite comment above a block says what shape it is.
+;
+; Builds with sjasmplus (sjasmplus sprites.z80) into sprites.sna: it draws the ghost
+; in the top left corner of the screen.
+
+        DEVICE ZXSPECTRUM48     ; Build for a 48K Spectrum
+        ORG $8000               ; Put the code at 32768
+
+start:  ld hl,ghost             ; Where the picture is
+        ld de,$4000             ; The top left corner of the screen
+        ld b,16                 ; 16 rows
+row:    ld a,(hl)               ; Left byte of the row
+        ld (de),a
+        inc hl
+        inc e
+        ld a,(hl)               ; Right byte of the row
+        ld (de),a
+        inc hl
+        dec e
+        inc d                   ; One pixel row down (inside a band of 8 rows)
+        ld a,d
+        and 7
+        jr nz,next
+        ld a,e                  ; Crossed into the next band of 8 rows
+        add a,32
+        ld e,a
+        ld a,d
+        sub 8
+        ld d,a
+next:   djnz row
+stay:   halt                    ; Wait here, so you can see it
+        jr stay
+
+; A 16x16 picture, kept a row at a time: 2 bytes a row.
+; @sprite 16x16
+ghost:
+        DEFB $07,$E0
+        DEFB $1F,$F8
+        DEFB $3F,$FC
+        DEFB $73,$CE
+        DEFB $61,$86
+        DEFB $65,$96
+        DEFB $F3,$CF
+        DEFB $FF,$FF
+        DEFB $FF,$FF
+        DEFB $FF,$FF
+        DEFB $FF,$FF
+        DEFB $FF,$FF
+        DEFB $FF,$FF
+        DEFB $DD,$BB
+        DEFB $8D,$B1
+        DEFB $00,$00
+
+; Written in binary: the editor keeps it in binary when you draw.
+; @sprite 8x8
+key:
+        DEFB %00000000
+        DEFB %01100000
+        DEFB %10010000
+        DEFB %10011111
+        DEFB %10010101
+        DEFB %01100101
+        DEFB %00000000
+        DEFB %00000000
+
+; Four pictures in a row: a spinning coin. The editor shows "1 of 4".
+; @sprite 8x8
+coin:
+        DEFB $3C,$7E,$FF,$E7,$E7,$FF,$7E,$3C
+        DEFB $18,$3C,$7E,$66,$66,$7E,$3C,$18
+        DEFB $18,$18,$18,$18,$18,$18,$18,$18
+        DEFB $18,$3C,$7E,$66,$66,$7E,$3C,$18
+
+        SAVESNA "sprites.sna",start ; Make a snapshot that starts at start

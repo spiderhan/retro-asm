@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.11.0
+
+New: **the picture editor.** Draw sprites, characters and tiles with the mouse, and the numbers in your code change to match.
+
+- Put a comment starting `@sprite` above a block of data (`* @sprite 16x16`, `; @sprite 8x8`, `// @sprite c64multi`). An **Edit picture** link appears above it and opens the editor beside your code.
+- Each stroke rewrites only the numbers that changed, in the style you wrote them (hex, binary or decimal, with your prefix and case). Typing in the code updates the picture. Undo works in both.
+- Knows how each computer keeps its pictures: the TI-99/4A's 16x16 sprites (four 8x8 blocks), Spectrum rows, C64 sprites (24x21, 64 bytes apart) and multicolour sprites and characters, and the BBC Micro's 8-row cells with MODE 1 and MODE 2 colour pixels. Any size works too (`@sprite 24x16`).
+- Animation frames (several pictures in a row) get a picker. Clear, invert, flip and nudge tools, a real-size preview, and a table of each row's pixels and bytes.
+- Blocks named or described as drawings (`PAT_...`, "sprite" ...) get an **Edit as a picture?** link that adds the `@sprite` line for you. Right-click menu: **Edit these bytes as a picture** and **New picture here**.
+- Blocks that use names or sums instead of plain numbers open look-only, with the reason.
+- Tooltips draw marked blocks in their own shape.
+- Fix: word data (`DEFW`, `.word`, `EQUW`) on the Z80 and 6502 is now read low byte first, as those chips store it. Pictures in tooltips used the wrong order before.
+- Fix: tooltips no longer guess "16x16 sprite" (the TI's way) for data on the other computers.
+- New chip-file settings: a `sprites` section (the picture shapes) and `littleEndian` in `syntax`. The new-chip template has an example of both.
+- Example files for all four computers in `examples/sprites`. New setting `retroAsm.pictureLinks`. New tests: `test/sprite-test.js`.
+
 ## 0.10.0
 
 New: **starter code for the ZX Spectrum, Commodore 64 and BBC Micro**, the same set as the TI-99/4A: `program`, `routine`, `loop`, and `printchar` (print a letter on the screen with the machine's own ROM routine).

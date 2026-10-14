@@ -37,6 +37,7 @@
   "addressPrefix": "",
   "leftToRightMath": false,
   "wordBits": 16,
+  "littleEndian": true,
   "byteName": "byte",
   "wordName": "word",
   "highByteName": "high byte",
@@ -2234,6 +2235,116 @@
    "text": "KERNAL ROM, with RAM underneath"
   }
  ],
+ "sprites": {
+  "_help": "Pictures kept as .byte lines. Put a comment with @sprite (and a shape or size) just above the block to draw and edit it.",
+  "about": "The Commodore 64's video chip (the VIC-II) draws characters 8x8 and sprites 24x21, both a row at a time, the left-most pixel in the top bit. In multicolour mode, two bits make one double-width pixel.",
+  "default": "8x8",
+  "order": "rows",
+  "shapes": {
+   "8x8": {
+    "name": "8x8 character",
+    "width": 8,
+    "height": 8,
+    "about": "8 bytes, one a row, top row first."
+   },
+   "c64": {
+    "name": "C64 sprite (24x21, one colour)",
+    "width": 24,
+    "height": 21,
+    "stride": 64,
+    "colours": [
+     "#00000000",
+     "#FFFFFF"
+    ],
+    "colourNames": [
+     "see-through (0)",
+     "the sprite's colour, $D027 and on (1)"
+    ],
+    "about": "63 bytes: 3 bytes a row, 21 rows. Sprites are 64 bytes apart (the sprite pointer counts in 64s), so a spare byte usually follows each one."
+   },
+   "c64multi": {
+    "name": "C64 multicolour sprite (12x21)",
+    "width": 12,
+    "height": 21,
+    "stride": 64,
+    "pixelWidth": 2,
+    "pixelBits": [
+     [
+      7,
+      6
+     ],
+     [
+      5,
+      4
+     ],
+     [
+      3,
+      2
+     ],
+     [
+      1,
+      0
+     ]
+    ],
+    "colours": [
+     "#00000000",
+     "#6C5EB5",
+     "#FFFFFF",
+     "#B8C76F"
+    ],
+    "colourNames": [
+     "see-through (00)",
+     "shared colour 1, $D025 (01)",
+     "the sprite's colour, $D027 and on (10)",
+     "shared colour 2, $D026 (11)"
+    ],
+    "about": "63 bytes like a one-colour sprite, but each pair of bits is one double-width pixel. Switch it on with the sprite's bit in $D01C."
+   },
+   "charmulti": {
+    "name": "C64 multicolour character (4x8)",
+    "width": 4,
+    "height": 8,
+    "pixelWidth": 2,
+    "pixelBits": [
+     [
+      7,
+      6
+     ],
+     [
+      5,
+      4
+     ],
+     [
+      3,
+      2
+     ],
+     [
+      1,
+      0
+     ]
+    ],
+    "colours": [
+     "#00000000",
+     "#9A6759",
+     "#9AD284",
+     "#FFFFFF"
+    ],
+    "colourNames": [
+     "background, $D021 (00)",
+     "$D022 (01)",
+     "$D023 (10)",
+     "the colour memory (11)"
+    ],
+    "about": "8 bytes, each pair of bits one double-width pixel. Used when multicolour text mode is on ($D016 bit 4) and the character's colour is 8 or more."
+   }
+  },
+  "newSprite": {
+   "directive": ".byte",
+   "indent": 8,
+   "labelOnOwnLine": true,
+   "labelSuffix": ":"
+  }
+ },
  "snippets": {
   "_help": "Starter code. Type the name (in lower case) on an empty line and pick it from the list, or run Retro ASM: Insert starter code. ${1:NAME} is a spot to fill in (Tab moves to the next one; the same number is filled in everywhere at once), $0 is where the cursor ends up, and a real $ is written \\$ (in this file, \"\\\\$\").",
   "program": {

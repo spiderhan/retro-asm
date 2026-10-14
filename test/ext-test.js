@@ -390,5 +390,7 @@ const at=(doc,needle,sub)=>{const lines=doc.getText().split(/\r?\n/);const l=lin
   // no build.bat here: falls back to finding xas99 (not present in the temp folder) -> a clear message
   const good3=await C['retroAsm.build']();ok('missing tools give a clear message, not a crash',good3===false);
  } else console.log('skip build test (set XAS99 to run it)');
+ // the picture editor has its own file of tests (it needs a document whose text can change)
+ {const r=require('child_process').spawnSync(process.execPath,[path.join(__dirname,'sprite-test.js')],{encoding:'utf8'});const bad=(r.stdout||'').split('\n').filter(l=>l.startsWith('FAIL'));ok('picture editor tests (test/sprite-test.js)',r.status===0,bad.length?bad:(r.stderr||'').slice(0,500));}
  console.log(fails?`\n${fails} FAILED`:'\nall passed');process.exit(fails?1:0);
 })().catch(e=>{console.error(e);process.exit(1);});
