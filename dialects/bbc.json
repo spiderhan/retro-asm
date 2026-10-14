@@ -38,6 +38,7 @@
     "addressPrefix": "",
     "leftToRightMath": false,
     "wordBits": 16,
+    "littleEndian": true,
     "byteName": "byte",
     "wordName": "word",
     "highByteName": "high byte",
@@ -2243,6 +2244,125 @@
       "text": "operating system calls (OSWRCH, OSBYTE ...) and the 6502's vectors"
     }
   ],
+  "sprites": {
+    "_help": "Pictures kept as EQUB lines. Put a comment with @sprite (and a shape or size) just above the block to draw and edit it.",
+    "about": "The BBC Micro has no sprite hardware. Its screen is made of 8-row cells, so a picture copied straight to the screen is usually kept the same way: 8 bytes down one cell, then the next cell across. In MODE 1 and MODE 2 each byte holds several pixels, with their bits spread across the byte.",
+    "default": "8x8",
+    "order": "cells",
+    "shapes": {
+      "8x8": {
+        "name": "8x8 character (VDU 23)",
+        "width": 8,
+        "height": 8,
+        "about": "8 bytes, one a row, top row first, as VDU 23 takes them."
+      },
+      "mode4": {
+        "name": "MODE 4 / MODE 0 picture (two colours)",
+        "width": 16,
+        "height": 16,
+        "about": "One bit a pixel, kept in 8-row cells across the screen."
+      },
+      "mode1": {
+        "name": "MODE 1 picture (four colours)",
+        "width": 16,
+        "height": 16,
+        "pixelBits": [
+          [
+            7,
+            3
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            4,
+            0
+          ]
+        ],
+        "colours": [
+          "#00000000",
+          "#FF0000",
+          "#FFFF00",
+          "#FFFFFF"
+        ],
+        "colourNames": [
+          "black (0)",
+          "red (1)",
+          "yellow (2)",
+          "white (3)"
+        ],
+        "about": "Four pixels a byte: the left-most pixel's colour is in bits 7 and 3, the next in bits 6 and 2, and so on. Kept in 8-row cells."
+      },
+      "mode2": {
+        "name": "MODE 2 picture (sixteen colours)",
+        "width": 8,
+        "height": 16,
+        "pixelWidth": 2,
+        "pixelBits": [
+          [
+            7,
+            5,
+            3,
+            1
+          ],
+          [
+            6,
+            4,
+            2,
+            0
+          ]
+        ],
+        "colours": [
+          "#00000000",
+          "#FF0000",
+          "#00FF00",
+          "#FFFF00",
+          "#0000FF",
+          "#FF00FF",
+          "#00FFFF",
+          "#FFFFFF",
+          "#000000/#FFFFFF",
+          "#FF0000/#00FFFF",
+          "#00FF00/#FF00FF",
+          "#FFFF00/#0000FF",
+          "#0000FF/#FFFF00",
+          "#FF00FF/#00FF00",
+          "#00FFFF/#FF0000",
+          "#FFFFFF/#000000"
+        ],
+        "colourNames": [
+          "black (0)",
+          "red (1)",
+          "green (2)",
+          "yellow (3)",
+          "blue (4)",
+          "magenta (5)",
+          "cyan (6)",
+          "white (7)",
+          "flashing black/white (8)",
+          "flashing red/cyan (9)",
+          "flashing green/magenta (10)",
+          "flashing yellow/blue (11)",
+          "flashing blue/yellow (12)",
+          "flashing magenta/green (13)",
+          "flashing cyan/red (14)",
+          "flashing white/black (15)"
+        ],
+        "about": "Two double-width pixels a byte: the left pixel's colour is in bits 7, 5, 3 and 1, the right one's in bits 6, 4, 2 and 0. Kept in 8-row cells."
+      }
+    },
+    "newSprite": {
+      "directive": "EQUB",
+      "indent": 4,
+      "labelOnOwnLine": true,
+      "labelPrefix": "."
+    }
+  },
   "snippets": {
     "_help": "Starter code. Type the name (in lower case) on an empty line and pick it from the list, or run Retro ASM: Insert starter code. ${1:NAME} is a spot to fill in (Tab moves to the next one; the same number is filled in everywhere at once), $0 is where the cursor ends up, and a real $ is written \\$ (in this file, \"\\\\$\").",
     "program": {

@@ -17,6 +17,8 @@ const B = require('./lib/build');
 const S = require('./lib/skool');
 const SP = require('./lib/panel');
 const PH = require('./lib/panel-html');
+const SPR = require('./lib/sprites');
+const SH = require('./lib/sprite-html');
 
 const LANG = 'retroasm';
 const NOTES_FILE = 'asm-notes.json';
@@ -683,20 +685,257 @@ const completionProvider = {
 const lensProvider = {
   onDidChangeCodeLenses: lensChanged.event,
   provideCodeLenses(doc) {
-    if (!cfg().get('routineSummaries') || !modelFor(doc)) return [];
+    if (!modelFor(doc)) return [];
     const out = [];
-    for (const item of F.lenses(project, keyOf(doc))) {
-      const range = new vscode.Range(item.line, item.start, item.line, item.end);
-      for (const part of item.parts) {
-        if (part.refs && part.refs.length) {
-          const locs = part.refs.map(r => new vscode.Location(uriOf(r.file), new vscode.Range(r.line, r.start, r.line, r.end)));
-          out.push(new vscode.CodeLens(range, { title: part.text, tooltip: 'Show where', command: 'editor.action.showReferences', arguments: [doc.uri, new vscode.Position(item.line, item.start), locs] }));
-        } else out.push(new vscode.CodeLens(range, { title: part.text, command: '' }));
+    const file = keyOf(doc);
+    if (cfg().get('routineSummaries')) {
+      for (const item of F.lenses(project, file)) {
+        const range = new vscode.Range(item.line, item.start, item.line, item.end);
+        for (const part of item.parts) {
+          if (part.refs && part.refs.length) {
+            const locs = part.refs.map(r => new vscode.Location(uriOf(r.file), new vscode.Range(r.line, r.start, r.line, r.end)));
+            out.push(new vscode.CodeLens(range, { title: part.text, tooltip: 'Show where', command: 'editor.action.showReferences', arguments: [doc.uri, new vscode.Position(item.line, item.start), locs] }));
+          } else out.push(new vscode.CodeLens(range, { title: part.text, command: '' }));
+        }
       }
+    }
+    if (cfg().get('pictureLinks') !== false) {
+      try { out.push(...pictureLenses(doc, file)); }
+      catch (e) { output.appendLine(`Picture links: ${e.stack || e.message}`); }
     }
     return out;
   }
 };
+
+// ---------------------------------------------------------------------------
+// the picture editor: BYTE / DATA lines drawn as a grid you can click on
+// ---------------------------------------------------------------------------
+/** "Edit picture" links above blocks marked with @sprite, and "Edit as a picture?" above ones that look like pictures. */
+function pictureLenses(doc, file) {
+  const model = project.get(file);
+  if (!model || doc.lineCount > 30000) return [];
+  const out = [];
+  const marked = SPR.markedBlocks(project, file, A.dataBlock);
+  const done = new Set();
+  for (const m of marked) {
+    done.add(m.line);
+    const blk = A.dataBlock(project, file, m.line);
+    const pic = blk ? SPR.pictureOf(project, file, blk, m.spec) : { error: 'no data found' };
+    const range = new vscode.Range(m.line, 0, m.line, 0);
+    const args = [doc.uri.toString(), m.line];
+    if (pic.error) { out.push(new vscode.CodeLens(range, { title: '$(warning) Picture: ' + pic.error, command: 'retroAsm.editSprite', arguments: args })); continue; }
+    const n = pic.frames.length;
+    out.push(new vscode.CodeLens(range, { title: `$(paintcan) Edit picture`, tooltip: 'Open the picture editor for these lines', command: 'retroAsm.editSprite', arguments: args }));
+    out.push(new vscode.CodeLens(range, { title: `${pic.shape.name}${n > 1 ? `, ${n} pictures` : ''}${pic.editable ? '' : ' (look only)'}`, command: '' }));
+  }
+  if (cfg().get('pictures') === 'never') return out;
+  // blocks that look like pictures by their name or comments, but have no @sprite yet
+  let skipTo = -1;
+  for (let ln = 0; ln < model.lines.length; ln++) {
+    if (ln <= skipTo) continue;
+    const pl = model.lines[ln];
+    if (!pl.mnem) continue;
+    const d = model.D.directive(pl.mnem.upper);
+    if (!d || d.kind !== 'data' || !(d.unit === 1 || d.unit === 2)) continue;
+    // only the start of a block, and only if its name or comment hints at a picture (working a block out costs time)
+    const prev = ln > 0 ? model.lines[ln - 1] : null;
+    if (!pl.label && prev && prev.mnem) continue;
+    const top = !pl.label && prev && prev.label ? ln - 1 : ln;          // a label on its own line just above
+    const name = model.lines[top].label && model.lines[top].label.name;
+    if (!A.pictureHint(name, model.docAbove(top).join(' ') + ' ' + model.trailingComment(top) + ' ' + model.trailingComment(ln))) continue;
+    const blk = A.dataBlock(project, file, ln);
+    if (!blk) continue;
+    skipTo = blk.endLine;
+    if (done.has(blk.labelLine) || !A.looksLikePicture(blk)) continue;
+    out.push(new vscode.CodeLens(new vscode.Range(blk.labelLine, 0, blk.labelLine, 0), { title: '$(paintcan) Edit as a picture?', tooltip: 'Choose a shape for these bytes and open the picture editor', command: 'retroAsm.editSprite', arguments: [doc.uri.toString(), blk.labelLine] }));
+  }
+  return out;
+}
+
+let sprite = null;          // { panel, uri, label, line, spec, frame, key }
+let spriteTimer = null;
+
+function docFor(uri) {
+  const u = typeof uri === 'string' ? uri : uri && uri.toString();
+  return vscode.workspace.textDocuments.find(d => d.uri.toString() === u) || null;
+}
+
+/** Ask for a shape. `length` (the block's size in bytes) puts the ones that fit first. */
+async function pickShape(D, length) {
+  const list = SPR.shapeList(D);
+  const fits = (s) => length && SPR.frameCount(length, SPR.shapeFor(D, s.spec)) > 0;
+  const items = list.map(s => {
+    const n = length ? SPR.frameCount(length, SPR.shapeFor(D, s.spec)) : 0;
+    return { label: s.name, description: `@sprite ${s.spec}  ·  ${s.frameBytes} bytes${n > 1 ? `  ·  ${n} pictures here` : ''}`, detail: s.about, spec: s.spec, fit: fits(s) };
+  });
+  if (length) items.sort((a, b) => (b.fit ? 1 : 0) - (a.fit ? 1 : 0));
+  items.push({ label: 'Another size...', description: 'such as 16x8 or 24x16', spec: null });
+  const pick = await vscode.window.showQuickPick(items, { placeHolder: length ? `What shape are these ${length} bytes? (${D.short})` : `What shape of picture? (${D.short})`, matchOnDescription: true });
+  if (!pick) return null;
+  if (pick.spec) return pick.spec;
+  const typed = await vscode.window.showInputBox({ prompt: 'Width x height in pixels', value: '16x8', validateInput: (v) => { const s = SPR.shapeFor(D, v); return s.error || null; } });
+  return typed ? typed.trim() : null;
+}
+
+/** Retro ASM: Edit these bytes as a picture. From a link (uri, line) or the cursor. */
+async function cmdEditSprite(uri, line) {
+  let doc = uri ? docFor(uri) : null;
+  if (!doc) { const ed = vscode.window.activeTextEditor; if (!ed || !isOurs(ed.document)) { vscode.window.showInformationMessage('Open an assembly file and put the cursor on BYTE or DATA lines to edit them as a picture.'); return false; } doc = ed.document; line = (ed.selection.active || ed.selection.start).line; }
+  const model = modelFor(doc);
+  if (!model) return false;
+  const file = keyOf(doc);
+  let blk = A.dataBlock(project, file, Number(line) || 0);
+  if (!blk) {
+    // on the @sprite comment itself: use the block below it
+    const m = SPR.markedBlocks(project, file, A.dataBlock).find(b => b.marker === Number(line));
+    if (m) blk = A.dataBlock(project, file, m.line);
+  }
+  if (!blk) {
+    const pick = await vscode.window.showInformationMessage('There are no BYTE or DATA lines here to draw. Make a new, empty picture here instead?', 'New picture', 'Cancel');
+    if (pick === 'New picture') return cmdNewSprite();
+    return false;
+  }
+  let mark = SPR.markerFor(model, blk.labelLine, blk.firstLine);
+  let at = blk.labelLine;
+  if (!mark) {
+    const spec = await pickShape(model.D, blk.bytes.length);
+    if (!spec) return false;
+    // remember the choice in the code, so the link and the tooltip know it too
+    const we = new vscode.WorkspaceEdit();
+    const indent = model.D.syntax.col0Comment.length ? '' : /^\s*/.exec(doc.lineAt(blk.labelLine).text)[0];
+    we.insert(doc.uri, new vscode.Position(blk.labelLine, 0), indent + SPR.markerLine(model.D, spec) + '\n');
+    if (!await vscode.workspace.applyEdit(we)) return false;
+    modelFor(doc);
+    at = blk.labelLine + 1;
+  }
+  openSprite(doc, at, blk.label);
+  return true;
+}
+
+/** Retro ASM: New picture here. Puts a marked, empty picture at the cursor and opens it. */
+async function cmdNewSprite() {
+  const ed = vscode.window.activeTextEditor;
+  if (!ed || !isOurs(ed.document)) { vscode.window.showInformationMessage('Open an assembly file first, and put the cursor where the picture should go.'); return false; }
+  const doc = ed.document;
+  const model = modelFor(doc);
+  if (!model) return false;
+  const D = model.D, file = keyOf(doc);
+  const spec = await pickShape(D, 0);
+  if (!spec) return false;
+  const shape = SPR.shapeFor(D, spec);
+  if (shape.error) { vscode.window.showWarningMessage(shape.error); return false; }
+  const upper = D.id === 'tms9900';
+  let n = 1;
+  const base = upper ? 'SPR' : 'sprite';
+  while (project.findDefs(file, base + n).length) n++;
+  const name = await vscode.window.showInputBox({ prompt: 'A name (label) for the picture', value: base + n,
+    validateInput: (v) => !/^[A-Za-z_][A-Za-z0-9_]*$/.test(v) ? 'Letters, digits and _ only, starting with a letter' : project.findDefs(file, v).length ? `${v} is already used` : null });
+  if (!name) return false;
+  const count = await vscode.window.showInputBox({ prompt: 'How many pictures (for animation frames)?', value: '1', validateInput: (v) => /^([1-9]|[1-5][0-9]|6[0-4])$/.test(v.trim()) ? null : 'A number from 1 to 64' });
+  if (!count) return false;
+  const lines = SPR.newSpriteLines(D, name, shape, parseInt(count, 10));
+  const line = (ed.selection.active || ed.selection.start).line;
+  const we = new vscode.WorkspaceEdit();
+  we.insert(doc.uri, new vscode.Position(line, 0), lines.join('\n') + '\n');
+  if (!await vscode.workspace.applyEdit(we)) return false;
+  modelFor(doc);
+  openSprite(doc, line + 1, name);
+  return true;
+}
+
+function openSprite(doc, line, label) {
+  if (!sprite) {
+    const panel = vscode.window.createWebviewPanel('retroAsm.sprite', 'Picture', { viewColumn: vscode.ViewColumn.Beside, preserveFocus: true }, { enableScripts: true, retainContextWhenHidden: true, localResourceRoots: [] });
+    sprite = { panel };
+    panel.webview.onDidReceiveMessage(onSpriteMessage);
+    panel.onDidDispose(() => { if (sprite && sprite.panel === panel) sprite = null; });
+    panel.webview.html = SH.page(nonce(), panel.webview.cspSource);
+  } else sprite.panel.reveal(vscode.ViewColumn.Beside, true);
+  Object.assign(sprite, { uri: doc.uri.toString(), label: label || null, line, frame: 0 });
+  sendSprite();
+}
+
+/** Find the picture again (lines may have moved since it was opened). */
+function locateSprite() {
+  if (!sprite) return null;
+  const doc = docFor(sprite.uri);
+  if (!doc) return { error: 'The file holding this picture has been closed.' };
+  const model = modelFor(doc);
+  if (!model) return { error: 'The file holding this picture is not open as assembly any more.' };
+  const file = keyOf(doc);
+  let line = sprite.line;
+  if (sprite.label) {
+    let best = -1;
+    model.lines.forEach((pl, i) => { if (pl.label && pl.label.name === sprite.label && (best < 0 || Math.abs(i - sprite.line) < Math.abs(best - sprite.line))) best = i; });
+    if (best < 0) return { doc, error: `${sprite.label} can't be found in the file any more.` };
+    line = best;
+  }
+  sprite.line = line;
+  const blk = A.dataBlock(project, file, line);
+  if (!blk) return { doc, error: `There are no BYTE or DATA lines at ${sprite.label || 'line ' + (line + 1)} any more.` };
+  const mark = SPR.markerFor(model, blk.labelLine, blk.firstLine);
+  if (mark) sprite.spec = mark.spec;
+  const pic = SPR.pictureOf(project, file, blk, sprite.spec || '');
+  return Object.assign({ doc, file, model }, pic);
+}
+
+function sendSprite() {
+  if (!sprite || !sprite.panel) return;
+  const at = locateSprite();
+  const name = sprite.label || `line ${sprite.line + 1}`;
+  sprite.panel.title = `Picture: ${name}`;
+  const where = at && at.doc ? `${path.basename(at.doc.uri.fsPath || at.doc.uri.path)}, line ${sprite.line + 1}` : '';
+  const msg = { type: 'state', key: sprite.uri + '|' + name, title: name, where, frame: sprite.frame || 0 };
+  if (!at || at.error) msg.error = at ? at.error : 'Nothing to show.';
+  else {
+    const sh = at.shape;
+    Object.assign(msg, {
+      shape: { name: sh.name, about: sh.about || '', width: sh.width, height: sh.height, pixelWidth: sh.pixelWidth, perByte: sh.perByte, pixelBits: sh.pixelBits, bitsPerPixel: sh.bitsPerPixel, colourCount: sh.colourCount, colours: sh.colours, colourNames: sh.colourNames, order: sh.order, orderText: sh.orderText, blockHeight: sh.blockHeight, bytesPerRow: sh.bytesPerRow, frameBytes: sh.frameBytes, stride: sh.stride },
+      frames: at.frames, spare: at.spare, editable: at.editable, why: at.why, hexPrefix: at.model.D.syntax.hexDisplay || '$'
+    });
+  }
+  sprite.panel.webview.postMessage(msg);
+  return msg;
+}
+
+function scheduleSprite() {
+  if (!sprite) return;
+  if (spriteTimer) clearTimeout(spriteTimer);
+  spriteTimer = setTimeout(() => { spriteTimer = null; sendSprite(); }, 40);
+}
+
+async function onSpriteMessage(m) {
+  if (!m || !sprite) return;
+  if (m.type === 'ready') { sendSprite(); return; }
+  if (m.type === 'frame') { sprite.frame = Number(m.index) || 0; return; }
+  if (m.type === 'goto') {
+    const doc = docFor(sprite.uri);
+    if (!doc) return;
+    const ed = await vscode.window.showTextDocument(doc, { viewColumn: vscode.ViewColumn.One, preserveFocus: false });
+    if (ed) { const p = new vscode.Position(sprite.line, 0); ed.selection = new vscode.Selection(p, p); ed.revealRange(new vscode.Range(p, p), vscode.TextEditorRevealType.InCenterIfOutsideViewport); }
+    return;
+  }
+  if (m.type === 'paint') return paintSprite(Number(m.frame) || 0, m.pixels);
+}
+
+/** Store one edited picture in the source, changing only the numbers that differ. */
+async function paintSprite(frame, pixels) {
+  const at = locateSprite();
+  if (!at || at.error || !at.shape) { sendSprite(); return false; }
+  if (!at.editable) { vscode.window.showWarningMessage(`This picture can only be looked at: ${at.why}.`); sendSprite(); return false; }
+  const sh = at.shape;
+  if (!Array.isArray(pixels) || pixels.length !== sh.width * sh.height || frame < 0 || frame >= at.frames.length) { sendSprite(); return false; }
+  const clean = pixels.map(v => Math.max(0, Math.min(sh.colourCount - 1, Number(v) | 0)));
+  const bytes = at.blk.bytes.slice();
+  SPR.encode(clean, sh).forEach((b, i) => { bytes[frame * sh.stride + i] = b; });
+  const edits = SPR.editsFor(project, at.file, at.blk, bytes);
+  if (!edits.length) return true;
+  const we = new vscode.WorkspaceEdit();
+  for (const e of edits) we.replace(at.doc.uri, new vscode.Range(e.line, e.start, e.line, e.end), e.text);
+  const okay = await vscode.workspace.applyEdit(we);
+  if (!okay) sendSprite();
+  return okay;
+}
 
 // ---------------------------------------------------------------------------
 // addresses down the left of the code
@@ -1198,11 +1437,14 @@ function activate(context) {
     vscode.commands.registerCommand('retroAsm.newDialect', cmdNewDialect),
     vscode.commands.registerCommand('retroAsm.reloadDialects', cmdReload),
     vscode.commands.registerCommand('retroAsm.openOriginal', cmdOpenOriginal),
+    vscode.commands.registerCommand('retroAsm.editSprite', cmdEditSprite),
+    vscode.commands.registerCommand('retroAsm.newSprite', cmdNewSprite),
 
     vscode.workspace.onDidOpenTextDocument((doc) => { if (syncDoc(doc)) refreshEverything(); }),
     vscode.workspace.onDidChangeTextDocument((e) => {
       if (!syncDoc(e.document)) return;
       tokensChanged.fire(); lensChanged.fire(); scheduleChecks(); scheduleAddresses(); updateStatus(); refreshPanels();
+      if (sprite && e.document.uri.toString() === sprite.uri) scheduleSprite();
       if (e.contentChanges.length) buildDiagnostics.delete(e.document.uri);   // the assembler's notes go stale once the file is edited
     }),
     vscode.workspace.onDidCloseTextDocument((doc) => {
@@ -1269,9 +1511,9 @@ function activate(context) {
   refreshEverything();
   scanWorkspace();
   // for the tests: what the side panel would show for the file it is following
-  return { panelNow: () => { const f = panelTarget(); return { file: f, line: panelLine, thisLine: lineHtml(f), memoryMap: mapHtml(f), project: projectNodes(f), hardware: hardwareNodes(f) }; } };
+  return { spriteNow: () => sendSprite(), spriteMessage: (m) => onSpriteMessage(m), panelNow: () => { const f = panelTarget(); return { file: f, line: panelLine, thisLine: lineHtml(f), memoryMap: mapHtml(f), project: projectNodes(f), hardware: hardwareNodes(f) }; } };
 }
 
-function deactivate() { if (checkTimer) clearTimeout(checkTimer); if (panelTimer) clearTimeout(panelTimer); if (lineTimer) clearTimeout(lineTimer); }
+function deactivate() { if (spriteTimer) clearTimeout(spriteTimer); if (checkTimer) clearTimeout(checkTimer); if (panelTimer) clearTimeout(panelTimer); if (lineTimer) clearTimeout(lineTimer); }
 
 module.exports = { activate, deactivate };

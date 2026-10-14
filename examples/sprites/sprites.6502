@@ -1,0 +1,56 @@
+\ Picture examples for the BBC Micro (made up, for trying the Retro ASM picture editor).
+\
+\ Click "Edit picture" above a block to draw it. Each click changes the numbers in the
+\ EQUB lines here, and typing new numbers changes the picture.
+\ The @sprite comment above a block says what shape it is.
+\
+\ Builds with BeebAsm (beebasm -i sprites.6502 -do sprites.ssd -boot SPRITES):
+\ it turns the rocket into character 224 and prints it.
+
+ORG &1900                       ; Where the program goes in memory
+
+.start
+    LDX #0
+.define
+    LDA vdu23,X                 ; Send VDU 23,224 and the 8 rows of the rocket
+    JSR &FFEE                   ; OSWRCH: print a character
+    INX
+    CPX #10
+    BNE define
+    LDA #224                    ; Now print character 224
+    JSR &FFEE
+    RTS                         ; Back to BASIC
+
+.vdu23
+    EQUB 23, 224                ; "Define character 224 as ..."
+\ @sprite 8x8
+.rocket
+    EQUB &18,&3C,&24,&3C,&3C,&7E,&DB,&99
+
+\ MODE 1: four colours, four pixels a byte, kept in 8-row cells (8 bytes down, then across).
+\ @sprite mode1
+.mushroom
+    EQUB &00,&10,&30,&71,&71,&F0,&F3,&F7
+    EQUB &70,&F1,&FC,&FC,&F8,&F1,&F3,&F1
+    EQUB &E0,&F8,&F3,&F3,&F1,&F8,&FC,&F8
+    EQUB &00,&80,&C0,&E8,&E8,&F0,&FC,&FE
+    EQUB &F3,&70,&00,&11,&11,&11,&00,&00
+    EQUB &F0,&F0,&FF,&DF,&DF,&FF,&FF,&00
+    EQUB &F0,&F0,&FF,&BF,&BF,&FF,&FF,&00
+    EQUB &FC,&E0,&00,&88,&88,&88,&00,&00
+
+\ MODE 2: sixteen colours (8 to 15 flash), two wide pixels a byte, kept in 8-row cells.
+\ @sprite mode2
+.runner
+    EQUB &00,&05,&00,&00,&00,&00,&10,&30
+    EQUB &0F,&0F,&3F,&2B,&3F,&15,&30,&30
+    EQUB &0F,&0F,&3F,&3F,&3F,&2A,&30,&30
+    EQUB &00,&0A,&00,&00,&00,&00,&20,&20
+    EQUB &3A,&3A,&10,&01,&01,&01,&0C,&00
+    EQUB &30,&30,&30,&02,&02,&02,&08,&00
+    EQUB &30,&30,&30,&01,&01,&01,&04,&00
+    EQUB &35,&35,&20,&02,&02,&02,&0C,&00
+
+.end
+
+SAVE "SPRITES", start, end      ; Put it on the disc

@@ -151,9 +151,47 @@ The tooltip for an instruction, and **This line** in the side panel, say how man
 
 A small grey line above every routine says who calls it (click it to see where), where it sits and how big it is, and which registers it changes, including the ones changed by routines it calls. Turn it off with `retroAsm.routineSummaries`.
 
-### Pictures
+### Pictures, and the picture editor
 
-Hover a `BYTE` or `DATA` line, or the label of a block, and character and sprite drawings are shown as pictures (8 bytes as one character, 32 bytes as a 16x16 sprite). It does this when the label or comments say it is a drawing (`PAT_...`, "sprite", "drawing" and so on); `retroAsm.pictures` can make it always or never.
+Sprites, characters and tiles are kept as lists of numbers (`BYTE`, `DATA`, `DEFB`, `.byte`, `EQUB`). The extension can show those numbers as a picture, and let you draw on it.
+
+**Mark a block as a picture** with a comment that starts `@sprite`, just above it (or at the end of its first line):
+
+```
+* @sprite 16x16
+MAN    BYTE >03,>07,>05,>07,>02,>01,>0F,>1F
+       BYTE >37,>27,>07,>06,>06,>06,>0E,>00
+       ...
+```
+
+The comment is ignored by the assembler. After `@sprite` comes the shape: one of the computer's own (below) or a size such as `16x8`.
+
+An **Edit picture** link then appears above the block. Click it and the picture editor opens beside your code:
+
+- Click or drag to draw. Clicking a pixel that is already that colour, or using the right mouse button, rubs it out.
+- Each stroke changes the numbers in your code straight away. Only the numbers that change are touched, written the way you wrote them (`>3C`, `$3c`, `%00111100`, `60`...). **Ctrl+Z** in the code undoes it, and the editor has its own Undo too.
+- Typing new numbers in the code changes the picture.
+- Clear, invert, flip, and move the whole picture one pixel at a time. Several pictures in a row (animation frames) get a "1 of 4" picker.
+- It shows the picture at real size, and each row's pixels and bytes, so you can see how a drawing becomes numbers.
+
+If a block uses a name or a sum instead of a plain number (`BYTE FULL,>81`), the editor shows it but won't change it, and says why.
+
+**No marker yet?** A block whose name or comments say it's a drawing (`PAT_...`, "sprite", "drawing" and so on) gets an **Edit as a picture?** link. Click it, pick a shape, and the `@sprite` line is added for you. You can also right-click any data lines and choose **Retro ASM: Edit these bytes as a picture**, or choose **Retro ASM: New picture here** to put a new, empty picture at the cursor.
+
+| Computer | Shapes | How the bytes are kept |
+|---|---|---|
+| TI-99/4A | `8x8`, `16x16` | One byte a row. A 16x16 sprite is four 8x8 blocks: top-left, bottom-left, top-right, bottom-right. |
+| ZX Spectrum | `8x8`, `16x16` | One row after another (2 bytes a row for 16 wide). |
+| Commodore 64 | `8x8`, `c64` (24x21 sprite), `c64multi` (12x21 multicolour sprite), `charmulti` (4x8 multicolour character) | One row after another, 3 bytes a row for sprites. Sprites are 64 bytes apart. Multicolour pixels are 2 bits each and twice as wide. |
+| BBC Micro | `8x8` (VDU 23), `mode4`, `mode1` (four colours), `mode2` (sixteen colours) | In 8-row cells: 8 bytes down, then the next cell across. MODE 1 and MODE 2 spread each pixel's bits across the byte. |
+
+Add a size to a shape to change it (`@sprite mode2 8x8`), or an order (`rows`, `columns` or `cells`) to a plain size (`@sprite 16x16 columns`). Each computer's shapes are in its chip file (the `sprites` section), so a chip file of your own can add more.
+
+The `examples/sprites` folder has a file for each computer to try it on: `sprites.a99`, `sprites.z80`, `sprites.asm` (C64) and `sprites.6502` (BBC).
+
+**Tooltips** draw pictures too. Hover a data line, or the label of a block: a marked block is drawn in its shape, and an unmarked one that looks like a drawing is drawn as 8x8 characters (and, on the TI, as 16x16 sprites). `retroAsm.pictures` can make that always or never.
+
+On the C64, write the marker with `//`, not inside `/* */`.
 
 ### Sound and video values
 
@@ -316,6 +354,7 @@ For assemblers that write things differently, the `syntax` section has switches,
 | `dottedNames` | In `music.init`, only `music` is looked up. | C64 |
 | `hereSymbol` | The sign for "this address" (`"*"`). | C64, BBC |
 | `lowHighBytes` | `<value` and `>value` take its low and high byte. | C64, BBC |
+| `littleEndian` | Words are stored low byte first (word data such as `DW` is read that way, for pictures). | Spectrum, C64, BBC |
 | `joinIndexed` | `$D020,X` is described as one address plus X, not as two separate things. | C64, BBC |
 | `primeAfterName` | A `'` straight after a name is part of it (the Z80's `AF'`), not the start of text. | Z80 |
 | `dotInNames` | `main.loop` is one name. | Z80 |
@@ -339,6 +378,8 @@ The `timing` section and each instruction's `cycles` give the time in the toolti
 
 The `snippets` section is the starter code (see **Starter code**). Each one is named by what you type (lower-case letters and digits only) and has a `name`, an `about` line and a `body`: the lines to put in. In the body, `${1:NAME}` is a spot to fill in (Tab moves to the next; the same number is filled in everywhere at once), `$0` is where the cursor ends up, and a real `$` (a hex number on the C64 or Spectrum) is written `\$`, which in the JSON file itself is `"\\$"`. All four built-in chip files have examples (`tms9900.json`, `z80.json`, `6502.json` and `bbc.json`).
 
+The `sprites` section lists the picture shapes for the picture editor: each has a `name`, `width` and `height`, and can have an `order` (`rows`, `columns` or `cells`), `pixelBits` (which bits of a byte make each pixel, for pixels of more than one bit), `colours` and `colourNames`, `pixelWidth` (2 for double-width pixels) and `stride` (how far apart pictures are, such as 64 for C64 sprites). `newSprite` says how to write a new picture. `6502.json` and `bbc.json` have the fullest examples.
+
 `z80.json` also shows `ioPorts` (hardware reached with IN and OUT, and how to read a value sent there), `addressGuess` (when a plain number is probably an address), `build` (what to say when no build command is set) and, in `registers`, which registers are pairs.
 
 ## Settings
@@ -354,7 +395,8 @@ The `snippets` section is the starter code (see **Starter code**). Each one is n
 | `retroAsm.loadAddress` | Where the program loads (hex). Empty means the chip's usual place. |
 | `retroAsm.showAddresses` | Addresses beside the code, on or off. |
 | `retroAsm.routineSummaries` | The summary line above each routine, on or off. |
-| `retroAsm.pictures` | Pictures in tooltips: `auto`, `always` or `never`. |
+| `retroAsm.pictures` | Pictures in tooltips: `auto`, `always` or `never`. `never` also hides the *Edit as a picture?* links. |
+| `retroAsm.pictureLinks` | The *Edit picture* links above picture data, on or off. |
 | `retroAsm.checks` | Wavy underlines on or off. |
 | `retroAsm.hoverInComments` | Tooltips and jumping for label names inside comments, on or off. |
 | `retroAsm.original.skoolFile` | The `.skool` file of the original game (or its folder). Empty means look near the source. |
@@ -393,6 +435,7 @@ From the `retro-asm` folder:
 | Command | What it checks |
 |---|---|
 | `node test/ext-test.js` | The whole extension against a small stand-in for VS Code. Quick. Set `XAS99` to the path of `xas99.py` to include the build. |
+| `node test/sprite-test.js` | The picture editor: the example files, every computer's way of storing pixels, numbers kept in their own style, and drawing in the editor changing the code. `node test/ext-test.js` runs it too. |
 | `node test/lib-test.js misc` | Prints the outline, warnings, folds and original-game addresses for the test files. |
 | `node test/real-check.js <folder>` | Runs the checks over every `.a99`, `.z80`, `.asm`, `.a80`, `.s` and `.6502` file in a folder (a finished program should give 0 warnings). |
 | `node test/beebasm-check.js file.6502 [beebasm]` | Builds the file with the real BeebAsm and compares the address of every label with ours. Give the path to `beebasm` (or set `BEEBASM`); `node test/ext-test.js` runs it too when `BEEBASM` is set. |
