@@ -279,6 +279,17 @@ const at=(doc,needle,sub)=>{const lines=doc.getText().split(/\r?\n/);const l=lin
   const bbc=makeDoc(path.join(ws,'bbcdemo.6502'),'retroasm');makeDoc(path.join(ws,'bbcdata.6502'),'retroasm');
   events.open.forEach(f=>f(bbc));
   const bt=(needle,sub)=>{const hv=P.Hover.provideHover(bbc,at(bbc,needle,sub));return hv?hv.contents.map(c=>c.value).join('\n'):'';};
+  { // an empty .6502 file has no code to look at: it is BBC code (its usual ending), not C64
+    const ef=path.join(ws,'empty.6502');fs.writeFileSync(ef,'');const ed=makeDoc(ef,'retroasm');events.open.forEach(f=>f(ed));
+    mock.window.activeTextEditor={document:ed,selection:{active:new Position(0,0),start:new Position(0,0),end:new Position(0,0),isEmpty:true}};
+    ok('an empty .6502 file is read as BBC Micro',api.panelNow().project[0].label.startsWith('6502 (BBC Micro'),api.panelNow().project[0].label);
+    // a new file with no extension: Switch chip is used for it now, instead of being thrown away
+    const u={isDirty:true,save:async()=>true,uri:mock.Uri.from({scheme:'untitled',path:'Untitled-9'}),languageId:'retroasm',getText:()=>'',lineCount:1,lineAt:()=>({text:''})};
+    mock.__.docs.push(u);events.open.forEach(f=>f(u));
+    mock.window.activeTextEditor={document:u,selection:{active:new Position(0,0),start:new Position(0,0),end:new Position(0,0),isEmpty:true}};
+    const before=api.panelNow().project[0].label;await C['retroAsm.switchDialect']();const after=api.panelNow().project[0].label;
+    ok('Switch chip works on a new file with no extension',after!==before&&/6809/.test(after),[before,after]);
+    mock.window.activeTextEditor=null; }
   ok('.6502 files written the BeebAsm way use the BBC Micro chip',(()=>{const p=at(bbc,'JSR print');mock.window.activeTextEditor={document:bbc,selection:{active:p,start:p,end:p,isEmpty:true}};return api.panelNow().project[0].label;})().startsWith('6502 (BBC Micro'),api.panelNow().project[0].label);
   ok('BBC: the first statement on a line ("LDA #22:JSR oswrch")',/Put the number 22 \(&16\) into A/.test(bt('LDA #22:JSR oswrch','LDA'))&&/Address:\* &1900 · 2 bytes/.test(bt('LDA #22:JSR oswrch','LDA')),bt('LDA #22:JSR oswrch','LDA'));
   ok('BBC: the second statement on the same line',/Call the routine oswrch \(&FFEE\)/.test(bt('LDA #22:JSR oswrch','JSR'))&&/Address:\* &1902 · 3 bytes/.test(bt('LDA #22:JSR oswrch','JSR')),bt('LDA #22:JSR oswrch','JSR'));

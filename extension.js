@@ -61,9 +61,11 @@ function knownExtensions() {
 }
 
 const guessed = new Map();   // file -> chip id, for endings more than one chip uses (.asm)
+const picked = new Map();    // file with no extension (a new, unsaved one) -> chip id the user chose with Switch chip
 
 function dialectForPath(file, text) {
   const ext = path.extname(file).toLowerCase();
+  if (!ext && picked.has(file) && dialects.has(picked.get(file))) return dialects.get(picked.get(file));
   const map = cfg().get('dialectByExtension') || {};
   for (const k of Object.keys(map)) if (k.toLowerCase() === ext && dialects.has(map[k])) return dialects.get(map[k]);
   const claim = [...dialects.values()].filter(D => D.fileExtensions.includes(ext));
@@ -77,6 +79,8 @@ function dialectForPath(file, text) {
       if (f !== file && claim.includes(m.D) && m.includes.some(inc => !inc.binary && project.resolveInclude(f, inc.name).toLowerCase() === file.toLowerCase())) { guessed.set(file, m.D.id); return m.D; }
     }
     if (text === undefined) { const m = project.get(file); if (m) text = m.text; else { try { text = fs.readFileSync(file, 'utf8').slice(0, 200000); } catch (e) { text = ''; } } }
+    // an empty file has nothing to look at: use the chip whose usual ending this is (.6502 -> BBC)
+    if (!text || !text.trim()) return claim.find(D => D.fileExtensions[0] === ext) || claim[0];
     const D = guessDialect(text, claim);
     if (text && text.trim()) guessed.set(file, D.id);
     return D;
@@ -1213,7 +1217,13 @@ async function cmdSwitch() {
   const ext = path.extname(keyOf(ed.document)).toLowerCase();
   const D = await pickDialect(`Read ${ext || 'this kind of'} files as which chip?`);
   if (!D) return;
-  if (!ext) { vscode.window.showInformationMessage('This file has no extension, so the choice can\'t be remembered. Save it with one first.'); return; }
+  if (!ext) {
+    // nothing to remember it by after the file is saved, but use it for this file now
+    picked.set(keyOf(ed.document), D.id);
+    reindexAll();
+    vscode.window.showInformationMessage(`This file is now read as ${D.name}. It has no extension yet, so save it with one (such as ${D.fileExtensions[0] || '.asm'}) to keep the choice.`);
+    return;
+  }
   const map = Object.assign({}, cfg().get('dialectByExtension') || {});
   map[ext] = D.id;
   const target = (vscode.workspace.workspaceFolders || []).length ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global;

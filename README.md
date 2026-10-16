@@ -109,7 +109,7 @@ ZX Spectrum (Z80, sjasmplus), Commodore 64 (6502, KickAssembler) and BBC Micro (
 
 On the Spectrum and the BBC, put your routines where `program` says (before `SAVESNA` or `.end`), or they won't be saved with the rest.
 
-The starter code offered is for the chip shown in the bottom-right corner. An empty `.asm` or `.6502` file could be for more than one computer, so check that first and click it to switch if needed (`.a99` and `.z80` files are always clear).
+The starter code offered is for the chip shown in the bottom-right corner. An empty `.6502` file is taken as BBC Micro and an empty `.asm` file as C64; check the corner and click it to switch if needed (`.a99` and `.z80` files are always clear).
 
 It all comes from the chip files (see **Adding a chip of your own**), and it is part of the extension, so there is nothing else to install.
 
@@ -336,7 +336,7 @@ Things it doesn't follow yet:
 
 ## Changing the chip
 
-- Click the chip name in the bottom-right corner (or run **Retro ASM: Switch chip**) to choose how files with this extension are read.
+- Click the chip name in the bottom-right corner (or run **Retro ASM: Switch chip**) to choose how files with this extension are read. On a new file that hasn't been saved yet, the choice is used for that file; save it with an extension to keep it.
 - To use it on another extension such as `.asm`, click the language name in the bottom-right corner, choose **Retro Assembly**, then switch chip.
 
 ### Adding a chip of your own
