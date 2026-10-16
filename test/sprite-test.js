@@ -34,6 +34,15 @@ for(const f of Object.keys(expect)){
  ok('binary keeps its width',f('%00011000',z,0x81)==='%10000001'&&f(':0011',t,1)===':0001');
  ok('decimal stays decimal',f('24',b,255)==='255');ok('3Ch style gets a 0 in front of a letter',f('3Ch',z,0xAB)==='0ABh');
  ok('a name is not a plain number',SP.numberStyle('FULL',t)===null&&SP.numberStyle('LO(x)',b)===null);}
+// ---- blank pictures typed with "sprite" (0.12) ----
+{const {snippetPreview}=require('../lib/dialect');
+ for(const id of ['tms9900','z80','6502','bbc']){const D=dia(id);const specs=SP.shapeList(D).map(s=>s.spec).concat(['24x16']);
+  for(const spec of specs){const shape=SP.shapeFor(D,spec);const name=id==='tms9900'?'SPR1':'sprite1';const t=SP.blankSnippet(D,shape,name);
+   ok(`${id} ${spec}: the name is the first spot to fill in`,t.includes('${1:'+name+'}')&&t.endsWith('\n$0'),t);
+   const P=new Project();P.set('/x/f',snippetPreview(t)+'\n',D);const w=F.check(P,'/x/f').filter(c=>c.severity!=='hint');
+   ok(`${id} ${spec}: no warnings`,w.length===0,w.map(c=>c.message));
+   const m=SP.markedBlocks(P,'/x/f',A.dataBlock);const blk=m.length&&A.dataBlock(P,'/x/f',m[0].line);
+   ok(`${id} ${spec}: marked, named, the right size and empty`,m.length===1&&m[0].label===name&&blk.bytes.length===shape.frameBytes&&blk.bytes.every(b=>b===0),m);}}}
 // ---- markers ----
 {const P=one('tms9900','* This text mentions @sprite but is not one\nPAT1   BYTE 1,2,3,4,5,6,7,8\n');ok('a comment that only mentions @sprite is not a marker',SP.markedBlocks(P,'/x/f',A.dataBlock).length===0);
  const P2=one('tms9900','ALIEN  BYTE 1,2,3,4,5,6,7,8 ; @sprite 8x8\n');ok('a marker at the end of the first line counts',SP.markedBlocks(P2,'/x/f',A.dataBlock).length===1);

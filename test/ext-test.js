@@ -67,6 +67,13 @@ const at=(doc,needle,sub)=>{const lines=doc.getText().split(/\r?\n/);const l=lin
    ok('one letter in the label column is not enough',typing('p').length===0);
    ok('starter code only while the word is alone on the line',!typing('       CLR  pr').some(i=>i.label==='program')&&!typing('START  lo').some(i=>i.label==='loop'));
    ok('a tooltip shows the code',pg&&pg.documentation.value.includes('END  START')&&!pg.documentation.value.includes('$'),pg&&pg.documentation.value);
+   // ---- 0.12: typing "sprite" offers an empty picture of each shape ----
+   const sp=typing('sprite');const s16=sp.find(i=>i.label==='sprite 16x16');
+   ok('"sprite" offers each shape and "sprite ..."',sp.some(i=>i.label==='sprite 8x8')&&s16&&sp.some(i=>i.label==='sprite ...'&&i.command&&i.command.command==='retroAsm.newSprite'),sp.map(i=>i.label));
+   ok('... a marked, empty 16x16 with a free name',s16&&s16.insertText.value.startsWith('* @sprite 16x16\n${1:SPR1}')&&(s16.insertText.value.match(/>00/g)||[]).length===32&&s16.range.start.character===0,s16&&s16.insertText.value);
+   ok('"sprite24x16" offers that size',typing('       sprite24x16').some(i=>i.label==='sprite 24x16'&&(i.insertText.value.match(/>00/g)||[]).length===48));
+   ok('a size that cannot be is not offered',!typing('sprite0x5').some(i=>i.label==='sprite 0x5'));
+   ok('"SPRITE" in capitals is a label, not a picture',typing('SPRITE').length===0);
    // every chip's starter code passes the checks
    const {loadFile,snippetPreview}=require('../lib/dialect');const {Project}=require('../lib/project');const F=require('../lib/features');
    for(const n of ['tms9900','z80','6502','bbc']){const D=loadFile(path.join(__dirname,'../dialects/'+n+'.json'));
@@ -272,6 +279,17 @@ const at=(doc,needle,sub)=>{const lines=doc.getText().split(/\r?\n/);const l=lin
   const bbc=makeDoc(path.join(ws,'bbcdemo.6502'),'retroasm');makeDoc(path.join(ws,'bbcdata.6502'),'retroasm');
   events.open.forEach(f=>f(bbc));
   const bt=(needle,sub)=>{const hv=P.Hover.provideHover(bbc,at(bbc,needle,sub));return hv?hv.contents.map(c=>c.value).join('\n'):'';};
+  { // an empty .6502 file has no code to look at: it is BBC code (its usual ending), not C64
+    const ef=path.join(ws,'empty.6502');fs.writeFileSync(ef,'');const ed=makeDoc(ef,'retroasm');events.open.forEach(f=>f(ed));
+    mock.window.activeTextEditor={document:ed,selection:{active:new Position(0,0),start:new Position(0,0),end:new Position(0,0),isEmpty:true}};
+    ok('an empty .6502 file is read as BBC Micro',api.panelNow().project[0].label.startsWith('6502 (BBC Micro'),api.panelNow().project[0].label);
+    // a new file with no extension: Switch chip is used for it now, instead of being thrown away
+    const u={isDirty:true,save:async()=>true,uri:mock.Uri.from({scheme:'untitled',path:'Untitled-9'}),languageId:'retroasm',getText:()=>'',lineCount:1,lineAt:()=>({text:''})};
+    mock.__.docs.push(u);events.open.forEach(f=>f(u));
+    mock.window.activeTextEditor={document:u,selection:{active:new Position(0,0),start:new Position(0,0),end:new Position(0,0),isEmpty:true}};
+    const before=api.panelNow().project[0].label;await C['retroAsm.switchDialect']();const after=api.panelNow().project[0].label;
+    ok('Switch chip works on a new file with no extension',after!==before&&/6809/.test(after),[before,after]);
+    mock.window.activeTextEditor=null; }
   ok('.6502 files written the BeebAsm way use the BBC Micro chip',(()=>{const p=at(bbc,'JSR print');mock.window.activeTextEditor={document:bbc,selection:{active:p,start:p,end:p,isEmpty:true}};return api.panelNow().project[0].label;})().startsWith('6502 (BBC Micro'),api.panelNow().project[0].label);
   ok('BBC: the first statement on a line ("LDA #22:JSR oswrch")',/Put the number 22 \(&16\) into A/.test(bt('LDA #22:JSR oswrch','LDA'))&&/Address:\* &1900 · 2 bytes/.test(bt('LDA #22:JSR oswrch','LDA')),bt('LDA #22:JSR oswrch','LDA'));
   ok('BBC: the second statement on the same line',/Call the routine oswrch \(&FFEE\)/.test(bt('LDA #22:JSR oswrch','JSR'))&&/Address:\* &1902 · 3 bytes/.test(bt('LDA #22:JSR oswrch','JSR')),bt('LDA #22:JSR oswrch','JSR'));
