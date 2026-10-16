@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.12.1
+
+Fixes for starting a new file:
+
+- **Switch chip now works on a new file that hasn't been saved yet.** Before, it said the choice couldn't be remembered and the file stayed as TI-99/4A. Now the file is read as the chip you pick straight away; save it with an extension (such as `.6502`) to keep the choice.
+- **An empty `.6502` file is read as BBC Micro**, so **Insert starter code** gives BBC code. Before, it gave Commodore 64 code until there was some code in the file to look at. (An empty `.asm` file is still read as C64.)
+
 ## 0.12.0
 
 - **A blank picture, quickly.** Type `sprite` (lower case) on an empty line and pick a size from the suggestions (`sprite 8x8`, `sprite 16x16`, and each computer's other shapes, such as `sprite c64` or `sprite mode1`). An empty picture goes in, with its `@sprite` line and a free name (`SPR1`, `sprite1`...) ready to type over. Type a size on the end (`sprite24x16`) for any other size. **sprite ...** runs **New picture here** for several frames.
