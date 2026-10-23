@@ -80,6 +80,17 @@ Shortcuts are shown as Windows / Mac.
 - Suggestions as you type: instructions (with their explanation) and your own labels and registers.
 - Wavy underlines for likely mistakes: a misspelt instruction, the wrong number of operands, a label that doesn't exist, a label defined twice. Turn this off with the `retroAsm.checks` setting.
 
+### Capitals and lower case
+
+Type in whatever case you like and let the extension tidy it up, so you never need Caps Lock.
+
+- **When you press Save** (Ctrl+S), instructions, registers and labels are changed to the case the chip file asks for. The TI-99/4A is all capitals, so `li r0,>ff12` becomes `LI   R0,>ff12`. The other chips change instructions and registers to capitals and leave directives and labels as you typed them.
+- **Shift+Alt+U** (or **Retro ASM: Change the letter case of instructions, registers and labels**) does it whenever you like: for the lines you have selected, or for the whole file if nothing is selected. **Format Document** and **Format Selection** do the same.
+- **Never changed:** comments, text in quotes, numbers (`>ff12`, `$d020`), the file name after `COPY` or `INCLUDE`, and directives that start with a dot (`.byte`, `.ifdef`), because some assemblers only read those in lower case.
+- **Labels** are only changed when the chip file says so (`"labels": "upper"` or `"lower"`). A label is then changed everywhere it is used in the file. A label you `COPY` in from another file is changed when you save that file. If two labels would end up the same (`foo` and `FOO` on a chip that tells them apart), both are left alone and you are told.
+- **Auto-save never changes anything**, so a line is never changed while you are still typing on it. Switch the save step off with the `retroAsm.formatCaseOnSave` setting.
+- Which case each chip uses is the `caseFormat` section of its chip file (see **Adding a chip of your own**).
+
 ### Starter code
 
 Ready-made pieces of code, so you don't have to remember the usual start and end of a program. Two ways to use them:
@@ -382,6 +393,8 @@ The `timing` section and each instruction's `cycles` give the time in the toolti
 
 `bbc.json` shows the directive kinds `if`, `elif`, `else`, `endif`, `for`, `next` and `skipto`, `reserves` (a gap that puts nothing into the program file), and a `build` section that names the assembler and the emulator to look for (`tool`, `run`), with the command to run each.
 
+The `caseFormat` section says which letter case to use when the file is saved (see **Capitals and lower case**). Each of `instructions`, `directives`, `registers` and `labels` is `upper`, `lower` or `keep` (leave as typed). The words themselves come from the file's own `instructions`, `directives` and `registers`, so there is nothing else to list. Leave the section out and instructions and registers become capitals, while directives and labels are left as typed. `tms9900.json` changes all four; the other three chip files change instructions and registers.
+
 The `snippets` section is the starter code (see **Starter code**). Each one is named by what you type (lower-case letters and digits only) and has a `name`, an `about` line and a `body`: the lines to put in. In the body, `${1:NAME}` is a spot to fill in (Tab moves to the next; the same number is filled in everywhere at once), `$0` is where the cursor ends up, and a real `$` (a hex number on the C64 or Spectrum) is written `\$`, which in the JSON file itself is `"\\$"`. All four built-in chip files have examples (`tms9900.json`, `z80.json`, `6502.json` and `bbc.json`).
 
 The `sprites` section lists the picture shapes for the picture editor: each has a `name`, `width` and `height`, and can have an `order` (`rows`, `columns` or `cells`), `pixelBits` (which bits of a byte make each pixel, for pixels of more than one bit), `colours` and `colourNames`, `pixelWidth` (2 for double-width pixels) and `stride` (how far apart pictures are, such as 64 for C64 sprites). `newSprite` says how to write a new picture. `6502.json` and `bbc.json` have the fullest examples.
@@ -404,6 +417,7 @@ The `sprites` section lists the picture shapes for the picture editor: each has 
 | `retroAsm.pictures` | Pictures in tooltips: `auto`, `always` or `never`. `never` also hides the *Edit as a picture?* links. |
 | `retroAsm.pictureLinks` | The *Edit picture* links above picture data, on or off. |
 | `retroAsm.checks` | Wavy underlines on or off. |
+| `retroAsm.formatCaseOnSave` | Change the letter case of instructions, registers and labels when you press Save (see **Capitals and lower case**). On to start with. |
 | `retroAsm.hoverInComments` | Tooltips and jumping for label names inside comments, on or off. |
 | `retroAsm.original.skoolFile` | The `.skool` file of the original game (or its folder). Empty means look near the source. |
 
@@ -442,6 +456,7 @@ From the `retro-asm` folder:
 |---|---|
 | `node test/ext-test.js` | The whole extension against a small stand-in for VS Code. Quick. Set `XAS99` to the path of `xas99.py` to include the build. |
 | `node test/sprite-test.js` | The picture editor: the example files, every computer's way of storing pixels, numbers kept in their own style, and drawing in the editor changing the code. `node test/ext-test.js` runs it too. |
+| `node test/case-test.js` | The letter-case change: each chip's rules, what is never changed, labels, every test file giving the same warnings and no more changes on a second run, and the save, Format Document and Shift+Alt+U parts. `node test/ext-test.js` runs it too. |
 | `node test/lib-test.js misc` | Prints the outline, warnings, folds and original-game addresses for the test files. |
 | `node test/real-check.js <folder>` | Runs the checks over every `.a99`, `.z80`, `.asm`, `.a80`, `.s` and `.6502` file in a folder (a finished program should give 0 warnings). |
 | `node test/beebasm-check.js file.6502 [beebasm]` | Builds the file with the real BeebAsm and compares the address of every label with ours. Give the path to `beebasm` (or set `BEEBASM`); `node test/ext-test.js` runs it too when `BEEBASM` is set. |

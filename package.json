@@ -2,7 +2,7 @@
   "name": "retro-asm",
   "displayName": "Retro Assembly Helper",
   "description": "Plain-English tooltips, colours and jump-around navigation for retro assembly: TMS9900 (TI-99/4A, xas99), 6502 (Commodore 64, KickAssembler; BBC Micro, BeebAsm) and Z80 (ZX Spectrum, sjasmplus). Other chips are added as data files.",
-  "version": "0.12.1",
+  "version": "0.13.0",
   "publisher": "hanmade",
   "repository": {
     "type": "git",
@@ -161,6 +161,10 @@
         "title": "Retro ASM: Insert starter code"
       },
       {
+        "command": "retroAsm.changeCase",
+        "title": "Retro ASM: Change the letter case of instructions, registers and labels"
+      },
+      {
         "command": "retroAsm.switchDialect",
         "title": "Retro ASM: Switch chip (dialect)"
       },
@@ -309,6 +313,11 @@
         "key": "ctrl+alt+a",
         "mac": "cmd+alt+a",
         "when": "editorTextFocus && editorLangId == retroasm"
+      },
+      {
+        "command": "retroAsm.changeCase",
+        "key": "shift+alt+u",
+        "when": "editorTextFocus && editorLangId == retroasm"
       }
     ],
     "configuration": {
@@ -341,6 +350,11 @@
           "type": "boolean",
           "default": true,
           "description": "Underline likely mistakes: misspelt instructions, the wrong number of operands, labels that don't exist, labels defined twice."
+        },
+        "retroAsm.formatCaseOnSave": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "When you press Save, change the letter case of instructions, registers and (for chips that ask for it) labels, as the chip file's `caseFormat` section says. Comments, text in quotes and numbers are never changed. **Retro ASM: Change the letter case** (Shift+Alt+U) does the same on demand, for the selected lines or the whole file. Auto-save never changes anything."
         },
         "retroAsm.hoverInComments": {
           "type": "boolean",

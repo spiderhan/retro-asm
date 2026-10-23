@@ -8,6 +8,13 @@
     ".s"
   ],
   "about": "The 6502 in the BBC Micro (and the 65C02 in the BBC Master), written the BeebAsm way, which follows the BBC's own BASIC assembler: .labels, &FFEE for hex, \\ or ; for comments and : between statements. The BBC's memory map, operating system calls and hardware (SHEILA) are explained.",
+  "caseFormat": {
+    "_about": "Which letter case each part is changed to when you save (or press Shift+Alt+U): upper, lower or keep (leave as typed). Numbers, comments and text in quotes are never changed.",
+    "instructions": "upper",
+    "directives": "keep",
+    "registers": "upper",
+    "labels": "keep"
+  },
   "syntax": {
     "lineComment": [
       ";",

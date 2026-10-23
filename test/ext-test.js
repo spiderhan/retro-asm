@@ -410,5 +410,7 @@ const at=(doc,needle,sub)=>{const lines=doc.getText().split(/\r?\n/);const l=lin
  } else console.log('skip build test (set XAS99 to run it)');
  // the picture editor has its own file of tests (it needs a document whose text can change)
  {const r=require('child_process').spawnSync(process.execPath,[path.join(__dirname,'sprite-test.js')],{encoding:'utf8'});const bad=(r.stdout||'').split('\n').filter(l=>l.startsWith('FAIL'));ok('picture editor tests (test/sprite-test.js)',r.status===0,bad.length?bad:(r.stderr||'').slice(0,500));}
+ // the letter-case change has its own file of tests too
+ {const r=require('child_process').spawnSync(process.execPath,[path.join(__dirname,'case-test.js')],{encoding:'utf8'});const bad=(r.stdout||'').split('\n').filter(l=>l.startsWith('FAIL'));ok('letter case tests (test/case-test.js)',r.status===0,bad.length?bad:(r.stderr||'').slice(0,500));}
  console.log(fails?`\n${fails} FAILED`:'\nall passed');process.exit(fails?1:0);
 })().catch(e=>{console.error(e);process.exit(1);});
