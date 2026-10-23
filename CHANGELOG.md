@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.13.0
+
+New: **change the letter case, so you never need Caps Lock.**
+
+- When you press Save, instructions, registers (and labels, for chips that ask for it) are changed to the case the chip file asks for. **Shift+Alt+U** does it on demand, for the selected lines or the whole file, and **Format Document** and **Format Selection** work too. Auto-save never changes anything.
+- The TI-99/4A changes all four (instructions, directives, registers and labels) to capitals. The other three chips change instructions and registers to capitals and leave directives and labels as typed.
+- Never changed: comments, text in quotes, numbers, the file name after `COPY` or `INCLUDE`, and directives that start with a dot.
+- A label is changed everywhere it is used in the file. If two labels would become the same (`foo` and `FOO` on a chip that tells them apart), both are left alone and you are told.
+- New chip-file section `caseFormat` (`instructions`, `directives`, `registers` and `labels`, each `upper`, `lower` or `keep`). The new-chip template has an example, and a bad value gets a clear message when the chip file loads.
+- New setting `retroAsm.formatCaseOnSave`, and a new command, **Retro ASM: Change the letter case of instructions, registers and labels**.
+- New tests: `test/case-test.js`, which `test/ext-test.js` runs too. `test/mock-vscode.js` now stands in for text edits, Format Document and saving.
+
 ## 0.12.1
 
 Fixes for starting a new file:

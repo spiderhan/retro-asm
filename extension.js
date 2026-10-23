@@ -19,6 +19,7 @@ const SP = require('./lib/panel');
 const PH = require('./lib/panel-html');
 const SPR = require('./lib/sprites');
 const SH = require('./lib/sprite-html');
+const CF = require('./lib/caseformat');
 
 const LANG = 'retroasm';
 const NOTES_FILE = 'asm-notes.json';
@@ -1439,6 +1440,49 @@ function onPanelMessage(msg) {
 }
 
 // ---------------------------------------------------------------------------
+// letter case: instructions, directives, registers and labels (as the chip file says)
+// ---------------------------------------------------------------------------
+/** The changes for a file, or for the lines of a selection. */
+function caseFor(doc, range) {
+  if (!isOurs(doc) || !dialects.size) return { edits: [], skipped: [] };
+  const text = doc.getText();
+  const D = dialectForPath(keyOf(doc), text);
+  const opts = {};
+  if (range) {
+    opts.fromLine = range.start.line;
+    // a selection that ends at the start of a line doesn't include that line
+    opts.toLine = range.end.character === 0 && range.end.line > range.start.line ? range.end.line - 1 : range.end.line;
+  }
+  const r = CF.caseEdits(text, D, opts);
+  return { edits: r.edits.map(e => vscode.TextEdit.replace(new vscode.Range(e.line, e.start, e.line, e.end), e.text)), skipped: r.skippedLabels };
+}
+
+const caseFormatter = {
+  provideDocumentFormattingEdits: (doc) => caseFor(doc, null).edits,
+  provideDocumentRangeFormattingEdits: (doc, range) => caseFor(doc, range).edits
+};
+
+// Only when you press Save yourself: auto-save must not change a line while you are still typing on it
+function onWillSave(e) {
+  const doc = e.document;
+  if (!isOurs(doc) || e.reason !== vscode.TextDocumentSaveReason.Manual) return;
+  if (cfg().get('formatCaseOnSave') === false) return;
+  const { edits, skipped } = caseFor(doc, null);
+  if (skipped.length) output.appendLine(`Case change: left these labels as they were, because changing them would make two labels the same: ${skipped.join(', ')}`);
+  e.waitUntil(Promise.resolve(edits));
+}
+
+async function cmdChangeCase() {
+  const ed = vscode.window.activeTextEditor;
+  if (!ed || !isOurs(ed.document)) return;
+  const sel = ed.selection;
+  const { edits, skipped } = caseFor(ed.document, sel && !sel.isEmpty ? sel : null);
+  if (edits.length) await ed.edit((b) => { for (const e of edits) b.replace(e.range, e.newText); });
+  else vscode.window.setStatusBarMessage('Retro ASM: the letter case is already right', 3000);
+  if (skipped.length) vscode.window.showWarningMessage(`Retro ASM: left these labels as they were, because changing their case would make two labels the same: ${skipped.join(', ')}`);
+}
+
+// ---------------------------------------------------------------------------
 // start up
 // ---------------------------------------------------------------------------
 function activate(context) {
@@ -1479,6 +1523,9 @@ function activate(context) {
     L.registerDocumentLinkProvider(sel, linkProvider),
     L.registerDocumentSemanticTokensProvider(sel, semanticProvider, legend),
     L.registerCompletionItemProvider(sel, completionProvider, '@', ','),
+    L.registerDocumentFormattingEditProvider(sel, caseFormatter),
+    L.registerDocumentRangeFormattingEditProvider(sel, caseFormatter),
+    vscode.workspace.onWillSaveTextDocument(onWillSave),
     vscode.workspace.registerTextDocumentContentProvider(HELP_SCHEME, {
       onDidChange: helpChanged.event,
       provideTextDocumentContent: (uri) => helpPages.get(uri.toString()) || ''
@@ -1487,6 +1534,7 @@ function activate(context) {
     vscode.commands.registerCommand('retroAsm.showReference', cmdReference),
     vscode.commands.registerCommand('retroAsm.switchDialect', cmdSwitch),
     vscode.commands.registerCommand('retroAsm.insertSnippet', cmdInsertSnippet),
+    vscode.commands.registerCommand('retroAsm.changeCase', cmdChangeCase),
     vscode.commands.registerCommand('retroAsm.createNotesFile', cmdNotes),
     vscode.commands.registerCommand('retroAsm.newDialect', cmdNewDialect),
     vscode.commands.registerCommand('retroAsm.reloadDialects', cmdReload),
