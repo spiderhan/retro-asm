@@ -21,6 +21,8 @@ const PH = require('./lib/panel-html');
 const SPR = require('./lib/sprites');
 const SH = require('./lib/sprite-html');
 const CF = require('./lib/caseformat');
+const LU = require('./lib/lineup');
+const X99 = require('./lib/xas99');
 const BA = require('./lib/basicasm');
 
 const LANG = 'retroasm';
@@ -1719,6 +1721,53 @@ async function cmdChangeCase() {
 }
 
 // ---------------------------------------------------------------------------
+// line up the columns, and convert a TI-99/4A file to xas99 style
+// ---------------------------------------------------------------------------
+/** The changes that line the code up, for a file or for the lines of a selection. */
+function lineUpFor(doc, range) {
+  if (!isOurs(doc) || !dialects.size) return { edits: [] };
+  const text = doc.getText();
+  const D = dialectForPath(keyOf(doc), text);
+  const mine = cfg().get('lineUpColumns');
+  const opts = { columns: mine && typeof mine === 'object' ? mine[D.id] : undefined };
+  if (range) {
+    opts.fromLine = range.start.line;
+    opts.toLine = range.end.character === 0 && range.end.line > range.start.line ? range.end.line - 1 : range.end.line;
+  }
+  try {
+    const r = LU.lineUpEdits(text, D, opts);
+    return { edits: r.edits.map(e => vscode.TextEdit.replace(new vscode.Range(e.line, e.start, e.line, e.end), e.text)) };
+  } catch (e) {
+    return { edits: [], error: `the retroAsm.lineUpColumns setting for ${D.name} can't be used: ${e.message}` };
+  }
+}
+
+async function cmdLineUp() {
+  const ed = vscode.window.activeTextEditor;
+  if (!ed || !isOurs(ed.document)) return;
+  const sel = ed.selection;
+  const r = lineUpFor(ed.document, sel && !sel.isEmpty ? sel : null);
+  if (r.error) { vscode.window.showWarningMessage(`Retro ASM: ${r.error}`); return; }
+  if (r.edits.length) await ed.edit((b) => { for (const e of r.edits) b.replace(e.range, e.newText); });
+  else vscode.window.setStatusBarMessage('Retro ASM: the code is already lined up', 3000);
+}
+
+async function cmdConvertXas99() {
+  const ed = vscode.window.activeTextEditor;
+  if (!ed || !isOurs(ed.document)) return;
+  const text = ed.document.getText();
+  const D = dialectForPath(keyOf(ed.document), text);
+  const r = X99.xas99Edits(text, D);
+  if (!r.applies) { vscode.window.showInformationMessage(`Retro ASM: this changes TI-99/4A files to the way xas99 wants them. This file is read as ${D.name}, so nothing was changed.`); return; }
+  if (!r.edits.length) { vscode.window.setStatusBarMessage('Retro ASM: the file is already in xas99 style', 3000); return; }
+  await ed.edit((b) => { for (const e of r.edits) b.replace(new vscode.Range(e.line, e.start, e.line, e.end), e.text); });
+  const bits = [];
+  if (r.comments) bits.push(`${r.comments} comment${r.comments === 1 ? '' : 's'} given two spaces`);
+  if (r.commas) bits.push(`${r.commas} space${r.commas === 1 ? '' : 's'} next to a comma taken out`);
+  vscode.window.setStatusBarMessage(`Retro ASM: ${bits.join(', ')}`, 5000);
+}
+
+// ---------------------------------------------------------------------------
 // start up
 // ---------------------------------------------------------------------------
 function activate(context) {
@@ -1784,6 +1833,8 @@ function activate(context) {
     vscode.commands.registerCommand('retroAsm.switchDialect', cmdSwitch),
     vscode.commands.registerCommand('retroAsm.insertSnippet', cmdInsertSnippet),
     vscode.commands.registerCommand('retroAsm.changeCase', cmdChangeCase),
+    vscode.commands.registerCommand('retroAsm.lineUp', cmdLineUp),
+    vscode.commands.registerCommand('retroAsm.convertToXas99', cmdConvertXas99),
     vscode.commands.registerCommand('retroAsm.createNotesFile', cmdNotes),
     vscode.commands.registerCommand('retroAsm.newDialect', cmdNewDialect),
     vscode.commands.registerCommand('retroAsm.reloadDialects', cmdReload),

@@ -35,6 +35,13 @@
     "registers": "upper",
     "labels": "keep"
   },
+  "lineUp": {
+    "_help": "Where each part of a line starts when the code is lined up (Shift+Alt+L), counting from 0. A label always starts in column 0. commentGap is the fewest spaces kept before a comment. Delete this section to use 8, 16 and 32.",
+    "instruction": 8,
+    "operands": 16,
+    "comment": 32,
+    "commentGap": 2
+  },
 
   "registerView": {
     "_about": "How the Registers panel reads operands. bareIs: what an operand with no # or brackets is ('number' as on the Z80, 'memory' as on the 6502). immediatePrefix: the mark in front of a plain number ('#' on the 6502, or leave it out). bits: how wide a register is (8 or 16). To show what a register holds, add \"copy\": {\"to\": 0, \"from\": 1} (operand numbers, counting from 0) to a load instruction, \"copy\": {\"toReg\": \"A\", \"from\": 0} when it always loads one register, \"store\": {\"fromReg\": \"A\", \"to\": 0} for a store, or \"fixed\": {\"to\": 0, \"value\": 0} for a clear.",
