@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.16.1
+
+Fixes for a project that has its own build script.
+
+- **The build script is now given the main source file's name.** A folder with several source files made a script such as `build.bat` stop with *More than one .a99 file here. Say which one*, because the extension ran it with nothing after it. It now runs `build.bat hello.a99` (the main file, the one that pulls in the others, named from the script's own folder). A script that doesn't look at what it is given is not affected. You are asked once more before it runs, because the command is different.
+- **A failed build says why.** When nothing could be underlined, the message now includes the last few lines the build printed, instead of only pointing at the output panel.
+- New test in `test/ext-test.js` (a script receives the main file's name), using made-up code. **Not checked:** a real `build.bat` on Windows (the test uses a `build.sh`).
+- The 0.16.0 `.vsix` and older are left alone.
+
 ## 0.16.0
 
 New: **Set up tools**, so each computer's assembler and emulator are easy to get working.

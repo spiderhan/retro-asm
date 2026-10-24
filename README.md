@@ -148,7 +148,7 @@ It all comes from the chip files (see **Adding a chip of your own**), and it is 
 
 - **Ctrl+Alt+B** (Cmd+Alt+B) builds. **F5** builds, then starts the emulator.
 - Each computer's assembler and emulator are found by themselves (see **Set up the assemblers and emulators** above): xas99 and Classic99 for the TI-99/4A, sjasmplus and Fuse for the Spectrum, KickAssembler and VICE for the C64, BeebAsm and BeebEm for the BBC. If one can't be found, the message says so and its **Set up tools** button opens the list.
-- If there is a `build.bat` (or `build.sh`) next to your source, that is what runs. If not, the assembler is run directly. Or set your own command in `retroAsm.build.command`.
+- If there is a `build.bat` (or `build.sh`) next to your source, that is what runs, and it is given the name of the main source file (the one that pulls in the others), as in `build.bat hello.a99`. If not, the assembler is run directly. Or set your own command in `retroAsm.build.command`.
 - **F5** starts the emulator with what the build made: the `.sna` snapshot (Spectrum, from a `SAVESNA` line), the `.prg` (C64), the `.ssd` disc (BBC). If that file wasn't made, you are told which one, rather than an empty emulator opening.
 - The first time a project wants to run something of its own (a `build.bat`, an xas99 or Classic99 found in its folders, or a command in its `.vscode/settings.json`), you are asked first, showing the exact command. Say **Allow** and you won't be asked again in that folder unless the command changes. See **Safety** below.
 - The assembler's errors are underlined on the right lines and listed in the Problems panel. Everything it printed is in the **Retro ASM** output panel.
@@ -510,6 +510,7 @@ A short list of the big steps. The full details of every release are in `CHANGEL
 
 | Version | What it added |
 |---|---|
+| 0.16.1 | A project's own `build.bat` / `build.sh` is now told which file is the main one, and a failed build says why in the message |
 | 0.16 | **Set up tools:** finds each computer's assembler and emulator (project, tools folder, PATH, usual install folders), tells you what is missing and where to get it, and **Build** / **F5** now work for the Spectrum (sjasmplus, Fuse) and C64 (KickAssembler, VICE) without any settings |
 | 0.15 | A warning for a **comment with only one space before it** (xas99 reads it as part of the operands), and **cycle counts** shown beside each line |
 | 0.14 | A **Registers** section in the side panel: what is in each register at the line you are on |
