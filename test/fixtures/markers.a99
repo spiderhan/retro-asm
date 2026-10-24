@@ -1,0 +1,17 @@
+; Made-up test program: labels that are routines, loop spots and end markers.
+       DEF  START
+VSBW   EQU  >2020
+START  LWPI >8300           ; Set up the registers
+       LI   R3,MSG
+       BL   @SHOW           ; Calls a routine
+AGAIN  JMP  AGAIN           ; Only reached by a jump: a spot inside START
+SHOW   MOVB *R3+,R2         ; Print one letter
+LOOP   DEC  R2
+       JNE  LOOP
+       B    *R11
+MSG    TEXT 'HELLO'
+MSGEND
+NEXT   LI   R1,1            ; Never called, but it has code: a real routine
+       B    *R11
+MSG2   TEXT 'BYE'
+MSG2END
