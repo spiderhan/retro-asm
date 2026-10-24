@@ -202,6 +202,7 @@
    }
   ]
  },
+ "registerView": { "bareIs": "number", "bits": 8 },
  "registers": {
   "names": [
    "A",
@@ -353,6 +354,7 @@
  "timing": {"_about": "How long each instruction takes, in clock cycles (T-states). An instruction's \"cycles\" is a number, [if not, if so] for jumps and repeats, or a list of rules tried on the operands written with no spaces (first match wins).", "about": "The Spectrum's Z80 runs at 3.5 million cycles (T-states) a second: 69,888 per screen refresh on a 48K Spectrum. Code or data in 16384-32767 shares its memory with the screen, so it can run a little slower while the picture is drawn.", "pair": "{2} cycles if it jumps, {1} if not", "slow": [{"from": "4000", "to": "7FFF", "code": true, "text": "Memory at 16384-32767 is shared with the screen (contended memory), so this can take a few cycles longer while the picture is being drawn."}]},
  "instructions": {
   "LD": {
+   "copy": { "to": 0, "from": 1 },
    "cycles": [{"re": "^(A,[IR]|[IR],A)$", "c": 9}, {"re": "^SP,HL$", "c": 6}, {"re": "^SP,I[XY]$", "c": 10}, {"re": "^HL,\\(", "c": 16}, {"re": "^\\(.*\\),HL$", "c": 16}, {"re": "^(BC|DE|SP|IX|IY),\\(", "c": 20}, {"re": "^\\(.*\\),(BC|DE|SP|IX|IY)$", "c": 20}, {"re": "^I[XY],", "c": 14}, {"re": "^(BC|DE|HL|SP),", "c": 10}, {"re": "\\(I[XY][^)]*\\)", "c": 19}, {"re": "^\\(HL\\),(A|B|C|D|E|H|L)$", "c": 7}, {"re": "^\\(HL\\),", "c": 10}, {"re": "^(A|B|C|D|E|H|L),\\(HL\\)$", "c": 7}, {"re": "^A,\\((BC|DE)\\)$|^\\((BC|DE)\\),A$", "c": 7}, {"re": "^A,\\(|^\\(.*\\),A$", "c": 13}, {"re": "^(A|B|C|D|E|H|L|IXH|IXL|IYH|IYL),(IXH|IXL|IYH|IYL)$|^(IXH|IXL|IYH|IYL),(A|B|C|D|E|H|L)$", "c": 8}, {"re": "^(IXH|IXL|IYH|IYL),", "c": 11}, {"re": "^(A|B|C|D|E|H|L),(A|B|C|D|E|H|L)$", "c": 4}, {"re": ".", "c": 7}],
    "group": "Moving data",
    "name": "Load",

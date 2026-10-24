@@ -16,6 +16,7 @@ const A = require('./lib/analysis');
 const B = require('./lib/build');
 const S = require('./lib/skool');
 const SP = require('./lib/panel');
+const RT = require('./lib/regtrack');
 const PH = require('./lib/panel-html');
 const SPR = require('./lib/sprites');
 const SH = require('./lib/sprite-html');
@@ -1422,8 +1423,52 @@ function hardwareNodes(file) {
   return out;
 }
 
+/** The "Registers" section: what each register holds just before the cursor's line. */
+function registerNodes(file) {
+  if (!file) return [];
+  const r = RT.registersAt(project, file, panelLine);
+  if (!r) return [{ label: 'No registers to show for this chip', icon: 'info' }];
+  const out = [];
+  const where = (line) => ({ file, line });
+  out.push({
+    label: r.routine ? `Just before line ${r.line + 1}, in ${r.routine.name}` : `Just before line ${r.line + 1}`, icon: 'symbol-method', open: false,
+    tooltip: 'These are worked out by reading the routine from its top down to the line your cursor is on. It is a good guess from reading the code, not from running it. A register marked "unsure" could have been changed by a jump.',
+    goto: r.routine ? where(r.routine.line) : undefined
+  });
+  if (r.call) {
+    const c = r.call;
+    if (!c.found) out.push({ label: `Calling ${c.name}`, description: 'not in your code, so what it needs is not known', icon: 'call-outgoing', open: true });
+    else {
+      const kids = [];
+      if (!c.needs.length) kids.push({ label: 'Needs nothing set up first', icon: 'pass' });
+      for (const n of c.needs) kids.push({
+        label: `${n.reg} needs a value`, icon: n.missing ? 'warning' : n.unsure ? 'question' : 'pass', colour: n.missing ? 'problemsWarningIcon.foreground' : undefined,
+        description: [n.doc, n.missing ? 'nothing has been put in it here' : `now: ${n.now}${n.unsure ? ' (unsure)' : ''}`].filter(Boolean).join(' · '),
+        tooltip: n.missing ? `Nothing in ${c.name}'s caller has set ${n.reg} before this line. If it is set before you get here, ignore this.` : undefined
+      });
+      if (c.changes) kids.push({ label: `Changes ${c.changes}`, icon: 'edit', tooltip: `Whatever is in these is lost when ${c.name} runs. Save it first if you still need it.` });
+      for (const x of c.returns || []) kids.push({ label: `Gives back ${x.reg}`, description: x.doc, icon: 'sign-out' });
+      out.push({ label: `Calling ${c.name}`, icon: 'call-outgoing', open: true, children: kids });
+    }
+  }
+  const icon = { value: 'symbol-numeric', copy: 'arrow-both', changed: 'edit', call: 'call-outgoing' };
+  const regs = r.rows.map(x => ({
+    label: x.reg, icon: x.unsure ? 'question' : icon[x.kind] || 'circle-small',
+    description: [x.text, x.unsure ? `(unsure: a jump lands at ${x.unsure})` : '', x.doc ? `· ${x.doc}` : ''].filter(Boolean).join(' '),
+    tooltip: `${x.code ? `Line ${x.line + 1}: ${x.code}` : ''}${x.doc ? `\n\nYour comment says: ${x.doc}` : ''}`.trim() || undefined,
+    goto: where(x.line)
+  }));
+  out.push(regs.length ? { label: 'Registers', icon: 'chip', open: true, children: regs } : { label: 'Registers', description: 'nothing has been put in a register yet', icon: 'chip' });
+  if (r.memory.length) out.push({ label: 'Memory set so far', icon: 'database', open: true, children: r.memory.map(m => ({ label: m.name, description: m.text, icon: 'symbol-field', tooltip: `Line ${m.line + 1}: ${m.code}`, goto: where(m.line) })) });
+  if (r.needs.length) out.push({ label: 'This routine expects', description: r.needs.map(n => n.reg).join(', '), icon: 'sign-in', tooltip: 'Registers it reads before setting them itself: the caller has to fill these in.', children: r.needs.map(n => ({ label: n.reg, description: n.doc || 'from the caller', icon: 'circle-small' })) });
+  if (r.returns.length) out.push({ label: 'This routine gives back', icon: 'sign-out', children: r.returns.map(n => ({ label: n.reg, description: n.doc, icon: 'circle-small' })) });
+  if (r.unknownCalls.length) out.push({ label: 'Calls outside your code', description: r.unknownCalls.map(u => u.name).join(', '), icon: 'info', tooltip: 'These routines are not in your files, so what they change in the registers is not known.' });
+  return out;
+}
+
 const panels = {
   line: new WebPanel('This line', lineHtml),
+  registers: new TreePanel(registerNodes),
   map: new WebPanel('Memory map', mapHtml),
   project: new TreePanel(projectNodes),
   hardware: new TreePanel(hardwareNodes)
@@ -1431,11 +1476,11 @@ const panels = {
 
 function refreshPanels() {
   if (panelTimer) clearTimeout(panelTimer);
-  panelTimer = setTimeout(() => { panelTimer = null; panels.line.refresh(); panels.map.refresh(); panels.project.refresh(); panels.hardware.refresh(); }, 300);
+  panelTimer = setTimeout(() => { panelTimer = null; panels.line.refresh(); panels.registers.refresh(); panels.map.refresh(); panels.project.refresh(); panels.hardware.refresh(); }, 300);
 }
 function refreshLinePanel() {
   if (lineTimer) clearTimeout(lineTimer);
-  lineTimer = setTimeout(() => { lineTimer = null; panels.line.refresh(); }, 120);
+  lineTimer = setTimeout(() => { lineTimer = null; panels.line.refresh(); panels.registers.refresh(); }, 120);
 }
 
 async function panelGoto(file, line) {
@@ -1584,11 +1629,12 @@ function activate(context) {
     vscode.window.registerWebviewViewProvider('retroAsm.thisLine', panels.line),
     vscode.window.registerWebviewViewProvider('retroAsm.memoryMap', panels.map),
     vscode.window.registerTreeDataProvider('retroAsm.project', panels.project),
+    vscode.window.registerTreeDataProvider('retroAsm.registers', panels.registers),
     vscode.window.registerTreeDataProvider('retroAsm.hardware', panels.hardware),
     vscode.commands.registerCommand('retroAsm.panel.goto', panelGoto),
     vscode.commands.registerCommand('retroAsm.panel.showOutput', () => output.show(true)),
     vscode.commands.registerCommand('retroAsm.panel.focusMap', () => vscode.commands.executeCommand('retroAsm.memoryMap.focus')),
-    vscode.commands.registerCommand('retroAsm.panel.refresh', () => { panels.line.refresh(true); panels.map.refresh(true); panels.project.refresh(); panels.hardware.refresh(); }),
+    vscode.commands.registerCommand('retroAsm.panel.refresh', () => { panels.line.refresh(true); panels.registers.refresh(); panels.map.refresh(true); panels.project.refresh(); panels.hardware.refresh(); }),
     vscode.commands.registerCommand('retroAsm.showPanel', () => vscode.commands.executeCommand('workbench.view.extension.retroAsm')),
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (!e.affectsConfiguration('retroAsm')) return;
@@ -1630,7 +1676,7 @@ function activate(context) {
   refreshEverything();
   scanWorkspace();
   // for the tests: what the side panel would show for the file it is following
-  return { spriteNow: () => sendSprite(), spriteMessage: (m) => onSpriteMessage(m), panelNow: () => { const f = panelTarget(); return { file: f, line: panelLine, thisLine: lineHtml(f), memoryMap: mapHtml(f), project: projectNodes(f), hardware: hardwareNodes(f) }; } };
+  return { spriteNow: () => sendSprite(), spriteMessage: (m) => onSpriteMessage(m), panelNow: () => { const f = panelTarget(); return { file: f, line: panelLine, thisLine: lineHtml(f), registers: registerNodes(f), memoryMap: mapHtml(f), project: projectNodes(f), hardware: hardwareNodes(f) }; } };
 }
 
 function deactivate() { if (spriteTimer) clearTimeout(spriteTimer); if (checkTimer) clearTimeout(checkTimer); if (panelTimer) clearTimeout(panelTimer); if (lineTimer) clearTimeout(lineTimer); }

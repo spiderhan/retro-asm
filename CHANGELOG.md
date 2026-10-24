@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.14.0
+
+New: **a Registers section in the side panel**, so you can see what is in each register (and which memory places you have set) at the line you are on.
+
+- Click in a routine and the **Registers** section lists every register the routine has put something in, down to your line: a number (`R0 >0100`), the address of a label, a copy of another register, or "changed by" the line that changed it. Click one to jump to that line. Memory places you stored to (`MOV R1,@SCORE`, `LD (count),A`, `STA total`) are listed under **Memory set so far**, and hardware addresses are named (`>8C00 (Video chip ...)`).
+- **On a call line** (`BL @PRINT`, `CALL put`, `JSR plot`), a **Calling ...** entry shows what the routine needs, what is in those registers now (with a warning if nothing has been put there), which registers it changes, and what it gives back. After the call, the registers it changed say so.
+- **Unsure:** after a label that a jump lands on, a register that a loop or a skipped line could have changed is marked unsure. Registers nothing in between touches stay certain.
+- **Inside a routine** it lists what the routine expects from its caller: the registers it reads before setting them itself (including what the routines it calls need).
+- It uses what you already wrote: the comment above a routine (`; In: R1 = the letter to print`, `; Out: R2 = ...`) and your `; @reg R4 = Player X` lines.
+- Works for the TI-99/4A, ZX Spectrum, Commodore 64 and BBC Micro. It reads the code and never runs it; a call to something outside your files is shown as "not known".
+- Chip files: a new `registerView` section (`bareIs`, `immediatePrefix`, `bits`) and, on the instructions that load or store, `copy`, `fixed` and `store`. A chip file of your own works without them (you just see "changed by" instead of values).
+- New tests: `test/regs-test.js` (run by `test/ext-test.js` too), using made-up code in `test/fixtures/regs*`.
+
 ## 0.13.1
 
 Fix: **a picture directly below another one now gets an Edit picture link.**

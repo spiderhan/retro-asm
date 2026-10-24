@@ -1,0 +1,27 @@
+* Test program, made up
+       DEF  START
+SCORE  DATA 0
+BUF    BSS  16
+
+* PRINT: draws one letter on the screen
+* In:  R0 = screen position
+* In:  R1 = the letter to print
+* Out: R2 = position after the letter
+PRINT  MOVB R1,@>8C00
+       MOV  R0,R2
+       INC  R2
+       B    *R11
+
+START  LI   R0,>0100
+       LI   R1,>4100
+       LI   R3,BUF
+       MOV  R0,R4
+       CLR  @SCORE
+       MOV  R1,@SCORE
+       BL   @PRINT
+       AI   R0,2
+LOOP   DEC  R0
+       JNE  LOOP
+       LI   R5,5
+       BL   @ROMCALL
+       B    *R11
