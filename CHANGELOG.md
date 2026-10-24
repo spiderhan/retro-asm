@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.17.0
+
+Two BBC Micro helps: warnings for BBC mistakes, and plain-English tooltips for the numbers you give the operating system and the hardware.
+
+- **Tooltips for operating system calls.** Hover the number in `LDA #19` before `JSR osbyte` and it says what that OSBYTE does (*wait for the next screen refresh*). The same for OSWORD, and for `OSWRCH` / `OSASCI`: `LDA #22` says it starts a MODE change, and the next `LDA #1:JSR oswrch` says *MODE 1*. The other VDU codes (colours, cursor moves, graphics) are explained too, and a letter sent to `OSWRCH` says which letter it prints.
+- **Tooltips for numbers sent to the hardware.** `STA &FE20` says what the video ULA setting means (MODE, flashing colours), `STA &FE21` names the colour being set, `STA &FE00` / `STA &FE01` name the 6845 screen register and what it controls, `STA &FE40` names the sound or keyboard latch line, and `STA &FE4E` lists which interrupts are being switched on or off.
+- **New warnings (BBC only):**
+  - a 65C02 instruction (`BRA`, `STZ`, `PHX`, `INC A`, `LDA (&70)` ...) used before a `CPU 1` line, which BeebAsm refuses;
+  - code that runs past a `GUARD` address (`CLEAR` takes a guard away again);
+  - a write to zero page `&90`-`&FF` in a program that also calls the operating system (a note, not a warning: `&70`-`&8F` is the part kept for your programs);
+  - code placed in screen memory for the MODE the program switches to with `VDU 22` (a note).
+- The meanings live in `dialects/bbc.json` (`osCalls`, `osTables`, `hardwareValues`, and the `checks` rules), so they can be corrected without touching the code. The other computers are not changed.
+- New tests in `test/os-test.js` (run by `test/ext-test.js` too), using made-up code (`test/fixtures/bbcchecks.6502`).
+- The 0.16.1 `.vsix` and older are left alone.
+
 ## 0.16.1
 
 Fixes for a project that has its own build script.

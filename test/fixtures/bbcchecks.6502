@@ -1,0 +1,24 @@
+\ Made-up BBC Micro code for the Retro ASM tests: things the BBC warnings should notice
+oswrch = &FFEE
+osbyte = &FFF4
+
+ORG &1900
+GUARD &1930
+.start
+    LDA #22:JSR oswrch
+    LDA #1:JSR oswrch
+    BRA start
+    CPU 1
+    BRA start
+    STZ &70
+    INC A
+    LDA (&70)
+    LDA #19:JSR osbyte
+    STA &A0
+    STA &70
+    STA &80,X
+.big
+    SKIP 40
+    RTS
+ORG &3100
+    NOP

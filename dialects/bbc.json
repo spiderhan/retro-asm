@@ -209,7 +209,336 @@
       }
     ]
   },
-  "checks": {},
+  "checks": {
+    "cpuExtras": {
+      "directive": "CPU",
+      "level": 1,
+      "instructions": [
+        "BRA",
+        "PHX",
+        "PHY",
+        "PLX",
+        "PLY",
+        "STZ",
+        "TSB",
+        "TRB"
+      ],
+      "forms": [
+        {
+          "only": [
+            "INC",
+            "DEC"
+          ],
+          "re": "^A$",
+          "what": "on A"
+        },
+        {
+          "only": [
+            "BIT"
+          ],
+          "re": "^#|,X$",
+          "what": "this way"
+        },
+        {
+          "only": [
+            "ADC",
+            "AND",
+            "CMP",
+            "EOR",
+            "LDA",
+            "ORA",
+            "SBC",
+            "STA"
+          ],
+          "re": "^\\([^,)]*\\)$",
+          "what": "with a bare (address) in brackets"
+        },
+        {
+          "only": [
+            "JMP"
+          ],
+          "re": "^\\(.*,X\\)$",
+          "what": "through (address,X)"
+        }
+      ]
+    },
+    "guard": {
+      "set": "GUARD",
+      "clear": "CLEAR"
+    },
+    "osZeroPage": {
+      "from": "90",
+      "to": "FF",
+      "writers": [
+        "STA",
+        "STX",
+        "STY",
+        "STZ",
+        "INC",
+        "DEC",
+        "ASL",
+        "LSR",
+        "ROL",
+        "ROR",
+        "TSB",
+        "TRB"
+      ]
+    },
+    "screenByMode": {
+      "modeCall": "OSWRCH",
+      "modeCode": 22,
+      "modes": {
+        "0": "3000",
+        "1": "3000",
+        "2": "3000",
+        "3": "4000",
+        "4": "5800",
+        "5": "5800",
+        "6": "6000",
+        "7": "7C00"
+      },
+      "top": "8000"
+    }
+  },
+  "osCalls": {
+    "FFF4": {
+      "name": "OSBYTE",
+      "table": "osbyte",
+      "note": "A says which OSBYTE; X and Y carry the values."
+    },
+    "FFF1": {
+      "name": "OSWORD",
+      "table": "osword",
+      "note": "A says which OSWORD; X (low byte) and Y (high byte) hold the address of the parameter block."
+    },
+    "FFEE": {
+      "name": "OSWRCH",
+      "table": "vdu"
+    },
+    "FFE3": {
+      "name": "OSASCI",
+      "table": "vdu",
+      "note": "OSASCI is like OSWRCH, but a 13 also gives a new line."
+    }
+  },
+  "osTables": {
+    "osbyte": {
+      "02": "Choose where input comes from: X = 0 for the keyboard, 1 for the serial port.",
+      "03": "Choose where output goes (the screen, the serial port or the printer). X says which.",
+      "04": "Change what the cursor keys do: X = 0 for normal editing, 1 to read them as ordinary keys, 2 to make them act like function keys.",
+      "05": "Choose the type of printer (X).",
+      "06": "Choose a character the printer should ignore (X).",
+      "07": "Set the speed the serial port receives at (X).",
+      "08": "Set the speed the serial port sends at (X).",
+      "09": "Set how long the first flashing colour shows (X, in frames: 1/50 of a second each).",
+      "0A": "Set how long the second flashing colour shows (X, in frames: 1/50 of a second each).",
+      "0B": "Set how long a held key waits before it starts repeating (X, in hundredths of a second).",
+      "0C": "Set how fast a held key repeats (X, in hundredths of a second).",
+      "0D": "Turn off one kind of event (X = the event number).",
+      "0E": "Turn on one kind of event (X = the event number).",
+      "0F": "Throw away what is waiting in the buffers: X = 0 empties all of them, any other number only the input buffers.",
+      "10": "Choose how many joystick (analogue) channels are read (X).",
+      "11": "Start a joystick (analogue) reading on channel X.",
+      "12": "Forget all the function key definitions.",
+      "13": "Wait for the next vertical sync, which is the start of the next screen refresh (50 times a second).",
+      "14": "Reset the memory for user-defined characters.",
+      "15": "Empty one buffer (X = buffer number: 0 keyboard, 1 serial in, 2 serial out, 3 printer, 4 to 7 sound channels, 8 speech).",
+      "7C": "Clear the Escape condition, as if Escape had not been pressed.",
+      "7D": "Set the Escape condition, as if Escape had been pressed.",
+      "7E": "Acknowledge an Escape: clear it and tidy up. Call this when your program notices Escape.",
+      "7F": "Check whether a file is at its end (X = the file number).",
+      "80": "Read a joystick (analogue) channel, or check how full a buffer is.",
+      "81": "Wait for a key (X and Y give the time limit in hundredths of a second), or check whether one particular key is down (X = its key number as a negative number, Y = &FF).",
+      "82": "Read the high bytes of the machine's address (used with a second processor).",
+      "83": "Read the bottom of user memory (this is PAGE). The answer comes back in X (low byte) and Y (high byte).",
+      "84": "Read the top of user memory (this is HIMEM). The answer comes back in X (low byte) and Y (high byte).",
+      "85": "Read where the screen memory starts for a MODE (X = the MODE number). The answer comes back in X (low byte) and Y (high byte).",
+      "86": "Read the text cursor position. X comes back as the column and Y as the row.",
+      "87": "Read the character at the text cursor. X comes back as the character and Y as the current MODE.",
+      "8A": "Put a byte into a buffer (X = buffer number, Y = the byte).",
+      "8B": "Set the filing system options, like *OPT (X = option, Y = value).",
+      "8E": "Start a language ROM (X = the ROM number).",
+      "8F": "Send a service call to the ROMs (X = the service number).",
+      "90": "Move the picture up or down on the TV, like *TV (X = shift, Y = interlace).",
+      "91": "Take a byte out of a buffer (X = buffer number). The byte comes back in Y.",
+      "92": "Read a byte from the FRED area of hardware (&FC00 and up). X = the low byte of the address.",
+      "93": "Write a byte to the FRED area of hardware (&FC00 and up). X = the low byte of the address, Y = the byte.",
+      "94": "Read a byte from the JIM area of hardware (&FD00 and up). X = the low byte of the address.",
+      "95": "Write a byte to the JIM area of hardware (&FD00 and up). X = the low byte of the address, Y = the byte.",
+      "96": "Read a byte from SHEILA, the main hardware area (&FE00 and up). X = the low byte of the address.",
+      "97": "Write a byte to SHEILA, the main hardware area (&FE00 and up). X = the low byte of the address, Y = the byte.",
+      "98": "Check whether a buffer is empty (X = the buffer number).",
+      "99": "Put a character into the keyboard buffer as if it had been typed (X = buffer number, Y = the character).",
+      "9A": "Write the video ULA control register (X = the value). The OS also keeps a copy.",
+      "9B": "Write the video ULA palette register (X = the value). The OS also keeps a copy.",
+      "A0": "Read a VDU variable (X = the variable number). The answer comes back in X and Y.",
+      "A1": "Read a byte of the CMOS settings memory (Master only; X = the address).",
+      "A2": "Write a byte of the CMOS settings memory (Master only; X = the address, Y = the value).",
+      "A6": "Read the address of the start of the operating system's variables.",
+      "DA": "Read or clear the VDU queue: with X = 0 and Y = 0 it throws away any half-sent VDU command.",
+      "E5": "Choose what the Escape key does: X = 0 for the usual Escape, anything else makes it an ordinary key (code 27)."
+    },
+    "osword": {
+      "00": "Read a line of text from the keyboard. The parameter block holds the buffer address, its length and the characters allowed.",
+      "01": "Read the system clock into the parameter block (5 bytes).",
+      "02": "Set the system clock from the parameter block (5 bytes).",
+      "03": "Read the interval timer (5 bytes).",
+      "04": "Set the interval timer (5 bytes).",
+      "05": "Read a byte of the I/O processor's memory (used with a second processor).",
+      "06": "Write a byte of the I/O processor's memory (used with a second processor).",
+      "07": "Make a sound, like BASIC's SOUND. The parameter block holds the channel, volume, pitch and length.",
+      "08": "Define an envelope, like BASIC's ENVELOPE. The parameter block holds the 14 numbers.",
+      "09": "Read the colour of a screen pixel, like BASIC's POINT.",
+      "0A": "Read the pixel pattern of a character (8 bytes).",
+      "0B": "Read the palette: the actual colour a logical colour is set to.",
+      "0C": "Change the palette: set the actual colour of a logical colour.",
+      "0D": "Read the last two positions of the graphics cursor.",
+      "0E": "Read the real-time clock (Master only).",
+      "0F": "Set the real-time clock (Master only)."
+    },
+    "vdu": {
+      "0": {
+        "t": "Does nothing.",
+        "n": 0
+      },
+      "1": {
+        "t": "Sends the next byte to the printer only.",
+        "n": 1
+      },
+      "2": {
+        "t": "Turns the printer on (screen text is copied to it).",
+        "n": 0
+      },
+      "3": {
+        "t": "Turns the printer off.",
+        "n": 0
+      },
+      "4": {
+        "t": "Writes text at the text cursor (the usual way).",
+        "n": 0
+      },
+      "5": {
+        "t": "Writes text at the graphics cursor.",
+        "n": 0
+      },
+      "6": {
+        "t": "Turns the screen display back on (after VDU 21).",
+        "n": 0
+      },
+      "7": {
+        "t": "Makes the beep.",
+        "n": 0
+      },
+      "8": {
+        "t": "Moves the cursor left one place.",
+        "n": 0
+      },
+      "9": {
+        "t": "Moves the cursor right one place.",
+        "n": 0
+      },
+      "10": {
+        "t": "Moves the cursor down one line.",
+        "n": 0
+      },
+      "11": {
+        "t": "Moves the cursor up one line.",
+        "n": 0
+      },
+      "12": {
+        "t": "Clears the text window (like CLS).",
+        "n": 0
+      },
+      "13": {
+        "t": "Moves the cursor to the start of the line (carriage return).",
+        "n": 0
+      },
+      "14": {
+        "t": "Turns page mode on (waits for SHIFT before scrolling).",
+        "n": 0
+      },
+      "15": {
+        "t": "Turns page mode off.",
+        "n": 0
+      },
+      "16": {
+        "t": "Clears the graphics window (like CLG).",
+        "n": 0
+      },
+      "17": {
+        "t": "Sets the text colour. The next byte is the colour (add 128 for the background).",
+        "n": 1
+      },
+      "18": {
+        "t": "Sets the graphics colour. Two bytes follow: how it is drawn (0 = replace, 1 = OR, 2 = AND, 3 = EOR, 4 = invert), then the colour.",
+        "n": 2
+      },
+      "19": {
+        "t": "Sets a logical colour to an actual colour. Five bytes follow: the logical colour, the actual colour, then three zeros.",
+        "n": 5
+      },
+      "20": {
+        "t": "Sets the colours back to the default ones.",
+        "n": 0
+      },
+      "21": {
+        "t": "Turns the screen display off. VDU codes are ignored until VDU 6.",
+        "n": 0
+      },
+      "22": {
+        "t": "Changes to a new screen MODE. The next byte is the MODE number.",
+        "n": 1
+      },
+      "23": {
+        "t": "Defines a character or changes the display. Nine bytes follow: the character number, then 8 rows of pixels.",
+        "n": 9
+      },
+      "24": {
+        "t": "Sets the graphics window. Eight bytes follow.",
+        "n": 8
+      },
+      "25": {
+        "t": "PLOT: draws a point, line or shape. Five bytes follow: the kind of plot, then X and Y (two bytes each).",
+        "n": 5
+      },
+      "26": {
+        "t": "Puts the text and graphics windows back to normal.",
+        "n": 0
+      },
+      "27": {
+        "t": "Does nothing.",
+        "n": 0
+      },
+      "28": {
+        "t": "Sets the text window. Four bytes follow: left, bottom, right, top.",
+        "n": 4
+      },
+      "29": {
+        "t": "Moves the graphics origin. Four bytes follow: X and Y (two bytes each).",
+        "n": 4
+      },
+      "30": {
+        "t": "Moves the text cursor to the top left.",
+        "n": 0
+      },
+      "31": {
+        "t": "Moves the text cursor. Two bytes follow: the column, then the row.",
+        "n": 2
+      },
+      "127": {
+        "t": "Backspace and delete.",
+        "n": 0
+      }
+    }
+  },
+  "hardwareValues": {
+    "FE00": "bbc6845select",
+    "FE01": "bbc6845value",
+    "FE20": "bbcula",
+    "FE21": "bbcpalette",
+    "FE40": "bbclatch",
+    "FE4E": "bbcier"
+  },
   "registerView": { "bareIs": "memory", "immediatePrefix": "#", "bits": 8 },
   "registers": {
     "names": [
