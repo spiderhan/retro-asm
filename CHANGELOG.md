@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.14.1
+
+Fix: **end-of-text labels no longer show up as routines.**
+
+- A label that nothing refers to and that has no code or data under it (for example `MSGEND` after a message) used to be listed as a 0-byte routine in the side panel and the Outline, and was coloured like a routine. It is now tucked under whatever is above it, with the plain label colour.
+- Nothing else changes. A label that code calls is still a routine, a label reached only by short jumps (`JNE`, `JMP`) is still inside its routine, and an unused label with code under it is still a routine (and still appears under **Never used**).
+- New tests in `test/marker-test.js`, using made-up code in `test/fixtures/markers.a99`.
+
 ## 0.14.0
 
 New: **a Registers section in the side panel**, so you can see what is in each register (and which memory places you have set) at the line you are on.

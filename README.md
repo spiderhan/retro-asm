@@ -71,7 +71,7 @@ Shortcuts are shown as Windows / Mac.
 | **Shift+F12** | List everywhere a label is used. (F12 on the definition itself does the same.) |
 | **Ctrl+Shift+O** / **Cmd+Shift+O** | Type a label name and jump to it in this file. |
 | **Ctrl+T** / **Cmd+T** | The same, across every file. |
-| The **Outline** panel in the Explorer side bar | A list of every routine, with its loop labels tucked inside it. The strip along the top of the editor shows which routine you are in. |
+| The **Outline** panel in the Explorer side bar | A list of every routine, with its loop labels tucked inside it. A label that nothing uses and that has nothing under it (like an end-of-text marker) is tucked in too, not listed as a routine. Labels also have two colours: a routine (something called) and a plain label (a spot you jump to, or a marker). The strip along the top of the editor shows which routine you are in. |
 | Ctrl+click a `COPY "file"` (or `INCLUDE`) line | Open that file. |
 | The small arrows in the margin | Fold a routine or a long comment block away. |
 | **F2** on a label | Rename it everywhere. |
