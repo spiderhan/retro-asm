@@ -1,0 +1,10 @@
+GO     LI   R1,5
+       LI   R2,9
+LOOP   DEC   R1
+       JNE  LOOP
+       MOV  R1,R3
+       CI   R2,9
+       JEQ  SKIP
+       LI   R2,1
+SKIP   MOV  R2,R4
+       RT

@@ -202,6 +202,7 @@
     ]
   },
   "checks": {},
+  "registerView": { "bareIs": "memory", "immediatePrefix": "#", "bits": 8 },
   "registers": {
     "names": [
       "A",
@@ -298,6 +299,7 @@
   "timing": {"_about": "How long each instruction takes, in clock cycles. Each instruction's \"cycles\" gives the number for each way of writing its operand (the \"modes\" below, first match wins; a number up to 255 picks the zero-page mode when the instruction has one). \"5+\" means one more when the address crosses into the next page.", "about": "The BBC Micro's 6502 runs at 2 million cycles a second. Reading or writing the hardware at &FC00-&FEFF (FRED, JIM and SHEILA) runs at half speed (1 MHz), so those instructions take 1 or 2 cycles more.", "pair": "{1} cycles if it doesn't jump, {2} if it does", "modes": [{"re": "^$", "name": "imp"}, {"re": "^A$", "name": "acc"}, {"re": "^#", "name": "imm"}, {"re": "^\\(.*\\),Y$", "name": "indy", "plus": "adding Y to the address crosses into the next page of 256 bytes"}, {"re": "^\\(.*,X\\)$", "name": "indx"}, {"re": "^\\((.*)\\)$", "name": "ind", "zeroPage": "zpi"}, {"re": "^(.*),X$", "name": "absx", "zeroPage": "zpx", "plus": "adding X to the address crosses into the next page of 256 bytes"}, {"re": "^(.*),Y$", "name": "absy", "zeroPage": "zpy", "plus": "adding Y to the address crosses into the next page of 256 bytes"}, {"re": "^(.*)$", "name": "abs", "zeroPage": "zp"}], "altLabel": "On the BBC Master's 65C02", "slow": [{"from": "FC00", "to": "FEFF", "text": "This address is BBC hardware that runs at half speed, so it takes 1 or 2 cycles more."}]},
   "instructions": {
     "LDA": {
+     "copy": { "toReg": "A", "from": 0 },
       "cycles": {"imm": 2, "zp": 3, "zpx": 4, "abs": 4, "absx": "4+", "absy": "4+", "zpi": 5, "indx": 6, "indy": "5+"},
       "group": "Moving data",
       "name": "Load A",
@@ -327,6 +329,7 @@
       "size": "byte"
     },
     "STA": {
+     "store": { "fromReg": "A", "to": 0 },
       "cycles": {"zp": 3, "zpx": 4, "abs": 4, "absx": 5, "absy": 5, "zpi": 5, "indx": 6, "indy": 6},
       "group": "Moving data",
       "name": "Store A",
@@ -356,6 +359,7 @@
       "size": "byte"
     },
     "LDX": {
+     "copy": { "toReg": "X", "from": 0 },
       "cycles": {"imm": 2, "zp": 3, "zpy": 4, "abs": 4, "absy": "4+"},
       "group": "Moving data",
       "name": "Load X",
@@ -385,6 +389,7 @@
       "size": "byte"
     },
     "STX": {
+     "store": { "fromReg": "X", "to": 0 },
       "cycles": {"zp": 3, "zpy": 4, "abs": 4},
       "group": "Moving data",
       "name": "Store X",
@@ -413,6 +418,7 @@
       "size": "byte"
     },
     "LDY": {
+     "copy": { "toReg": "Y", "from": 0 },
       "cycles": {"imm": 2, "zp": 3, "zpx": 4, "abs": 4, "absx": "4+"},
       "group": "Moving data",
       "name": "Load Y",
@@ -442,6 +448,7 @@
       "size": "byte"
     },
     "STY": {
+     "store": { "fromReg": "Y", "to": 0 },
       "cycles": {"zp": 3, "zpx": 4, "abs": 4},
       "group": "Moving data",
       "name": "Store Y",
