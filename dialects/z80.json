@@ -8,6 +8,13 @@
   ".a80"
  ],
  "about": "The 8-bit chip in the ZX Spectrum (and the Amstrad CPC, MSX and many more). Written the way sjasmplus and Pasmo (and SkoolKit's skool2asm) write it. Knows the Spectrum's memory map, its ROM routines, system variables and ports.",
+ "caseFormat": {
+  "_about": "Which letter case each part is changed to when you save (or press Shift+Alt+U): upper, lower or keep (leave as typed). Numbers, comments and text in quotes are never changed.",
+  "instructions": "upper",
+  "directives": "keep",
+  "registers": "upper",
+  "labels": "keep"
+ },
  "syntax": {
   "lineComment": [
    ";"
