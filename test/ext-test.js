@@ -340,7 +340,9 @@ const at=(doc,needle,sub)=>{const lines=doc.getText().split(/\r?\n/);const l=lin
     ok('BeebAsm next to the source is used, making a disc that starts the program',pl.command===`"${tool}" -i "bbcdemo.6502" -do "bbcdemo.ssd" -boot "DEMO"`&&pl.fromProject===true,pl);
     const pl2=B.plan(path.join(ws,'bbcdemo.6502'),{},'linux',bD,{});ok('with no SAVE name there is no -boot, and a note says why',!/-boot/.test(pl2.command)&&/SAVE/.test(pl2.note),pl2);
     fs.mkdirSync(path.join(ws,'BeebEm'));fs.writeFileSync(path.join(ws,'BeebEm','BeebEm.exe'),'');
+    fs.writeFileSync(path.join(ws,'bbcdemo.ssd'),'');
     const rn=B.findRunner(path.join(ws,'bbcdemo.6502'),{},'win32',bD);ok('BeebEm near the source is started with the disc',rn&&rn.exe==='BeebEm.exe'&&rn.args.length===1&&rn.args[0].endsWith('bbcdemo.ssd')&&rn.fromProject,rn);
+    fs.unlinkSync(path.join(ws,'bbcdemo.ssd'));
     { // a whole build through the extension, with a stand-in for BeebAsm that notes what it was given
       fs.writeFileSync(tool,'#!/bin/sh\necho "$@" > beebasm-args.txt\n');fs.chmodSync(tool,0o755);
       const p=at(bbc,'JSR print');mock.window.activeTextEditor={document:bbc,selection:{active:p,start:p,end:p,isEmpty:true}};
@@ -398,6 +400,19 @@ const at=(doc,needle,sub)=>{const lines=doc.getText().split(/\r?\n/);const l=lin
   {const D=loadFile(path.join(__dirname,'../dialects/tms9900.json'));const PJ=new Project();PJ.set('/x/h.a99',ti,D);
    const h=F.hoverAt(PJ,'/x/h.a99',8,10);ok('tms9900 tooltip has a Time line',h&&h.parts.some(x=>/^\*Time:\* 48 cycles/.test(x)),h&&h.parts);}
  }
+ { // Set up tools: lists every chip's tools, and a file you pick is remembered
+  const asked=[];const keepPick=mock.window.showQuickPick,keepOpen=mock.window.showOpenDialog,keepSet=settings['toolPaths'];
+  mock.window.showQuickPick=async(items)=>{asked.push(items);return undefined;};
+  await C['retroAsm.checkTools']();
+  const labels=(asked[0]||[]).map(i=>i.label).join('|');
+  ok('Set up tools: every assembler and emulator is listed',['sjasmplus','Fuse','KickAssembler','Java','VICE','xas99','Python','Classic99','BeebAsm','BeebEm'].every(n=>labels.includes(n)),labels);
+  ok('Set up tools: each missing one says where to get it',(asked[0]||[]).filter(i=>i.tool&&!i.tool.found).every(i=>/https?:|download|Download|install/.test(i.detail)),(asked[0]||[]).map(i=>i.detail));
+  const fake=path.join(ws,'my-sjasmplus');fs.writeFileSync(fake,'');
+  let n=0;mock.window.showQuickPick=async(items)=>{n++;if(n===1)return items.find(i=>i.tool&&i.tool.id==='sjasmplus');if(n===2)return items.find(i=>i.act==='choose');return undefined;};
+  mock.window.showOpenDialog=async()=>[{fsPath:fake}];
+  await C['retroAsm.checkTools']();
+  ok('Set up tools: a file you choose is saved for that tool',settings['toolPaths']&&settings['toolPaths'].sjasmplus===fake,settings['toolPaths']);
+  mock.window.showQuickPick=keepPick;mock.window.showOpenDialog=keepOpen;if(keepSet===undefined)delete settings['toolPaths'];else settings['toolPaths']=keepSet; }
  // build: use the real assembler if it is around (set XAS99=/path/to/xas99.py)
  const xas=process.env.XAS99;
  if(xas&&fs.existsSync(xas)){
@@ -416,6 +431,7 @@ const at=(doc,needle,sub)=>{const lines=doc.getText().split(/\r?\n/);const l=lin
  // the letter-case change has its own file of tests too
  {const r=require('child_process').spawnSync(process.execPath,[path.join(__dirname,'regs-test.js')],{encoding:'utf8'});const bad=(r.stdout||'').split('\n').filter(l=>l.startsWith('FAIL'));ok('register tracker tests (test/regs-test.js)',r.status===0,bad.length?bad:(r.stderr||'').slice(0,500));}
  {const r=require('child_process').spawnSync(process.execPath,[path.join(__dirname,'marker-test.js')],{encoding:'utf8'});const bad=(r.stdout||'').split('\n').filter(l=>l.startsWith('FAIL'));ok('end-marker label tests (test/marker-test.js)',r.status===0,bad.length?bad:(r.stderr||'').slice(0,500));}
+ {const r=require('child_process').spawnSync(process.execPath,[path.join(__dirname,'tools-test.js')],{encoding:'utf8'});const bad=(r.stdout||'').split('\n').filter(l=>l.startsWith('FAIL'));ok('tool finding and setup tests (test/tools-test.js)',r.status===0,bad.length?bad:(r.stderr||'').slice(0,500));}
  {const r=require('child_process').spawnSync(process.execPath,[path.join(__dirname,'spacing-test.js')],{encoding:'utf8'});const bad=(r.stdout||'').split('\n').filter(l=>l.startsWith('FAIL'));ok('comment-spacing warning and cycle-note tests (test/spacing-test.js)',r.status===0,bad.length?bad:(r.stderr||'').slice(0,500));}
  {const r=require('child_process').spawnSync(process.execPath,[path.join(__dirname,'case-test.js')],{encoding:'utf8'});const bad=(r.stdout||'').split('\n').filter(l=>l.startsWith('FAIL'));ok('letter case tests (test/case-test.js)',r.status===0,bad.length?bad:(r.stderr||'').slice(0,500));}
  console.log(fails?`\n${fails} FAILED`:'\nall passed');process.exit(fails?1:0);

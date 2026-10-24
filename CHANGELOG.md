@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.16.0
+
+New: **Set up tools**, so each computer's assembler and emulator are easy to get working.
+
+- **A new command, Retro ASM: Set up tools.** It lists what each computer needs (TI-99/4A: xas99, Python, Classic99. Spectrum: sjasmplus, Fuse. C64: KickAssembler, Java, VICE. BBC: BeebAsm, BeebEm), whether it was found and where, and where to get what is missing. Pick a line to open the download page or to choose a copy you already have (remembered in the new `retroAsm.toolPaths` setting). The side panel's Project section shows **Missing: ...** (or **Tools found**) and opens the same list. A failed build because a tool is missing now has a **Set up tools** button.
+- **A tools folder.** Unpack downloads into `retro-asm-tools` in your home folder (or the folder in the new `retroAsm.toolsFolder` setting). Tools are found in it and in the folders inside it, whatever those are called (such as `xdt99-3.6.5-Windows`). Before, xas99 and BeebAsm were only found inside your project folder or by a setting.
+- **Where tools are looked for:** a file you picked, next to your source, the tools folder, your PATH, then the usual install folders (Program Files, `/Applications` and so on). Only a tool found next to your source is asked about first, as before.
+- **Spectrum and C64 now build with no settings.** **Build** runs sjasmplus (Spectrum) or KickAssembler through Java (C64); **F5** starts Fuse with the `.sna` or VICE with `-autostart` and the `.prg`. Before, you had to type both commands into the settings. Your own commands still win.
+- **F5 no longer opens an empty emulator.** If the build didn't make the file the emulator needs (no `SAVESNA` line, say), you are told which file is missing.
+- **xas99 uses the Python it finds**, not just whatever `python` is on the PATH.
+- **Checked:** the sjasmplus build and its error messages with the real sjasmplus 1.24.0; xas99 3.6.5 found in a tools folder and run for real (it made the disc image). **Not checked:** Fuse, VICE, Classic99, BeebEm or KickAssembler themselves (stand-ins only). KickAssembler's own messages are read in two shapes, but neither has been compared with the real one.
+- Chip files: the `build` section now says where each tool is (`tool` and `run`, each with `id`, `name`, `find`, `url`, `get`, and `output` for the file the emulator needs). The new-chip template and old chip files with only a `hint` keep working.
+- New tests in `test/tools-test.js` (run by `test/ext-test.js` too), using made-up code and stand-in tools.
+- **New `QUICKSTART.md`**: one page from install to a built program (get the tools, first program for each computer, the keys worth knowing, and what to do when something doesn't work). It ships inside the extension and the README links to it.
+- The 0.15.0 `.vsix` and older are left alone.
+
 ## 0.15.0
 
 Two new helps, both found by comparing with other VS Code extensions for the same computers.

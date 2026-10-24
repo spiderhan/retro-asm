@@ -52,7 +52,34 @@
   "addressByShape": true
  },
  "build": {
-  "_about": "How to build code for this chip. With no build command or build.bat, the hint is shown.",
+  "_about": "How to build and run code for this chip. With no build command or build.bat, sjasmplus is looked for (next to the source, in the tools folder, on the PATH and in the usual install folders) and Fuse is started with the snapshot (.sna) that a SAVESNA line makes.",
+  "tool": {
+   "id": "sjasmplus",
+   "name": "sjasmplus",
+   "why": "turns Z80 source into a program",
+   "find": [
+    "sjasmplus.exe",
+    "sjasmplus"
+   ],
+   "command": "\"${tool}\" \"${fileBasename}\"",
+   "url": "https://github.com/z00m128/sjasmplus/releases",
+   "get": "Windows: download the newest sjasmplus-<version>.win.zip from the Releases page and unzip it into your tools folder. Linux: sudo apt install sjasmplus (or build it from the source on the Releases page). Mac: build it from the source on the Releases page."
+  },
+  "run": {
+   "id": "fuse",
+   "name": "Fuse",
+   "why": "pretends to be a ZX Spectrum",
+   "find": [
+    "fuse.exe",
+    "fuse"
+   ],
+   "args": [
+    "${fileDirname}/${fileBasenameNoExtension}.sna"
+   ],
+   "output": "${fileDirname}/${fileBasenameNoExtension}.sna",
+   "url": "https://fuse-emulator.sourceforge.net/",
+   "get": "Windows: download the Fuse zip or installer from the Fuse website and unpack it into your tools folder. Linux: sudo apt install fuse-emulator-gtk. Mac: see the Fuse website."
+  },
   "hint": "For Z80 code, set \"retroAsm.build.command\" to run your assembler, for example sjasmplus \"${file}\" (or put a build.bat next to the file). To start an emulator afterwards, set \"retroAsm.build.runCommand\", for example \"C:\\Fuse\\fuse.exe\" \"${fileDirname}\\${fileBasenameNoExtension}.sna\" (with a SAVESNA line in the code)."
  },
  "sizing": {

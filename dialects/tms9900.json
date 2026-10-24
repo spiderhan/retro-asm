@@ -34,6 +34,33 @@
     "lowByteName": "right byte"
   },
 
+  "build": {
+    "_about": "How to build and run code for this chip. xas99 is run by the extension itself (it also makes the disc image with xdm99), so there is no command here. Classic99 is started after a build.",
+    "tool": {
+      "id": "xas99",
+      "name": "xas99",
+      "why": "turns TI-99/4A source into a program",
+      "needs": "python",
+      "find": [
+        "xas99.py",
+        "xdt99/xas99.py"
+      ],
+      "url": "https://github.com/endlos99/xdt99/releases",
+      "get": "Download the newest xdt99-<version>-Windows.zip (or the .zip for Mac and Linux) from the Releases page and unzip it into your tools folder. It also needs Python 3."
+    },
+    "run": {
+      "id": "classic99",
+      "name": "Classic99",
+      "why": "pretends to be a TI-99/4A (Windows only)",
+      "find": [
+        "classic99.exe",
+        "classic99/classic99.exe",
+        "Classic99/classic99.exe"
+      ],
+      "url": "https://www.harmlesslion.com/software/classic99",
+      "get": "Download Classic99 from its website and unzip it into your tools folder. It runs on Windows only; on Mac or Linux use another emulator (such as MAME) and set retroAsm.build.runCommand."
+    }
+  },
   "sizing": {
     "base": 2,
     "immediate": 2,
