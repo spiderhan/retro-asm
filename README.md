@@ -2,6 +2,8 @@
 
 Tooltips in plain English, proper colours, and quick ways to jump around assembly source for old home computers.
 
+New here? **[QUICKSTART.md](QUICKSTART.md)** gets you from install to a built program in ten minutes.
+
 ## Computers it knows
 
 | Computer | Chip | Written the way of | Files it opens by itself | More about it |
@@ -25,6 +27,23 @@ Each chip is one data file, so other chips can be added without touching the cod
 4. Pick the file you downloaded.
 
 Open an assembly file: `.a99`, `.z80` or `.6502` open by themselves. The bottom-right corner of the window shows the chip it is reading the file as (for example **TMS9900**, **Z80** or **6502 (BBC Micro)**), and a chip icon appears on the bar down the left of the window.
+
+### Set up the assemblers and emulators
+
+The extension reads and checks your code on its own. To **build** a program and **run** it, each computer also needs two other programs, which are free but not part of this extension: an assembler (it turns your code into a program) and an emulator (it pretends to be the computer).
+
+Run **Retro ASM: Set up tools** (Ctrl+Shift+P). It lists, for each computer, what is needed, whether it was found and where, and where to get what is missing. Pick any line to open its download page or to point to a copy you already have. The side panel's **Project** section also shows **Missing: ...** and opens the same list.
+
+| Computer | Assembler | Emulator | Also needs |
+|---|---|---|---|
+| TI-99/4A | xas99 | Classic99 (Windows only) | Python 3 |
+| ZX Spectrum | sjasmplus | Fuse | |
+| Commodore 64 | KickAssembler (`KickAss.jar`) | VICE | Java |
+| BBC Micro | BeebAsm | BeebEm (Windows only) | |
+
+The easiest way: download each one, then **unpack it into your tools folder** (`retro-asm-tools` in your home folder; **Set up tools** has a line that opens it). It doesn't matter what the folders inside are called (`xdt99-3.6.5-Windows` is fine). For KickAssembler, put `KickAss.jar` in the folder. After that, **Build** (Ctrl+Alt+B) and **F5** just work. Nothing is installed, downloaded or run for you.
+
+Each tool is looked for in this order: a file you picked in **Set up tools**, next to your source, your tools folder, your PATH, and the usual install folders (Program Files and so on). So anything you have already installed the normal way is found too.
 
 ## What you get
 
@@ -128,11 +147,12 @@ It all comes from the chip files (see **Adding a chip of your own**), and it is 
 ### Build and run
 
 - **Ctrl+Alt+B** (Cmd+Alt+B) builds. **F5** builds, then starts the emulator.
-- What follows is how it works on the TI-99/4A (xas99 and Classic99). BeebAsm and BeebEm are found the same way for the BBC; for the C64 and the Spectrum you give the commands once in the settings. Each computer's own section below says how.
-- If there is a `build.bat` (or `build.sh`) next to your source, that is what runs. If not, xas99 is run directly when an `xdt99` folder is nearby. Or set your own command in `retroAsm.build.command`.
+- Each computer's assembler and emulator are found by themselves (see **Set up the assemblers and emulators** above): xas99 and Classic99 for the TI-99/4A, sjasmplus and Fuse for the Spectrum, KickAssembler and VICE for the C64, BeebAsm and BeebEm for the BBC. If one can't be found, the message says so and its **Set up tools** button opens the list.
+- If there is a `build.bat` (or `build.sh`) next to your source, that is what runs. If not, the assembler is run directly. Or set your own command in `retroAsm.build.command`.
+- **F5** starts the emulator with what the build made: the `.sna` snapshot (Spectrum, from a `SAVESNA` line), the `.prg` (C64), the `.ssd` disc (BBC). If that file wasn't made, you are told which one, rather than an empty emulator opening.
 - The first time a project wants to run something of its own (a `build.bat`, an xas99 or Classic99 found in its folders, or a command in its `.vscode/settings.json`), you are asked first, showing the exact command. Say **Allow** and you won't be asked again in that folder unless the command changes. See **Safety** below.
 - The assembler's errors are underlined on the right lines and listed in the Problems panel. Everything it printed is in the **Retro ASM** output panel.
-- On Windows, Classic99 is found by itself if a `classic99` folder sits near your source. If it is already open, it is left alone and you are reminded to reload the program there. For anything else, set `retroAsm.build.runCommand`.
+- On Windows, Classic99 is started after a build. If it is already open, it is left alone and you are reminded to reload the program there. Classic99 runs on Windows only; on a Mac or Linux set `retroAsm.build.runCommand` to another TI emulator. For any other emulator, set `retroAsm.build.runCommand` too.
 
 ### More mistakes caught before you build
 
@@ -274,7 +294,7 @@ What you get:
 - Addresses and sizes for each line, worked out the way the 6502 does it: an address from `$00` to `$FF` (the zero page) makes a shorter instruction.
 - A warning when a branch (BNE, BEQ ...) can't reach its label: they only go 128 bytes back or 127 ahead.
 
-To build, set `retroAsm.build.command` to run KickAssembler, for example `java -jar C:\path\to\KickAss.jar "${file}"`, and `retroAsm.build.runCommand` to start VICE, for example `"C:\path\to\x64sc.exe" "${fileDirname}\${fileBasenameNoExtension}.prg"`.
+To build, you need KickAssembler (`KickAss.jar`) and Java, and to run, VICE: see **Set up the assemblers and emulators** above. With them in place **Build** runs `java -jar KickAss.jar "game.asm"` and **F5** then starts VICE with `-autostart game.prg`. To use other commands, set `retroAsm.build.command` and `retroAsm.build.runCommand`, for example `java -jar C:\path\to\KickAss.jar "${file}"` and `"C:\path\to\x64sc.exe" "${fileDirname}\${fileBasenameNoExtension}.prg"`.
 
 Things it doesn't follow yet:
 
@@ -306,14 +326,14 @@ What you get:
 - sjasmplus's way of writing: local labels (`.loop` belongs to the label above it, so every routine can have its own), `main.loop`, `'A'` for a letter, `$`, `#` or `0FFh` for hex, `%` for binary, `DEFB "text",0`, `DEFM`, `DZ`, `DC`, `BLOCK`, `ALIGN`, `=`, `MACRO`/`ENDM` (either way round), `IF`/`ENDIF`, `DEVICE`, `SAVESNA`, `INCLUDE` and `INCBIN`. SkoolKit's `skool2asm` output reads the same way: `skool2asm.py -c game.skool > game.asm` turns a `.skool` disassembly into a file this works on.
 - The summary line above each routine lists register pairs as pairs: *Changes A, BC, HL*.
 
-To build, set `retroAsm.build.command` to run your assembler, for example `sjasmplus "${file}"`. To start an emulator after a build, put a `SAVESNA "game.sna",start` line in the code and set `retroAsm.build.runCommand`, for example `"C:\Fuse\fuse.exe" "${fileDirname}\game.sna"`. sjasmplus's error messages (`game.asm(33): error: ...`) are underlined on the right lines.
+To build, you need sjasmplus, and to run, Fuse: see **Set up the assemblers and emulators** above. With them in place **Build** runs `sjasmplus "game.z80"`. Put a `SAVESNA "game.sna",start` line in the code (the starter code has one) so the build makes a snapshot, and **F5** starts Fuse with it. To use other commands, set `retroAsm.build.command` and `retroAsm.build.runCommand`, for example `"C:\Fuse\fuse.exe" "${fileDirname}\game.sna"`. sjasmplus's error messages (`game.asm(33): error: ...`) are underlined on the right lines.
 
 Things it doesn't follow yet:
 
 - Lines inside `IF`, `DUP` and `REPT` blocks may be put in more than once (or not at all), so addresses after one are marked as rough. The same goes for `STRUCT`, `PAGE` and `SLOT`.
 - sjasmplus's numbered labels (`1:` with `jr 1B`) and `MODULE` names aren't followed.
 - The 3-operand unofficial forms such as `RLC (IX+3),B` aren't known.
-- `build.command` and the error messages haven't been tried with the real sjasmplus yet. Everything it prints is in the **Retro ASM** output panel either way.
+- Fuse hasn't been tried with the real program yet (only a stand-in), so check that **F5** opens your snapshot. Building was tried with the real sjasmplus 1.24.0: errors are underlined on the right lines, and a clean file makes its `.sna`.
 
 ## BBC Micro (6502, BeebAsm)
 
@@ -413,6 +433,8 @@ The `sprites` section lists the picture shapes for the picture editor: each has 
 | `retroAsm.dialectByExtension` | Which chip for which file extension. *Switch chip* fills this in. |
 | `retroAsm.dialectFolders` | Where your own chip files live. Starts as `asm-dialects`. |
 | `retroAsm.build.command`, `retroAsm.build.runCommand` | Your own build and emulator commands. Empty means work it out. |
+| `retroAsm.toolsFolder` | The folder you unpack assemblers and emulators into. Empty means `retro-asm-tools` in your home folder. |
+| `retroAsm.toolPaths` | The tools you pointed to with **Set up tools**, by name. Filled in for you. |
 | `retroAsm.build.xas99Path`, `retroAsm.build.python` | Where xas99.py is, and how to run Python, if the defaults don't find them. |
 | `retroAsm.build.askFirst` | Ask before running a build script, tool or command that comes from the project. On to start with. Only your own user settings can switch it off, never a project. |
 | `retroAsm.loadAddress` | Where the program loads (hex). Empty means the chip's usual place. |
@@ -428,7 +450,7 @@ The `sprites` section lists the picture shapes for the picture editor: each has 
 
 ## Things to know
 
-- It does not assemble anything itself: building runs your own build script, xas99, BeebAsm, or the command you set.
+- It does not assemble anything itself: building runs your own build script, the computer's assembler (xas99, sjasmplus, KickAssembler or BeebAsm), or the command you set. It never downloads or installs anything: **Set up tools** only looks, and sends you to each tool's own download page.
 - Addresses, sizes, jump distances and the register summaries are only worked out for chips whose file has a `sizing` section (TMS9900, both 6502s and Z80 all have one).
 - The register summary reads the code top to bottom. It can't tell which path a routine takes, so treat it as a guide.
 - For TMS9900 it follows the xas99 layout: a label starts in the first column, and after the operands the first space starts a comment.
@@ -460,6 +482,7 @@ From the `retro-asm` folder:
 | Command | What it checks |
 |---|---|
 | `node test/ext-test.js` | The whole extension against a small stand-in for VS Code. Quick. Set `XAS99` to the path of `xas99.py` to include the build. |
+| `node test/tools-test.js` | Finding the assemblers and emulators (in the tools folder, on the PATH, and so on), and the build and emulator commands for each computer, using stand-in tools. Set `SJASMPLUS` to a real `sjasmplus` to also build a made-up Spectrum program with it. `node test/ext-test.js` runs it too. |
 | `node test/sprite-test.js` | The picture editor: the example files, every computer's way of storing pixels, numbers kept in their own style, and drawing in the editor changing the code. `node test/ext-test.js` runs it too. |
 | `node test/case-test.js` | The letter-case change: each chip's rules, what is never changed, labels, every test file giving the same warnings and no more changes on a second run, and the save, Format Document and Shift+Alt+U parts. `node test/ext-test.js` runs it too. |
 | `node test/lib-test.js misc` | Prints the outline, warnings, folds and original-game addresses for the test files. |
@@ -487,6 +510,7 @@ A short list of the big steps. The full details of every release are in `CHANGEL
 
 | Version | What it added |
 |---|---|
+| 0.16 | **Set up tools:** finds each computer's assembler and emulator (project, tools folder, PATH, usual install folders), tells you what is missing and where to get it, and **Build** / **F5** now work for the Spectrum (sjasmplus, Fuse) and C64 (KickAssembler, VICE) without any settings |
 | 0.15 | A warning for a **comment with only one space before it** (xas99 reads it as part of the operands), and **cycle counts** shown beside each line |
 | 0.14 | A **Registers** section in the side panel: what is in each register at the line you are on |
 | 0.13 | Change the **letter case** of instructions, registers and labels (so you never need Caps Lock) |

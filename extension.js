@@ -1107,6 +1107,9 @@ function buildSettings(rootFile) {
     runCommand: c.get('build.runCommand') || '',
     xas99Path: c.get('build.xas99Path') || '',
     python: c.get('build.python') || '',
+    toolPaths: c.get('toolPaths') || {},
+    toolsFolder: c.get('toolsFolder') || '',
+    home: os.homedir(),
     workspaceFolder: w && w.uri.scheme === 'file' ? w.uri.fsPath : path.dirname(rootFile)
   };
 }
@@ -1141,6 +1144,75 @@ async function okToRun(command, what) {
   return pick === 'Allow this time only';
 }
 
+// ---------------------------------------------------------------------------
+// tools: what is installed, and where to get what is not
+// ---------------------------------------------------------------------------
+function toolContextFor(file) {
+  const settings = buildSettings(file || path.join(os.homedir(), 'x'));
+  return B.toolContext(settings, file ? path.dirname(file) : null);
+}
+
+const ROLE_TEXT = { assembler: 'the assembler', runtime: 'needed to run it', emulator: 'the emulator' };
+
+/** Every chip with something to find: the one you are working on first. */
+function toolChips() {
+  const ed = vscode.window.activeTextEditor;
+  const current = ed && isOurs(ed.document) && ed.document.uri.scheme === 'file' ? dialectForPath(keyOf(ed.document)) : null;
+  const all = [...dialects.values()].filter(D => D.build && (D.build.tool || D.build.run));
+  return current ? [current, ...all.filter(D => D !== current)].filter(D => all.includes(D)) : all;
+}
+
+async function cmdCheckTools() {
+  toolCache.clear();
+  const ed = vscode.window.activeTextEditor;
+  const file = ed && isOurs(ed.document) && ed.document.uri.scheme === 'file' ? keyOf(ed.document) : null;
+  for (let round = 0; round < 20; round++) {
+    const ctx = toolContextFor(file);
+    const items = [{ label: '$(folder) Tools folder', description: ctx.toolsFolder, detail: 'Unpack a download here and it is found by itself, whatever the folder is called. Click to open it.', folder: true }];
+    const reports = new Map();
+    for (const D of toolChips()) {
+      const rep = B.reportTools(D, ctx);
+      if (!rep.length) continue;
+      reports.set(D.id, rep);
+      items.push({ label: D.name, kind: vscode.QuickPickItemKind ? vscode.QuickPickItemKind.Separator : undefined });
+      for (const r of rep) items.push({
+        label: `${r.found ? '$(check)' : '$(warning)'} ${r.name}`,
+        description: r.found ? r.found.file : 'not found',
+        detail: r.found ? `${ROLE_TEXT[r.role]} · found in ${r.found.from}` : `${ROLE_TEXT[r.role]}${r.why ? ' (' + r.why + ')' : ''}. ${r.get}`,
+        tool: r
+      });
+    }
+    const pick = await vscode.window.showQuickPick(items.filter(i => i.label), { placeHolder: 'The programs each computer needs. Pick one to point to it, or to see where to get it.', matchOnDescription: true, matchOnDetail: true });
+    if (!pick) return;
+    if (pick.folder) {
+      try { fs.mkdirSync(ctx.toolsFolder, { recursive: true }); } catch (e) { /* shown below if it matters */ }
+      await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(ctx.toolsFolder));
+      return;
+    }
+    const r = pick.tool;
+    const actions = [
+      { label: '$(folder-opened) Choose the file on this computer...', detail: r.found ? 'Use a different copy.' : `Pick ${r.spec.find[0]} (or whatever it is called on your computer).`, act: 'choose' },
+      ...(r.url ? [{ label: '$(link-external) Open the download page', detail: r.url, act: 'open' }] : []),
+      ...(r.found ? [{ label: '$(copy) Copy the path', detail: r.found.file, act: 'copy' }] : []),
+      { label: '$(arrow-left) Back', act: 'back' }
+    ];
+    const a = await vscode.window.showQuickPick(actions, { placeHolder: `${r.name}: ${r.found ? 'found' : 'not found'}` });
+    if (!a || a.act === 'back') continue;
+    if (a.act === 'open') { await vscode.env.openExternal(vscode.Uri.parse(r.url)); return; }
+    if (a.act === 'copy') { await vscode.env.clipboard.writeText(r.found.file); vscode.window.setStatusBarMessage('Retro ASM: path copied', 3000); continue; }
+    if (a.act === 'choose') {
+      const got = await vscode.window.showOpenDialog({ canSelectMany: false, canSelectFolders: false, openLabel: 'Use this', title: `Choose ${r.name}` });
+      if (!got || !got.length) continue;
+      const chosen = got[0].fsPath;
+      const paths = Object.assign({}, cfg().get('toolPaths') || {}, { [r.id]: chosen });
+      await cfg().update('toolPaths', paths, vscode.ConfigurationTarget.Global);
+      vscode.window.showInformationMessage(`${r.name} will be run from ${chosen}.`);
+      toolCache.clear();
+      refreshPanels();
+    }
+  }
+}
+
 /** BeebAsm: the name in quotes on the program's first SAVE line ("SAVE \"Game\", start, end"), or ''. */
 function saveNameOf(root) {
   for (const f of project.unit(root)) {
@@ -1169,7 +1241,11 @@ async function cmdBuild(andRun) {
   const planned = B.plan(root, settings, undefined, chip, { saveName: saveNameOf(root) });
   if (planned.error) {
     // don't wait for the message to be answered: the command finishes now, the button still works
-    vscode.window.showErrorMessage('Retro ASM: ' + planned.error, 'Open settings').then((pick) => { if (pick) vscode.commands.executeCommand('workbench.action.openSettings', 'retroAsm.build'); });
+    const setupButton = planned.setup ? 'Set up tools' : null;
+    vscode.window.showErrorMessage('Retro ASM: ' + planned.error, ...(setupButton ? [setupButton] : []), 'Open settings').then((pick) => {
+      if (pick === 'Open settings') vscode.commands.executeCommand('workbench.action.openSettings', 'retroAsm.build');
+      else if (pick) vscode.commands.executeCommand('retroAsm.checkTools');
+    });
     return false;
   }
   const buildFromProject = planned.fromProject
@@ -1222,6 +1298,14 @@ async function cmdBuild(andRun) {
     vscode.window.setStatusBarMessage(`$(check) Built ${B.tiName(root)}${warnings ? ` (${warnings} warning${warnings === 1 ? '' : 's'})` : ''}`, 6000);
     if (!andRun) return true;
     const runner = B.findRunner(root, settings, undefined, chip);
+    if (runner && runner.missingOutput) {
+      vscode.window.showInformationMessage(`Built, but ${path.basename(runner.missingOutput)} was not made, so there is nothing to start. ${/\.sna$/i.test(runner.missingOutput) ? 'Add a SAVESNA line to the code (for example SAVESNA "' + path.basename(runner.missingOutput) + '",start).' : /\.prg$/i.test(runner.missingOutput) ? 'KickAssembler names the program after the source file unless the code says otherwise.' : 'Check the output panel to see what the assembler made.'}`);
+      return true;
+    }
+    if (runner && runner.missingTool) {
+      vscode.window.showInformationMessage('Built. ' + runner.message, 'Set up tools').then((pick) => { if (pick) vscode.commands.executeCommand('retroAsm.checkTools'); });
+      return true;
+    }
     if (!runner) {
       vscode.window.showInformationMessage('Built. To start your emulator from here, set "retroAsm.build.runCommand" to its path.', 'Open settings').then((pick) => { if (pick) vscode.commands.executeCommand('workbench.action.openSettings', 'retroAsm.build.runCommand'); });
       return true;
@@ -1426,6 +1510,18 @@ function mapHtml(file) {
   return PH.memoryMapHtml(d);
 }
 
+const toolCache = new Map();   // chip id -> { when, value }, so the panel doesn't search the disk every time it redraws
+function toolsStatus(file) {
+  const m = project.get(file);
+  if (!m || !m.D.build || !(m.D.build.tool || m.D.build.run) || !trusted()) return null;
+  const hit = toolCache.get(m.D.id);
+  if (hit && Date.now() - hit.when < 30000) return hit.value;
+  const rep = B.reportTools(m.D, toolContextFor(file));
+  const value = { missing: rep.filter(r => !r.found), names: rep.map(r => r.name) };
+  toolCache.set(m.D.id, { when: Date.now(), value });
+  return value;
+}
+
 function projectNodes(file) {
   if (!file) return [];
   const s = SP.projectSummary(project, file);
@@ -1442,6 +1538,10 @@ function projectNodes(file) {
       ? { label: `Built at ${t}`, description: lastBuild.warnings ? `${lastBuild.warnings} warning${lastBuild.warnings === 1 ? '' : 's'}` : 'no problems', icon: 'check', colour: 'testing.iconPassed', tooltip: 'Click to see what the assembler said.', command: 'retroAsm.panel.showOutput' }
       : { label: `Build failed at ${t}`, description: lastBuild.errors ? `${lastBuild.errors} error${lastBuild.errors === 1 ? '' : 's'}` : '', icon: 'error', colour: 'testing.iconFailed', tooltip: 'Click to see what the assembler said.', command: 'retroAsm.panel.showOutput' });
   } else if (trusted()) out.push({ label: 'Not built yet', description: 'click to build', icon: 'tools', tooltip: 'Build this program (Ctrl+Alt+B).', command: 'retroAsm.build' });
+  { const t = toolsStatus(file);
+    if (t) out.push(t.missing.length
+      ? { label: `Missing: ${t.missing.map(r => r.name).join(', ')}`, icon: 'cloud-download', colour: 'problemsWarningIcon.foreground', tooltip: 'Programs this computer needs to build and run. Click to see where to get them.', command: 'retroAsm.checkTools' }
+      : { label: 'Tools found', description: t.names.join(', '), icon: 'pass', colour: 'testing.iconPassed', tooltip: 'Everything needed to build and run this computer\'s code is in place. Click to see where each one is.', command: 'retroAsm.checkTools' }); }
   if (s.routines.length) {
     out.push({ label: `Routines (${s.routineCount})`, description: 'biggest first', icon: 'symbol-method', children: s.routines.map(r => ({ label: r.name, description: r.bytes !== null ? `${r.bytes.toLocaleString()} bytes` : `${r.lines} lines`, icon: 'symbol-method', goto: { file: r.file, line: r.line } })) });
   }
@@ -1625,6 +1725,7 @@ function activate(context) {
     vscode.commands.registerCommand('retroAsm.toggleCycles', cmdToggleCycles),
     vscode.commands.registerCommand('retroAsm.build', () => cmdBuild(false)),
     vscode.commands.registerCommand('retroAsm.buildAndRun', () => cmdBuild(true)),
+    vscode.commands.registerCommand('retroAsm.checkTools', cmdCheckTools),
     vscode.commands.registerCommand('retroAsm.toggleAddresses', cmdToggleAddresses),
     vscode.window.onDidChangeVisibleTextEditors(() => scheduleAddresses()),
     L.registerHoverProvider(sel, hoverProvider),

@@ -100,7 +100,7 @@
     "joinIndexed": true
   },
   "build": {
-    "_about": "How to build. With no build command or build.bat, BeebAsm is looked for next to the source (and a few folders up) and on the PATH. It makes a disc image (.ssd) that starts the program by itself.",
+    "_about": "How to build and run. With no build command or build.bat, BeebAsm is looked for (next to the source, in the tools folder, on the PATH and in the usual install folders). It makes a disc image (.ssd) that starts the program by itself, and BeebEm is started with it.",
     "tool": {
       "name": "BeebAsm",
       "find": [
@@ -110,19 +110,27 @@
         "BeebAsm/beebasm.exe"
       ],
       "command": "\"${tool}\" -i \"${fileBasename}\" -do \"${fileBasenameNoExtension}.ssd\"${boot}",
-      "boot": " -boot \"${saveName}\""
+      "boot": " -boot \"${saveName}\"",
+      "id": "beebasm",
+      "why": "turns BBC Micro source into a disc image",
+      "url": "https://github.com/stardot/beebasm/releases",
+      "get": "Windows: download beebasm-win32.zip from the Releases page and unzip it into your tools folder. Linux and Mac: build it from the source on the Releases page (it needs cmake)."
     },
     "run": {
       "find": [
-        "BeebEm/BeebEm.exe",
-        "beebem/BeebEm.exe",
         "BeebEm.exe",
-        "C:/Program Files (x86)/BeebEm/BeebEm.exe",
-        "C:/Program Files/BeebEm/BeebEm.exe"
+        "BeebEm/BeebEm.exe",
+        "beebem/BeebEm.exe"
       ],
       "args": [
         "${fileDirname}/${fileBasenameNoExtension}.ssd"
-      ]
+      ],
+      "id": "beebem",
+      "name": "BeebEm",
+      "why": "pretends to be a BBC Micro",
+      "output": "${fileDirname}/${fileBasenameNoExtension}.ssd",
+      "url": "https://github.com/stardot/beebem-windows/releases",
+      "get": "Windows: download the BeebEm zip or installer from the Releases page. On Mac and Linux use another emulator, such as b2, and set retroAsm.build.runCommand."
     },
     "hint": "For BBC Micro code, put beebasm.exe next to your source (or in a folder above it, or on your PATH), or set \"retroAsm.build.command\", for example beebasm -i \"${file}\" -do \"${fileBasenameNoExtension}.ssd\" -boot MyProg. BeebEm is found the same way to run the disc; for another emulator set \"retroAsm.build.runCommand\"."
   },
