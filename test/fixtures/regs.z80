@@ -1,0 +1,17 @@
+; made-up Z80 test
+; In: A = the character
+; In: HL = where to put it
+; Out: HL = next place
+put:    ld (hl),a
+        inc hl
+        ret
+
+start:  ld a,65
+        ld hl,buffer
+        ld b,10
+        ld (count),a
+        call put
+        ld a,b
+        ret
+buffer: defs 16
+count:  defb 0

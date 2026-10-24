@@ -237,13 +237,16 @@ const at=(doc,needle,sub)=>{const lines=doc.getText().split(/\r?\n/);const l=lin
  }
  { // ---- version 0.6: the side panel ----
   const V=mock.__.views;
-  ok('side panel: all four sections are registered',['retroAsm.project','retroAsm.thisLine','retroAsm.memoryMap','retroAsm.hardware'].every(id=>V[id]),Object.keys(V));
+  ok('side panel: all five sections are registered',['retroAsm.project','retroAsm.thisLine','retroAsm.registers','retroAsm.memoryMap','retroAsm.hardware'].every(id=>V[id]),Object.keys(V));
   const look=(doc,needle)=>{const p=at(doc,needle);mock.window.activeTextEditor={document:doc,selection:{active:p,start:p,end:p,isEmpty:true}};return api.panelNow();};
   let s=look(game,'BL   @SET_VIDEO');
   ok('side panel: this line in plain English',/Call the routine SET_VIDEO/.test(s.thisLine)&&/Branch and link/.test(s.thisLine)&&/Inside routine/.test(s.thisLine),s.thisLine);
   ok('side panel: this line shows its address and size',/&gt;A0[0-9A-F]{2}<\/code> · 4 bytes/.test(s.thisLine),s.thisLine);
   ok('side panel: memory map shows where the program sits',/Your program: <b>\d+ bytes<\/b>, from <code>&gt;A000<\/code>/.test(s.memoryMap)&&/the video chip \(writing\)/.test(s.memoryMap)&&/still free/.test(s.memoryMap),s.memoryMap);
   ok('side panel: memory map marks the hardware used',/class="hw"/.test(s.memoryMap)&&/addresses? used/.test(s.memoryMap));
+  { const R=V['retroAsm.registers'];const kids=R.getChildren();const items=kids.map(x=>R.getTreeItem(x));
+    ok('side panel: the Registers section lists the registers at the cursor',kids.length>=2&&items.some(t=>t.label==='Registers'),items.map(t=>t.label));
+    ok('side panel: the Registers section is in the package file with a welcome message',(()=>{const j=JSON.parse(fs.readFileSync(path.join(__dirname,'../package.json'),'utf8'));return j.contributes.views.retroAsm.some(v=>v.id==='retroAsm.registers')&&j.contributes.viewsWelcome.some(w=>w.view==='retroAsm.registers');})()); }
   ok('side panel: project shows the chip, files and warnings',s.project[0].label.startsWith('TMS9900')&&s.project.some(n=>/^Files \(2\)/.test(n.label)&&n.children.some(c=>c.label==='data.a99'))&&s.project.some(n=>/warning|No warnings/.test(n.label)),s.project.map(n=>n.label));
   ok('side panel: names nothing uses are listed',s.project.some(n=>/^Never used/.test(n.label)&&n.children.some(c=>c.label==='PATTAB')),s.project.map(n=>n.label));
   const vid=s.hardware.find(g=>/video chip \(writing\)/i.test(g.label));
@@ -411,6 +414,7 @@ const at=(doc,needle,sub)=>{const lines=doc.getText().split(/\r?\n/);const l=lin
  // the picture editor has its own file of tests (it needs a document whose text can change)
  {const r=require('child_process').spawnSync(process.execPath,[path.join(__dirname,'sprite-test.js')],{encoding:'utf8'});const bad=(r.stdout||'').split('\n').filter(l=>l.startsWith('FAIL'));ok('picture editor tests (test/sprite-test.js)',r.status===0,bad.length?bad:(r.stderr||'').slice(0,500));}
  // the letter-case change has its own file of tests too
+ {const r=require('child_process').spawnSync(process.execPath,[path.join(__dirname,'regs-test.js')],{encoding:'utf8'});const bad=(r.stdout||'').split('\n').filter(l=>l.startsWith('FAIL'));ok('register tracker tests (test/regs-test.js)',r.status===0,bad.length?bad:(r.stderr||'').slice(0,500));}
  {const r=require('child_process').spawnSync(process.execPath,[path.join(__dirname,'case-test.js')],{encoding:'utf8'});const bad=(r.stdout||'').split('\n').filter(l=>l.startsWith('FAIL'));ok('letter case tests (test/case-test.js)',r.status===0,bad.length?bad:(r.stderr||'').slice(0,500));}
  console.log(fails?`\n${fails} FAILED`:'\nall passed');process.exit(fails?1:0);
 })().catch(e=>{console.error(e);process.exit(1);});
