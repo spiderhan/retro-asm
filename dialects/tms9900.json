@@ -48,7 +48,8 @@
   "checks": {
     "linkRegister": "R11",
     "returnOperand": "^\\*R11$",
-    "indexNotAllowed": "R0"
+    "indexNotAllowed": "R0",
+    "oneSpaceComment": true
   },
 
   "ports": {

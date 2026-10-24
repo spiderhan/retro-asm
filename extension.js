@@ -33,11 +33,13 @@ const openDocs = new Set();      // keys of files open in the editor (their text
 const scannedDirs = new Set();
 const notesCache = new Map();
 const helpPages = new Map();
+let cyclesOn = false;
 let status, diagnostics, buildDiagnostics, output, extensionPath, addressDecoration, extContext;
 let addressesOn = false;
 let building = false;
 const lensChanged = new vscode.EventEmitter();
 const tokensChanged = new vscode.EventEmitter();
+const hintsChanged = new vscode.EventEmitter();
 const helpChanged = new vscode.EventEmitter();
 let checkTimer = null;
 
@@ -352,6 +354,7 @@ function runChecks() {
     const list = F.check(project, keyOf(doc)).map(c => {
       const d = new vscode.Diagnostic(new vscode.Range(c.line, c.start, c.line, c.end), c.message, c.severity === 'info' ? vscode.DiagnosticSeverity.Information : vscode.DiagnosticSeverity.Warning);
       d.source = 'Retro ASM';
+      if (c.fix) d.code = c.fix;
       return d;
     });
     diagnostics.set(doc.uri, list);
@@ -1048,6 +1051,52 @@ function cmdToggleAddresses() {
 }
 
 // ---------------------------------------------------------------------------
+// "14 cycles" beside each instruction line
+// ---------------------------------------------------------------------------
+const cycleHintsProvider = {
+  onDidChangeInlayHints: hintsChanged.event,
+  provideInlayHints(doc, range) {
+    if (!cyclesOn || !isOurs(doc) || doc.lineCount > 30000) return [];
+    const file = keyOf(doc);
+    if (!project.get(file)) return [];
+    return F.cycleHints(project, file, range.start.line, range.end.line).map((h) => {
+      const hint = new vscode.InlayHint(new vscode.Position(h.line, doc.lineAt(h.line).text.length), h.label);
+      hint.paddingLeft = true;
+      hint.tooltip = h.tooltip;
+      return hint;
+    });
+  }
+};
+
+function cmdToggleCycles() {
+  const ed = vscode.window.activeTextEditor;
+  if (ed && isOurs(ed.document)) {
+    const model = modelFor(ed.document);
+    if (model && !model.D.timing) { vscode.window.showInformationMessage(`Cycle counts aren't known for ${model.D.short} yet: its chip file has no "timing" section.`); return; }
+  }
+  cyclesOn = !cyclesOn;
+  hintsChanged.fire();
+  vscode.window.setStatusBarMessage(cyclesOn ? 'Retro ASM: cycle counts shown' : 'Retro ASM: cycle counts hidden', 3000);
+}
+
+// One-click fix for the "only one space before the comment" warning.
+const quickFixProvider = {
+  provideCodeActions(doc, range, context) {
+    const out = [];
+    for (const d of context.diagnostics || []) {
+      if (d.source !== 'Retro ASM' || d.code !== 'oneSpaceComment') continue;
+      const act = new vscode.CodeAction('Put two spaces before the comment', vscode.CodeActionKind.QuickFix);
+      act.diagnostics = [d];
+      act.isPreferred = true;
+      act.edit = new vscode.WorkspaceEdit();
+      act.edit.insert(doc.uri, d.range.start, ' ');
+      out.push(act);
+    }
+    return out;
+  }
+};
+
+// ---------------------------------------------------------------------------
 // build and run
 // ---------------------------------------------------------------------------
 function buildSettings(rootFile) {
@@ -1555,6 +1604,7 @@ function activate(context) {
   buildDiagnostics = vscode.languages.createDiagnosticCollection('retroasm-build');
   addressDecoration = vscode.window.createTextEditorDecorationType({ before: { color: new vscode.ThemeColor('editorLineNumber.foreground'), margin: '0 1.2em 0 0' } });
   addressesOn = !!cfg().get('showAddresses');
+  cyclesOn = !!cfg().get('showCycles');
   status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
   status.command = 'retroAsm.switchDialect';
   project.notes = notesFor;
@@ -1568,8 +1618,11 @@ function activate(context) {
   const sel = { language: LANG };
   const L = vscode.languages;
   context.subscriptions.push(
-    output, diagnostics, buildDiagnostics, addressDecoration, status, tokensChanged, helpChanged, lensChanged,
+    output, diagnostics, buildDiagnostics, addressDecoration, status, tokensChanged, hintsChanged, helpChanged, lensChanged,
     L.registerCodeLensProvider(sel, lensProvider),
+    L.registerInlayHintsProvider(sel, cycleHintsProvider),
+    L.registerCodeActionsProvider(sel, quickFixProvider, { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }),
+    vscode.commands.registerCommand('retroAsm.toggleCycles', cmdToggleCycles),
     vscode.commands.registerCommand('retroAsm.build', () => cmdBuild(false)),
     vscode.commands.registerCommand('retroAsm.buildAndRun', () => cmdBuild(true)),
     vscode.commands.registerCommand('retroAsm.toggleAddresses', cmdToggleAddresses),
@@ -1607,7 +1660,7 @@ function activate(context) {
     vscode.workspace.onDidOpenTextDocument((doc) => { if (syncDoc(doc)) refreshEverything(); }),
     vscode.workspace.onDidChangeTextDocument((e) => {
       if (!syncDoc(e.document)) return;
-      tokensChanged.fire(); lensChanged.fire(); scheduleChecks(); scheduleAddresses(); updateStatus(); refreshPanels();
+      tokensChanged.fire(); lensChanged.fire(); hintsChanged.fire(); scheduleChecks(); scheduleAddresses(); updateStatus(); refreshPanels();
       if (sprite && e.document.uri.toString() === sprite.uri) scheduleSprite();
       if (e.contentChanges.length) buildDiagnostics.delete(e.document.uri);   // the assembler's notes go stale once the file is edited
     }),
@@ -1639,6 +1692,7 @@ function activate(context) {
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (!e.affectsConfiguration('retroAsm')) return;
       if (e.affectsConfiguration('retroAsm.showAddresses')) addressesOn = !!cfg().get('showAddresses');
+      if (e.affectsConfiguration('retroAsm.showCycles')) { cyclesOn = !!cfg().get('showCycles'); hintsChanged.fire(); }
       if (e.affectsConfiguration('retroAsm.original')) forgetSkool();
       project._touch();
       if (e.affectsConfiguration('retroAsm.dialectFolders')) loadDialects();

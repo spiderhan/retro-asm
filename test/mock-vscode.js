@@ -18,6 +18,8 @@ class CompletionItem { constructor(label,kind){this.label=label;this.kind=kind;}
 class DocumentHighlight { constructor(range,kind){this.range=range;this.kind=kind;} }
 class FoldingRange { constructor(s,e,k){ if(e<=s) throw new Error('bad fold');this.start=s;this.end=e;this.kind=k;} }
 class DocumentLink { constructor(range,target){this.range=range;this.target=target;} }
+class InlayHint { constructor(position,label,kind){this.position=position;this.label=label;this.kind=kind;} }
+class CodeAction { constructor(title,kind){this.title=title;this.kind=kind;} }
 class ThemeColor { constructor(id){this.id=id;} }
 class CodeLens { constructor(range,command){ if(!command||typeof command.title!=='string') throw new Error('lens needs a title'); this.range=range;this.command=command;} }
 class TreeItem { constructor(label,state){this.label=label;this.collapsibleState=state;} }
@@ -31,7 +33,7 @@ const docs=[];
 function makeDoc(file, languageId){ const text=fs.readFileSync(file,'utf8'); const lines=text.split(/\r?\n/); const d={isDirty:false,save:async()=>true,uri:Uri.file(file),languageId,getText:()=>text,lineCount:lines.length,lineAt:(i)=>({text:lines[i]})}; docs.push(d); return d; }
 const decorations=new Map();
 const views={};
-const api={ ThemeColor,TreeItem,ThemeIcon,Selection,TreeItemCollapsibleState:enumOf('None','Collapsed','Expanded'),TextEditorRevealType:enumOf('Default','InCenter','InCenterIfOutsideViewport','AtTop'),CodeLens,ProgressLocation:{Window:10,Notification:15}, Uri,Position,Range,Location,Hover,MarkdownString,Diagnostic,EventEmitter,SemanticTokensLegend,SemanticTokensBuilder,DocumentSymbol,SymbolInformation,CompletionItem,SnippetString,DocumentHighlight,FoldingRange,DocumentLink,WorkspaceEdit,TextEdit,TextDocumentSaveReason:{Manual:1,AfterDelay:2,FocusOut:3},
+const api={ InlayHint,CodeAction,CodeActionKind:{QuickFix:'quickfix'},ThemeColor,TreeItem,ThemeIcon,Selection,TreeItemCollapsibleState:enumOf('None','Collapsed','Expanded'),TextEditorRevealType:enumOf('Default','InCenter','InCenterIfOutsideViewport','AtTop'),CodeLens,ProgressLocation:{Window:10,Notification:15}, Uri,Position,Range,Location,Hover,MarkdownString,Diagnostic,EventEmitter,SemanticTokensLegend,SemanticTokensBuilder,DocumentSymbol,SymbolInformation,CompletionItem,SnippetString,DocumentHighlight,FoldingRange,DocumentLink,WorkspaceEdit,TextEdit,TextDocumentSaveReason:{Manual:1,AfterDelay:2,FocusOut:3},
  DiagnosticSeverity:enumOf('Error','Warning','Information','Hint'), SymbolKind:enumOf('File','Module','Namespace','Package','Class','Method','Property','Field','Constructor','Enum','Interface','Function','Variable','Constant'),
  CompletionItemKind:enumOf('Text','Method','Function','Constructor','Field','Variable','Class','Interface','Module','Property','Unit','Value','Enum','Keyword','Snippet','Color','File','Reference','Folder','EnumMember','Constant','Struct'),
  DocumentHighlightKind:enumOf('Text','Read','Write'), FoldingRangeKind:enumOf('Comment','Imports','Region'), StatusBarAlignment:enumOf('Left','Right'), ConfigurationTarget:enumOf('Global','Workspace','WorkspaceFolder'), ViewColumn:{Beside:-2,One:1},
@@ -40,5 +42,5 @@ const api={ ThemeColor,TreeItem,ThemeIcon,Selection,TreeItemCollapsibleState:enu
  languages:{ createDiagnosticCollection:(name)=>{const m=new Map();const c={name,set:(u,l)=>m.set(u.toString(),[u,l]),delete:(u)=>m.delete(u.toString()),forEach:(f)=>[...m.values()].forEach(([u,l])=>f(u,l)),get:(u)=>(m.get(u.toString())||[null,[]])[1],clear:()=>m.clear(),dispose(){}};api.__.collections.push(c);return c;} },
  commands:{ registerCommand:(n,f)=>{commands[n]=f;return{dispose(){}}}, executeCommand:async(n,...a)=>{console.log('[command]',n,String(a[0]));} },
  __:{panels:[],applyEdit:null,views,warnings:[],warnAnswer:undefined,inspect:null,decorations,collections:[],providers,commands,events,settings,makeDoc,docs} };
-for(const n of ['CodeLens','Hover','Definition','Reference','DocumentHighlight','DocumentSymbol','WorkspaceSymbol','Rename','FoldingRange','DocumentLink','DocumentSemanticTokens','CompletionItem','DocumentFormattingEdit','DocumentRangeFormattingEdit']) api.languages['register'+n+'Provider']=(...a)=>{providers[n]=n==='WorkspaceSymbol'?a[0]:a[1];return{dispose(){}}};
+for(const n of ['CodeLens','Hover','Definition','Reference','DocumentHighlight','DocumentSymbol','WorkspaceSymbol','Rename','FoldingRange','DocumentLink','DocumentSemanticTokens','CompletionItem','DocumentFormattingEdit','DocumentRangeFormattingEdit','InlayHints','CodeActions']) api.languages['register'+n+'Provider']=(...a)=>{providers[n]=n==='WorkspaceSymbol'?a[0]:a[1];return{dispose(){}}};
 module.exports=api;
