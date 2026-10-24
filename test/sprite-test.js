@@ -114,5 +114,24 @@ const ctx={extensionPath:path.join(__dirname,'..'),subscriptions:[],workspaceSta
  const t0=doc.getText();await panel.send({type:'paint',frame:5,pixels:[1,2,3]});ok('a broken message from the page changes nothing',doc.getText()===t0);
  // the tooltip uses the marker too
  const hv=F.hoverAt(P,'/x/a.a99',P.get('/x/a.a99').rawLines.findIndex(l=>l.startsWith('MAN ')),8);ok('the tooltip draws MAN as 16x16',hv&&hv.parts.some(p=>/As a picture\*\* \(16x16 sprite\)/.test(p)),hv&&hv.parts);
+ // pictures stacked straight under each other (made-up shapes): the ones below the marked one get a link too
+ {const lines=doc.getText().split('\n');const at=lines.findIndex(l=>/^\s+END\s/.test(l));
+  lines.splice(at,0,'* @sprite 8x8','STACK1 DATA >FF81,>BDA5,>A5BD,>81FF','STACK2 DATA >007E,>425A,>5A42,>7E00','STACK3 DATA >0018,>3C7E,>7E3C,>1800','STACK4 DATA >0001,>0203');
+  doc.setText(lines.join('\n'));for(const f of events.change)f({document:doc,contentChanges:[{}]});
+  const lineOf=(n)=>doc.getText().split('\n').findIndex(l=>l.startsWith(n+' '));
+  const lensAt=(n)=>lenses().filter(l=>l.range.start.line===lineOf(n)).map(l=>l.command.title);
+  ok('the marked picture still has its own link',lensAt('STACK1').some(t=>/^\$\(paintcan\) Edit picture$/.test(t)),lensAt('STACK1'));
+  ok('a picture directly below it gets a link',lensAt('STACK2').some(t=>/same shape as above/.test(t)),lensAt('STACK2'));
+  ok('... and so does the one below that',lensAt('STACK3').some(t=>/same shape as above/.test(t)),lensAt('STACK3'));
+  ok('a block that is too small for the shape gets none',lensAt('STACK4').length===0,lensAt('STACK4'));
+  const lk=lenses().find(l=>l.range.start.line===lineOf('STACK2')&&/same shape/.test(l.command.title));
+  const askedBefore=mock.window.showQuickPick;let asked=false;mock.window.showQuickPick=async()=>{asked=true;return null;};
+  await C['retroAsm.editSprite'](...lk.command.arguments);mock.window.showQuickPick=askedBefore;
+  const l3=doc.getText().split('\n');const i2=lineOf('STACK2');
+  ok('using the link adds the same @sprite line without asking',!asked&&l3[i2-1]==='* @sprite 8x8',l3.slice(i2-2,i2+1));
+  ok('... and opens that picture',api.spriteNow().title==='STACK2'&&api.spriteNow().frames.length===1);
+  ok('STACK1 is not affected',/^STACK1 /.test(l3[i2-2]),l3.slice(i2-3,i2));
+  ok('the picture above a new marker still has just one picture',lensAt('STACK1').some(t=>/^\$\(paintcan\) Edit picture$/.test(t)));
+ }
  console.log(fails?`\n${fails} FAILED`:'\nall passed');process.exit(fails?1:0);
 })().catch(e=>{console.error(e);process.exit(1);});
