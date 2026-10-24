@@ -15,6 +15,13 @@
   "registers": "upper",
   "labels": "keep"
  },
+ "lineUp": {
+  "_about": "Where each part of a line starts when you line up the code (Shift+Alt+L), counting from 0: the instruction, the operands and an end-of-line comment. A label always starts in column 0. commentGap is the fewest spaces kept before a comment when the code is too long to reach the comment column. You can change these here, or for one chip in the retroAsm.lineUpColumns setting.",
+  "instruction": 8,
+  "operands": 16,
+  "comment": 32,
+  "commentGap": 2
+ },
  "syntax": {
   "lineComment": [
    ";"

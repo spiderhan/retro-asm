@@ -111,6 +111,35 @@ Type in whatever case you like and let the extension tidy it up, so you never ne
 - **Auto-save never changes anything**, so a line is never changed while you are still typing on it. Switch the save step off with the `retroAsm.formatCaseOnSave` setting.
 - Which case each chip uses is the `caseFormat` section of its chip file (see **Adding a chip of your own**).
 
+### Lining up the columns
+
+Make the label, the instruction, the operands and the comment of every line start in the same place, so the code reads like a table. It works for all four computers.
+
+- **Shift+Alt+L** (or **Retro ASM: Line up the label, instruction, operands and comment in columns**) does it for the lines you have selected, or for the whole file if nothing is selected. It is never done by itself: not when you save, and not by Format Document.
+- A label starts at the left edge. The instruction, the operands and a comment at the end of a line each start at a set place. Each chip starts with its own layout (the number is how many characters come before it):
+
+| Chip | Instruction | Operands | Comment |
+|---|---|---|---|
+| TI-99/4A | 8 | 14 | 32 |
+| ZX Spectrum | 8 | 16 | 32 |
+| Commodore 64 | 8 | 12 | 32 |
+| BBC Micro | 4 | 12 | 32 |
+
+- If something is too long for its place (a long label, say), it keeps one space after it and the rest of the line follows on. A comment always keeps at least two spaces before it, so on the TI-99/4A the one-space comment warning goes away too.
+- **Only the spaces between the parts change.** The words, the operands (exactly as you typed them, even `R0, R1`) and the comments are copied as they were. A Tab between the parts becomes spaces.
+- **Left as they are:** blank lines, whole-line comments, `name = value` and `*=address` lines, lines with a `{` or `}`, a line that has a label followed by more statements after a colon (BeebAsm's `.loop : LDA #1`), and on the TI-99/4A a sum that carries on after a space (`LI R0,5 + 2`).
+- **Your own columns:** set `retroAsm.lineUpColumns` for the chip, listing only the numbers you want to change, for example `{ "tms9900": { "instruction": 8, "operands": 13, "comment": 30 } }`. The chips are `tms9900`, `z80`, `6502` and `bbc`. To change a chip for good, edit the `lineUp` section of its chip file (see **Adding a chip of your own**).
+- It goes well with the letter-case tidy-up (Shift+Alt+U): do them in either order.
+
+### Convert a TI-99/4A file to xas99 style
+
+For a TI-99/4A file written by hand, or for another assembler, that xas99 stops on. Press Ctrl+Shift+P and choose **Retro ASM: Convert the whole file to xas99 style (TI-99/4A)**. It always does the whole file, in one step you can undo with Ctrl+Z. It does two things, the two that the extension already warns about (see **More mistakes caught before you build**):
+
+- **Two spaces before a comment** that follows code. xas99, in its normal mode, reads a comment after a single space as part of the operands. This includes a comment stuck on straight after the operands with a `;`.
+- **No spaces next to a comma** in the operands. `MOV R0, R1` becomes `MOV R0,R1`, because xas99 stops reading at the first space.
+
+**Left as they are:** text in quotes (`TEXT 'a, b'`), whole-line comments, comments that already have two spaces or a Tab, and a sum that carries on after a space (`LI R0,5 + 2`). **Nothing else is changed**: not the letter case, not the columns (use the two tidy-ups above for those), and any other difference between assemblers (different directive names, say) is not converted. On any other chip you are told it is only for the TI-99/4A and nothing changes.
+
 ### Starter code
 
 Ready-made pieces of code, so you don't have to remember the usual start and end of a program. Two ways to use them:
@@ -439,6 +468,8 @@ The `timing` section and each instruction's `cycles` give the time in the toolti
 
 The `caseFormat` section says which letter case to use when the file is saved (see **Capitals and lower case**). Each of `instructions`, `directives`, `registers` and `labels` is `upper`, `lower` or `keep` (leave as typed). The words themselves come from the file's own `instructions`, `directives` and `registers`, so there is nothing else to list. Leave the section out and instructions and registers become capitals, while directives and labels are left as typed. `tms9900.json` changes all four; the other three chip files change instructions and registers.
 
+The `lineUp` section says where **Lining up the columns** starts each part of a line: `instruction`, `operands` and `comment` are the number of characters in front of it, and `commentGap` is the fewest spaces kept before a comment when the code is too long to reach the comment's place. A label always starts at the left edge. Leave the section out and the numbers are 8, 16, 32 and 2. Each number is a whole number from 1 to 120, `operands` must be bigger than `instruction`, and `comment` bigger than `operands`; a mistake is reported when the file is read. Your own `retroAsm.lineUpColumns` setting wins over this.
+
 The `snippets` section is the starter code (see **Starter code**). Each one is named by what you type (lower-case letters and digits only) and has a `name`, an `about` line and a `body`: the lines to put in. In the body, `${1:NAME}` is a spot to fill in (Tab moves to the next; the same number is filled in everywhere at once), `$0` is where the cursor ends up, and a real `$` (a hex number on the C64 or Spectrum) is written `\$`, which in the JSON file itself is `"\\$"`. All four built-in chip files have examples (`tms9900.json`, `z80.json`, `6502.json` and `bbc.json`).
 
 The `sprites` section lists the picture shapes for the picture editor: each has a `name`, `width` and `height`, and can have an `order` (`rows`, `columns` or `cells`), `pixelBits` (which bits of a byte make each pixel, for pixels of more than one bit), `colours` and `colourNames`, `pixelWidth` (2 for double-width pixels) and `stride` (how far apart pictures are, such as 64 for C64 sprites). `newSprite` says how to write a new picture. `6502.json` and `bbc.json` have the fullest examples.
@@ -465,6 +496,7 @@ The `sprites` section lists the picture shapes for the picture editor: each has 
 | `retroAsm.pictureLinks` | The *Edit picture* links above picture data, on or off. |
 | `retroAsm.checks` | Wavy underlines on or off. |
 | `retroAsm.formatCaseOnSave` | Change the letter case of instructions, registers and labels when you press Save (see **Capitals and lower case**). On to start with. |
+| `retroAsm.lineUpColumns` | Where Shift+Alt+L starts the instruction, the operands and the comment, for one chip, for example `{ "tms9900": { "comment": 30 } }`. Empty to start with, so each chip uses the layout in its chip file (see **Lining up the columns**). |
 | `retroAsm.hoverInComments` | Tooltips and jumping for label names inside comments, on or off. |
 | `retroAsm.original.skoolFile` | The `.skool` file of the original game (or its folder). Empty means look near the source. |
 
@@ -505,6 +537,7 @@ From the `retro-asm` folder:
 | `node test/tools-test.js` | Finding the assemblers and emulators (in the tools folder, on the PATH, and so on), and the build and emulator commands for each computer, using stand-in tools. Set `SJASMPLUS` to a real `sjasmplus` to also build a made-up Spectrum program with it. `node test/ext-test.js` runs it too. |
 | `node test/sprite-test.js` | The picture editor: the example files, every computer's way of storing pixels, numbers kept in their own style, and drawing in the editor changing the code. `node test/ext-test.js` runs it too. |
 | `node test/case-test.js` | The letter-case change: each chip's rules, what is never changed, labels, every test file giving the same warnings and no more changes on a second run, and the save, Format Document and Shift+Alt+U parts. `node test/ext-test.js` runs it too. |
+| `node test/lineup-test.js` | Lining up and the xas99 conversion: each chip's layout, what is left alone, only the spaces changing (the words, warnings and line count stay the same), a second run changing nothing, your own columns and a bad setting, and the commands. `node test/ext-test.js` runs it too. |
 | `node test/lib-test.js misc` | Prints the outline, warnings, folds and original-game addresses for the test files. |
 | `node test/real-check.js <folder>` | Runs the checks over every `.a99`, `.z80`, `.asm`, `.a80`, `.s` and `.6502` file in a folder (a finished program should give 0 warnings). |
 | `node test/beebasm-check.js file.6502 [beebasm]` | Builds the file with the real BeebAsm and compares the address of every label with ours. Give the path to `beebasm` (or set `BEEBASM`); `node test/ext-test.js` runs it too when `BEEBASM` is set. |
@@ -530,6 +563,7 @@ A short list of the big steps. The full details of every release are in `CHANGEL
 
 | Version | What it added |
 |---|---|
+| 0.19 | **Line up** the label, instruction, operands and comment in columns (Shift+Alt+L), and **convert a whole TI-99/4A file to xas99 style** |
 | 0.18 | **BBC BASIC listings (`.bas`):** colours and tooltips for machine code between `[` and `]` |
 | 0.17 | **BBC Micro:** plain-English tooltips for OS calls (`OSBYTE`, `OSWRCH`, VDU codes) and hardware numbers (`&FE20`, `&FE4E`), and warnings for 65C02 without `CPU 1`, code past a `GUARD`, OS zero page, and code in screen memory |
 | 0.16.1 | A project's own `build.bat` / `build.sh` is now told which file is the main one, and a failed build says why in the message |
@@ -550,10 +584,6 @@ A short list of the big steps. The full details of every release are in `CHANGEL
 ## Roadmap
 
 Ideas for later, roughly in the order we plan to do them. Nothing here is promised or has a date. Tick a line (`[x]`) and move it to the version history when it ships.
-
-**Next up**
-- [ ] **Line-up formatting.** Line up the label, instruction, operand and comment in set columns, for all four computers. The columns are a setting with a sensible start for each chip (the Z80 and BBC like a different layout from the TI), and comments at the end of a line keep their place. Built on the existing letter-case tidying.
-- [ ] **Convert a whole file to xas99 style (TI-99/4A).** Put two spaces before every comment and fix the other things xas99's normal mode reads differently. Builds on the 0.15 comment-spacing warning.
 
 **BBC Micro**
 - [ ] **Master and BBC B differences.** Tooltip notes where an address means something different on the Master (for example `&FE30` and `&FE34`), and a warning for Master-only operating system calls.

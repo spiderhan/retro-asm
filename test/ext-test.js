@@ -145,8 +145,8 @@ const at=(doc,needle,sub)=>{const lines=doc.getText().split(/\r?\n/);const l=lin
     fs.writeFileSync(sh,'echo "$1" > ran.txt\n');state.clear();mock.__.warnAnswer='Allow';
     r=await C['retroAsm.build']();const got=fs.existsSync(mark)?fs.readFileSync(mark,'utf8').trim():'';
     ok('a build script is given the main source file\'s name',r===true&&/\.a99$/.test(got)&&!path.isAbsolute(got),[r,got]);
-    fs.unlinkSync(mark);state.clear(); }
-  fs.writeFileSync(sh,'echo changed > ran.txt\n');fs.unlinkSync(sh);fs.unlinkSync(mark);state.clear();
+    fs.unlinkSync(mark);state.clear();mock.__.warnAnswer=undefined; }
+  fs.writeFileSync(sh,'echo changed > ran.txt\n');fs.unlinkSync(sh);if(fs.existsSync(mark))fs.unlinkSync(mark);state.clear();
   mock.__.inspect=(k)=>k==='build.askFirst'?{globalValue:false}:undefined;
   fs.writeFileSync(sh,'echo ran > ran.txt\n');r=await C['retroAsm.build']();ok('askFirst off in your own settings: no question',r===true&&fs.existsSync(mark));
   mock.__.inspect=(k)=>k==='build.askFirst'?{workspaceValue:false}:undefined;state.clear();fs.unlinkSync(mark);
@@ -441,5 +441,6 @@ const at=(doc,needle,sub)=>{const lines=doc.getText().split(/\r?\n/);const l=lin
  {const r=require('child_process').spawnSync(process.execPath,[path.join(__dirname,'os-test.js')],{encoding:'utf8'});const bad=(r.stdout||'').split('\n').filter(l=>l.startsWith('FAIL'));ok('BBC tooltips and warnings (test/os-test.js)',r.status===0,bad.length?bad:(r.stderr||'').slice(0,500));}
  {const r=require('child_process').spawnSync(process.execPath,[path.join(__dirname,'basic-test.js')],{encoding:'utf8'});const bad=(r.stdout||'').split('\n').filter(l=>l.startsWith('FAIL'));ok('BBC BASIC [ ] listings (test/basic-test.js)',r.status===0,bad.length?bad:(r.stderr||'').slice(0,500));}
  {const r=require('child_process').spawnSync(process.execPath,[path.join(__dirname,'case-test.js')],{encoding:'utf8'});const bad=(r.stdout||'').split('\n').filter(l=>l.startsWith('FAIL'));ok('letter case tests (test/case-test.js)',r.status===0,bad.length?bad:(r.stderr||'').slice(0,500));}
+ {const r=require('child_process').spawnSync(process.execPath,[path.join(__dirname,'lineup-test.js')],{encoding:'utf8'});const bad=(r.stdout||'').split('\n').filter(l=>l.startsWith('FAIL'));ok('line-up and convert-to-xas99 tests (test/lineup-test.js)',r.status===0,bad.length?bad:(r.stderr||'').slice(0,500));}
  console.log(fails?`\n${fails} FAILED`:'\nall passed');process.exit(fails?1:0);
 })().catch(e=>{console.error(e);process.exit(1);});

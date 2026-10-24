@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.19.0
+
+Two tidy-ups: **line up the columns** for all four computers, and **convert a whole TI-99/4A file to xas99 style**. Both were on the roadmap.
+
+- **Line up the columns (Shift+Alt+L).** Puts the label, the instruction, the operands and a comment at the end of a line into set columns, for the lines you have selected or the whole file. A label starts at the left edge; the other three start at a place set per chip: TI-99/4A 8, 14 and 32, ZX Spectrum 8, 16 and 32, Commodore 64 8, 12 and 32, BBC Micro 4, 12 and 32 (the number of characters in front). A comment keeps at least two spaces before it, so the TI-99/4A one-space comment warning goes away too.
+- **Only the spaces change.** The words, the operands (as typed, even `R0, R1`) and the comments are copied as they were. Left as they are: blank lines, whole-line comments, `name = value` and `*=address` lines, lines with `{` or `}`, a BeebAsm line with a label followed by more statements after a colon, and on the TI-99/4A a sum that carries on after a space (`LI R0,5 + 2`). A label too long for its place keeps one space and the rest follows on.
+- **The columns are a setting with a start for each chip.** The start is a new `lineUp` section in each chip file (`instruction`, `operands`, `comment`, `commentGap`; checked when the file is read, with a clear message for a mistake). The new `retroAsm.lineUpColumns` setting changes any of them for one chip (`{ "tms9900": { "comment": 30 } }`). `templates/new-dialect.json` has the section too.
+- **Not done by itself.** Lining up does not run when you save, and Format Document and Format Selection still only change the letter case.
+- **Convert to xas99 style (TI-99/4A).** A new command in Ctrl+Shift+P, **Retro ASM: Convert the whole file to xas99 style (TI-99/4A)**, for the whole file in one undo step. It puts two spaces before every comment that follows code (also one stuck on after a `;`), and takes out spaces next to a comma in the operands (`MOV R0, R1` becomes `MOV R0,R1`). Text in quotes, whole-line comments, comments that already have two spaces or a Tab, and a sum that carries on (`LI R0,5 + 2`) are not touched. Nothing else is converted: other differences between assemblers are not covered. On any other chip it says so and changes nothing.
+- New tests in `test/lineup-test.js` (run by `test/ext-test.js` too), using made-up code. They also check that every file in `test/fixtures` keeps the same words, the same warnings and the same number of lines after either change, and that a second run changes nothing.
+- Fixed two mistakes in `test/ext-test.js` (found while running it): a file was deleted twice, which stopped the run before it got to the later tests, and an answer of "Allow" was left switched on for the next check.
+- The 0.18.0 `.vsix` and older are left alone.
+
 ## 0.18.0
 
 New: **BBC BASIC listings (`.bas`)**. Machine code written between `[` and `]` in a BASIC program now gets colours and tooltips.

@@ -56,9 +56,10 @@ On a Mac, use Cmd instead of Ctrl.
 | **Ctrl+Alt+A** | Show or hide each line's memory address |
 | **Ctrl+Alt+T** | Show or hide how many cycles each line takes |
 | **Shift+Alt+U** | Tidy the letter case (instructions, registers, labels), so you never need Caps Lock |
+| **Shift+Alt+L** | Line up the label, instruction, operands and comment in columns |
 | **F12** / **Shift+F12** | Go to where a label is defined / find where it is used |
 
-Everything else is in **Ctrl+Shift+P**: type `Retro ASM`. Useful ones: **Show the cheat sheet for this chip**, **Insert starter code**, **New picture here** (draw sprites with the mouse), **Switch chip**.
+Everything else is in **Ctrl+Shift+P**: type `Retro ASM`. Useful ones: **Show the cheat sheet for this chip**, **Insert starter code**, **New picture here** (draw sprites with the mouse), **Switch chip**, and (TI-99/4A only) **Convert the whole file to xas99 style**.
 
 ## 5. Find your way around
 
