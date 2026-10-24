@@ -2,7 +2,7 @@
   "name": "retro-asm",
   "displayName": "Retro Assembly Helper",
   "description": "Plain-English tooltips, colours and jump-around navigation for retro assembly: TMS9900 (TI-99/4A, xas99), 6502 (Commodore 64, KickAssembler; BBC Micro, BeebAsm) and Z80 (ZX Spectrum, sjasmplus). Other chips are added as data files.",
-  "version": "0.14.2",
+  "version": "0.15.0",
   "publisher": "hanmade",
   "repository": {
     "type": "git",
@@ -133,6 +133,10 @@
         "command": "retroAsm.toggleAddresses",
         "title": "Retro ASM: Show or hide memory addresses beside the code",
         "icon": "$(list-ordered)"
+      },
+      {
+        "command": "retroAsm.toggleCycles",
+        "title": "Retro ASM: Show or hide cycle counts beside the code"
       },
       {
         "command": "retroAsm.explainSelection",
@@ -315,6 +319,12 @@
         "when": "editorTextFocus && editorLangId == retroasm"
       },
       {
+        "command": "retroAsm.toggleCycles",
+        "key": "ctrl+alt+t",
+        "mac": "cmd+alt+t",
+        "when": "editorTextFocus && editorLangId == retroasm"
+      },
+      {
         "command": "retroAsm.changeCase",
         "key": "shift+alt+u",
         "when": "editorTextFocus && editorLangId == retroasm"
@@ -370,6 +380,11 @@
           "type": "boolean",
           "default": false,
           "description": "Show each line's memory address down the left of the code. Ctrl+Alt+A switches it on and off."
+        },
+        "retroAsm.showCycles": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Show how many clock cycles each instruction takes, in small grey text at the end of its line (for example `14 cycles`, `2/3 cycles` for a jump that may or may not be taken, or `4+ cycles` when it can take longer). Hover the note for the full explanation. Ctrl+Alt+T switches it on and off. VS Code's own `editor.inlayHints.enabled` setting must not be `off`."
         },
         "retroAsm.loadAddress": {
           "type": "string",

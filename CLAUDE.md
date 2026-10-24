@@ -33,6 +33,7 @@ Keep new logic in `lib/` so it can be tested without VS Code. Keep `extension.js
 - **Easy to install.** Anything the extension needs (snippets, templates, icons) ships inside it. No extra setup for the user.
 - **No other extensions needed.** For example, the case formatter is built in.
 - **Don't commit or push to GitHub unless Ian asks.** The repo is private for now.
+- **One branch per version.** Every new version gets its own new branch, named `release/<version>` (for example `release/0.14.2`), made before the first change for that version. Never keep adding new versions to an old release branch. If the branch name and the version in `package.json` ever disagree, say so.
 
 ## Checks
 
