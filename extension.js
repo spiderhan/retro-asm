@@ -770,6 +770,7 @@ function pictureLenses(doc, file) {
   const out = [];
   const marked = SPR.markedBlocks(project, file, A.dataBlock);
   const done = new Set();
+  const endsAt = new Map();   // last line of a picture block -> its @sprite shape, so a block right below it can borrow the shape
   for (const m of marked) {
     done.add(m.line);
     const blk = A.dataBlock(project, file, m.line);
@@ -778,6 +779,7 @@ function pictureLenses(doc, file) {
     const args = [doc.uri.toString(), m.line];
     if (pic.error) { out.push(new vscode.CodeLens(range, { title: '$(warning) Picture: ' + pic.error, command: 'retroAsm.editSprite', arguments: args })); continue; }
     const n = pic.frames.length;
+    endsAt.set(blk.endLine, m.spec);
     out.push(new vscode.CodeLens(range, { title: `$(paintcan) Edit picture`, tooltip: 'Open the picture editor for these lines', command: 'retroAsm.editSprite', arguments: args }));
     out.push(new vscode.CodeLens(range, { title: `${pic.shape.name}${n > 1 ? `, ${n} pictures` : ''}${pic.editable ? '' : ' (look only)'}`, command: '' }));
   }
@@ -795,12 +797,27 @@ function pictureLenses(doc, file) {
     if (!pl.label && prev && prev.mnem) continue;
     const top = !pl.label && prev && prev.label ? ln - 1 : ln;          // a label on its own line just above
     const name = model.lines[top].label && model.lines[top].label.name;
-    if (!A.pictureHint(name, model.docAbove(top).join(' ') + ' ' + model.trailingComment(top) + ' ' + model.trailingComment(ln))) continue;
+    // a block right below a picture (only blank or comment lines between) is probably another picture of the same shape
+    let above = null;
+    if (model.lines[top].label && !done.has(top)) {
+      let k = top - 1;
+      while (k >= 0 && !model.lines[k].mnem && !model.lines[k].label) k--;
+      if (k >= 0 && endsAt.has(k)) above = endsAt.get(k);
+    }
+    const hinted = A.pictureHint(name, model.docAbove(top).join(' ') + ' ' + model.trailingComment(top) + ' ' + model.trailingComment(ln));
+    if (!hinted && !above) continue;
     const blk = A.dataBlock(project, file, ln);
     if (!blk) continue;
     skipTo = blk.endLine;
-    if (done.has(blk.labelLine) || !A.looksLikePicture(blk)) continue;
-    out.push(new vscode.CodeLens(new vscode.Range(blk.labelLine, 0, blk.labelLine, 0), { title: '$(paintcan) Edit as a picture?', tooltip: 'Choose a shape for these bytes and open the picture editor', command: 'retroAsm.editSprite', arguments: [doc.uri.toString(), blk.labelLine] }));
+    if (done.has(blk.labelLine)) continue;
+    const range = new vscode.Range(blk.labelLine, 0, blk.labelLine, 0);
+    if (!hinted && above && SPR.frameCount(blk.bytes.length, SPR.shapeFor(model.D, above)) > 0) {
+      endsAt.set(blk.endLine, above);   // so a third picture below can borrow it too
+      out.push(new vscode.CodeLens(range, { title: '$(paintcan) Edit picture (same shape as above)?', tooltip: `Adds a "@sprite ${above}" line above these bytes, then opens the picture editor`, command: 'retroAsm.editSprite', arguments: [doc.uri.toString(), blk.labelLine, above] }));
+      continue;
+    }
+    if (!hinted || !A.looksLikePicture(blk)) continue;
+    out.push(new vscode.CodeLens(range, { title: '$(paintcan) Edit as a picture?', tooltip: 'Choose a shape for these bytes and open the picture editor', command: 'retroAsm.editSprite', arguments: [doc.uri.toString(), blk.labelLine] }));
   }
   return out;
 }
@@ -831,7 +848,7 @@ async function pickShape(D, length) {
 }
 
 /** Retro ASM: Edit these bytes as a picture. From a link (uri, line) or the cursor. */
-async function cmdEditSprite(uri, line) {
+async function cmdEditSprite(uri, line, knownSpec) {
   let doc = uri ? docFor(uri) : null;
   if (!doc) { const ed = vscode.window.activeTextEditor; if (!ed || !isOurs(ed.document)) { vscode.window.showInformationMessage('Open an assembly file and put the cursor on BYTE or DATA lines to edit them as a picture.'); return false; } doc = ed.document; line = (ed.selection.active || ed.selection.start).line; }
   const model = modelFor(doc);
@@ -851,7 +868,7 @@ async function cmdEditSprite(uri, line) {
   let mark = SPR.markerFor(model, blk.labelLine, blk.firstLine);
   let at = blk.labelLine;
   if (!mark) {
-    const spec = await pickShape(model.D, blk.bytes.length);
+    const spec = knownSpec || await pickShape(model.D, blk.bytes.length);
     if (!spec) return false;
     // remember the choice in the code, so the link and the tooltip know it too
     const we = new vscode.WorkspaceEdit();

@@ -191,7 +191,7 @@ An **Edit picture** link then appears above the block. Click it and the picture 
 
 If a block uses a name or a sum instead of a plain number (`BYTE FULL,>81`), the editor shows it but won't change it, and says why.
 
-**No marker yet?** A block whose name or comments say it's a drawing (`PAT_...`, "sprite", "drawing" and so on) gets an **Edit as a picture?** link. Click it, pick a shape, and the `@sprite` line is added for you. You can also right-click any data lines and choose **Retro ASM: Edit these bytes as a picture**, or choose **Retro ASM: New picture here** to put a new, empty picture at the cursor.
+**No marker yet?** A block whose name or comments say it's a drawing (`PAT_...`, "sprite", "drawing" and so on) gets an **Edit as a picture?** link. Click it, pick a shape, and the `@sprite` line is added for you. **A picture right below another one** gets an **Edit picture (same shape as above)?** link. Click it and the same `@sprite` line is added above it, with no question asked. You can also right-click any data lines and choose **Retro ASM: Edit these bytes as a picture**, or choose **Retro ASM: New picture here** to put a new, empty picture at the cursor.
 
 **A blank picture, quickly:** on an empty line, type `sprite` (in lower case) and pick a size from the suggestions: `sprite 8x8`, `sprite 16x16` and the computer's other shapes. An empty picture goes in, already marked and named (`SPR1`, `sprite1`... whichever is free), with the name selected so you can type over it; Tab moves on. For a size that isn't listed, type it on the end: `sprite24x16`. **sprite ...** opens **New picture here**, which also asks how many frames.
 

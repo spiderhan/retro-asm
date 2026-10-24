@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.13.1
+
+Fix: **a picture directly below another one now gets an Edit picture link.**
+
+- Before, only the first of two pictures stacked one under the other (with nothing between them) had the link. The `@sprite` line only marks the block just under it, and the second one had no marker of its own.
+- Now a block that sits right below a picture (blank lines and comments between are fine) gets **Edit picture (same shape as above)?** when its bytes fit that shape. Clicking it adds the same `@sprite` line above it and opens it, without asking for a shape. A third one below that gets the link too.
+- A block whose name or comments say it is a drawing keeps the old **Edit as a picture?** link, and the shape question.
+- New tests in `test/sprite-test.js`, using made-up code.
 ## 0.13.0
 
 New: **change the letter case, so you never need Caps Lock.**
