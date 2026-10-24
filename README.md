@@ -142,6 +142,7 @@ Every chip warns when a short jump or branch can't reach its label (`JR`/`DJNZ` 
 - `BL` inside a routine that returns with `B *R11` but never saved R11.
 - A label that lands on an odd address when code or `DATA` follows (a missing `EVEN`), and whole-word instructions aimed at an odd address.
 - A space after a comma in the operands, which xas99 rejects.
+- **A comment with only one space before it** (`LI R0,>10 * set up`). xas99, in its normal mode, reads the text after a single space as part of the operands and stops with an error such as *Unknown symbol*. Two or more spaces, a Tab, or a `;` all end the operands properly. The warning underlines the one space and offers a quick fix (click the light bulb, or press Ctrl+.) that adds the second space. Instructions with no operands (`RT * done`) and comments that carry on a sum (`LI R0,5 + 2`) are left alone. Only the TI-99/4A chip does this, because the other assemblers read comments differently.
 - A blue note when the comment above a routine says "Uses R0, R1" but the code also changes another register.
 
 ### Addresses and sizes
@@ -162,6 +163,8 @@ The tooltip for an instruction, and **This line** in the side panel, say how man
 - **TI-99/4A (TMS9900):** the time depends on where things are in memory. The console ROM and the 256 bytes at `>8300` are fast. The 32K expansion, cartridges and the video and sound chips are slow, and each read or write there adds 4 cycles. So `MOV @X,@Y` says *30 cycles, plus up to 24 more in slow memory (it reads or writes memory 6 times; each slow one adds 4)*.
 - How fast each machine goes: C64 about 1 million cycles a second, BBC 2 million, TI-99/4A 3 million, Spectrum 3.5 million. The cheat sheet says this too.
 - Checked against: the 6502 data sheet and py65 (6502), SkoolKit's Z80 simulator (every way of writing every Z80 instruction) and the TMS9900 data manual.
+
+**Cycle counts beside the code.** Switch on `retroAsm.showCycles` (or press **Ctrl+Alt+T** / Cmd+Alt+T) and every instruction line gets a small grey note at its end: `12+ cycles`, `4+ cycles`, `2/3 cycles`. A plain number is the time. A **+** means it can take longer (on the TI, when the memory is slow; on the 6502, when an address crosses into the next page). Two numbers with a slash are the two times the instruction can take, for a jump or a repeat (the hover says which is which). Hover the note for the full sentence that the instruction's tooltip gives. It starts off, because it adds a note to every line. VS Code's own `editor.inlayHints.enabled` must not be `off`.
 
 ### A summary above each routine
 
@@ -414,6 +417,7 @@ The `sprites` section lists the picture shapes for the picture editor: each has 
 | `retroAsm.build.askFirst` | Ask before running a build script, tool or command that comes from the project. On to start with. Only your own user settings can switch it off, never a project. |
 | `retroAsm.loadAddress` | Where the program loads (hex). Empty means the chip's usual place. |
 | `retroAsm.showAddresses` | Addresses beside the code, on or off. |
+| `retroAsm.showCycles` | Cycle counts beside the code, on or off. Off to start with. |
 | `retroAsm.routineSummaries` | The summary line above each routine, on or off. |
 | `retroAsm.pictures` | Pictures in tooltips: `auto`, `always` or `never`. `never` also hides the *Edit as a picture?* links. |
 | `retroAsm.pictureLinks` | The *Edit picture* links above picture data, on or off. |
@@ -483,6 +487,7 @@ A short list of the big steps. The full details of every release are in `CHANGEL
 
 | Version | What it added |
 |---|---|
+| 0.15 | A warning for a **comment with only one space before it** (xas99 reads it as part of the operands), and **cycle counts** shown beside each line |
 | 0.14 | A **Registers** section in the side panel: what is in each register at the line you are on |
 | 0.13 | Change the **letter case** of instructions, registers and labels (so you never need Caps Lock) |
 | 0.11 | The **picture editor**: draw sprites and characters with the mouse and the numbers in your code change to match |

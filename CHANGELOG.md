@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.15.0
+
+Two new helps, both found by comparing with other VS Code extensions for the same computers.
+
+- **New warning for a comment with only one space before it** (TI-99/4A). In its normal mode, xas99 reads `LI R0,>10 * set up` as one long operand and stops with an error such as *Unknown symbol: SET UP*. Two or more spaces, a Tab or a `;` are fine, and so are instructions with no operands (`RT * done`). The one space is underlined, and a quick fix (the light bulb, or Ctrl+.) adds the second space. Checked against xas99 3.6.5: the same lines that are warned about fail to assemble, and the fixed lines assemble.
+- **Cycle counts beside each line.** A new setting, `retroAsm.showCycles` (off to start with), and a new command, **Retro ASM: Show or hide cycle counts beside the code** (Ctrl+Alt+T / Cmd+Alt+T), put a small grey note at the end of every instruction line: `12+ cycles`, `4+ cycles`, `2/3 cycles`. Hover it for the full explanation. It uses the same numbers as the tooltips and the side panel. Works for all four computers.
+- A chip file can turn the new warning on with `"oneSpaceComment": true` in its `checks` section (the TI-99/4A one does).
+- New tests in `test/spacing-test.js` (run by `test/ext-test.js` too), using made-up code. The test stand-in for VS Code now knows about inline notes and quick fixes.
+- The 0.14.x `.vsix` files are left alone.
+
 ## 0.14.2
 
 Documentation only; the extension works exactly as before.
