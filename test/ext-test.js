@@ -141,6 +141,11 @@ const at=(doc,needle,sub)=>{const lines=doc.getText().split(/\r?\n/);const l=lin
   mock.__.warnAnswer='Allow';r=await C['retroAsm.build']();ok('it runs once you allow it',r===true&&fs.existsSync(mark),r);
   fs.unlinkSync(mark);mock.__.warnings.length=0;mock.__.warnAnswer=undefined;
   r=await C['retroAsm.build']();ok('and you are not asked again',r===true&&fs.existsSync(mark)&&!mock.__.warnings.some(w=>/wants to run/.test(w)),[r,mock.__.warnings]);
+  { // the script is told which file is the main one, so a folder with several source files works
+    fs.writeFileSync(sh,'echo "$1" > ran.txt\n');state.clear();mock.__.warnAnswer='Allow';
+    r=await C['retroAsm.build']();const got=fs.existsSync(mark)?fs.readFileSync(mark,'utf8').trim():'';
+    ok('a build script is given the main source file\'s name',r===true&&/\.a99$/.test(got)&&!path.isAbsolute(got),[r,got]);
+    fs.unlinkSync(mark);state.clear(); }
   fs.writeFileSync(sh,'echo changed > ran.txt\n');fs.unlinkSync(sh);fs.unlinkSync(mark);state.clear();
   mock.__.inspect=(k)=>k==='build.askFirst'?{globalValue:false}:undefined;
   fs.writeFileSync(sh,'echo ran > ran.txt\n');r=await C['retroAsm.build']();ok('askFirst off in your own settings: no question',r===true&&fs.existsSync(mark));

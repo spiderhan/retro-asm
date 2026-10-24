@@ -1292,7 +1292,9 @@ async function cmdBuild(andRun) {
     if (failed) {
       output.show(true);
       if (errors) vscode.commands.executeCommand('workbench.actions.view.problems');
-      vscode.window.showErrorMessage(errors ? `Build failed: ${errors} error${errors === 1 ? '' : 's'}. They are underlined in the code and listed in the Problems panel.` : 'Build failed. See the "Retro ASM" output panel for what the build said.');
+      // with nothing to underline, say what the build said, rather than only pointing at the output panel
+      const tail = result.text.split(/\r?\n/).map(l => l.trim()).filter(l => l && !/^BUILD FAILED/i.test(l)).slice(-3).join(' / ').slice(0, 300);
+      vscode.window.showErrorMessage(errors ? `Build failed: ${errors} error${errors === 1 ? '' : 's'}. They are underlined in the code and listed in the Problems panel.` : `Build failed${tail ? ': ' + tail : '.'} (The full text is in the "Retro ASM" output panel.)`);
       return false;
     }
     vscode.window.setStatusBarMessage(`$(check) Built ${B.tiName(root)}${warnings ? ` (${warnings} warning${warnings === 1 ? '' : 's'})` : ''}`, 6000);
