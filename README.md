@@ -549,12 +549,31 @@ A short list of the big steps. The full details of every release are in `CHANGEL
 
 ## Roadmap
 
-Ideas for later. Nothing here is promised or has a date.
+Ideas for later, roughly in the order we plan to do them. Nothing here is promised or has a date. Tick a line (`[x]`) and move it to the version history when it ships.
 
-- **BBC BASIC: addresses.** Work out where the `[ ]` code lands when `P%` (or `O%`) is set to a plain number, so tooltips can show addresses, and follow `DIM` blocks where that is possible.
-- **BBC BASIC: checks.** Warn about a label used but never defined, a missing `OPT` pass, or a `]` with no `[`, as the other chips do for their own code.
-- **BBC BASIC: more of the language.** Read the BASIC around the assembly (procedures, variables) for go to definition, and read tokenised BBC BASIC files (the binary form saved by the BBC itself), not only text listings.
-- **Game Boy.** A fifth chip, written the way of RGBDS. It is close to the Z80, so the Z80 chip file is the starting point (see **Adding a chip of your own**).
+**Next up**
+- [ ] **Line-up formatting.** Line up the label, instruction, operand and comment in set columns, for all four computers. The columns are a setting with a sensible start for each chip (the Z80 and BBC like a different layout from the TI), and comments at the end of a line keep their place. Built on the existing letter-case tidying.
+- [ ] **Convert a whole file to xas99 style (TI-99/4A).** Put two spaces before every comment and fix the other things xas99's normal mode reads differently. Builds on the 0.15 comment-spacing warning.
+
+**BBC Micro**
+- [ ] **Master and BBC B differences.** Tooltip notes where an address means something different on the Master (for example `&FE30` and `&FE34`), and a warning for Master-only operating system calls.
+- [ ] **Macros, `COPYBLOCK`, `CLEAR` and `-D` names.** Give labels inside a macro their addresses, and follow these four so the layout matches BeebAsm. They are known now but do not change the layout.
+- [ ] **A source-file list and a `!BOOT` file** for builds that need no emulator.
+- [ ] **BBC BASIC: addresses.** Work out where the `[ ]` code lands when `P%` (or `O%`) is set to a plain number, so tooltips can show addresses, and follow `DIM` blocks where that is possible.
+- [ ] **BBC BASIC: checks.** Warn about a label used but never defined, a missing `OPT` pass, or a `]` with no `[`, as the other chips do for their own code.
+- [ ] **BBC BASIC: more of the language.** Read the BASIC around the assembly (procedures, variables) for go to definition, and read tokenised BBC BASIC files (the binary form saved by the BBC itself), not only text listings.
+
+**Building and projects**
+- [ ] **Several named build targets.** A list of builds per project, with a key to switch between them, instead of one build command.
+- [ ] **New and imported projects.** Commands to start a project from a template, or to bring in existing source.
+
+**Bigger jobs**
+- [ ] **An emulator and debugger inside VS Code.** Run the program in a tab, with breakpoints, stepping and watching labels and memory. The biggest gap against other extensions, and the biggest piece of work. It would have to be built in, since the extension must not need other extensions.
+- [ ] **Game Boy.** A fifth chip, written the way of RGBDS. It is close to the Z80, so the Z80 chip file is the starting point (see **Adding a chip of your own**).
+
+**Probably not worth doing**
+- TI BASIC, Extended BASIC and GPL file types (recognising them only).
+- More emulators and build outputs such as MAME, js99er, cartridge and disk files. Those belong to the build tool, not to a reading and writing helper.
 
 ## Licence
 
