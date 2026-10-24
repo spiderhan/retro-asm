@@ -477,6 +477,30 @@ npm run test:vscode
 
 The test files in `test/fixtures` are made up (a small "Crystal Rover" program, a paddle demo, a short `.skool` file, a C64 "Star Hopper" program, a Spectrum "catch the star" toy and a BBC Micro "stars" demo), not taken from any real game.
 
+## Version history
+
+A short list of the big steps. The full details of every release are in `CHANGELOG.md`.
+
+| Version | What it added |
+|---|---|
+| 0.14 | A **Registers** section in the side panel: what is in each register at the line you are on |
+| 0.13 | Change the **letter case** of instructions, registers and labels (so you never need Caps Lock) |
+| 0.11 | The **picture editor**: draw sprites and characters with the mouse and the numbers in your code change to match |
+| 0.9 - 0.10 | **Starter code** (snippets) for all four computers |
+| 0.8 | How long each instruction takes (**clock cycles**) |
+| 0.7 | **BBC Micro** (6502 / 65C02, BeebAsm) |
+| 0.5 | The **ZX Spectrum** (Z80) does everything the other chips do |
+| 0.4 | **Commodore 64** (6502, KickAssembler) |
+| 0.3 | Side by side with an original game's SkoolKit disassembly |
+| 0.2 | **Build** and **build and run**, with the assembler's errors underlined |
+| 0.1 | First version: TI-99/4A (TMS9900) |
+
+## Roadmap
+
+Ideas for later. Nothing here is promised or has a date.
+
+- **Game Boy.** A fifth chip, written the way of RGBDS. It is close to the Z80, so the Z80 chip file is the starting point (see **Adding a chip of your own**).
+
 ## Licence
 
 MIT. See `LICENSE`: anyone may use, change and share the code, as long as the licence notice stays with it.

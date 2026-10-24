@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.14.2
+
+Documentation only; the extension works exactly as before.
+
+- The README now has a short **Version history** table and a **Roadmap** (first idea: a Game Boy chip).
+
 ## 0.14.1
 
 Fix: **end-of-text labels no longer show up as routines.**
