@@ -5,6 +5,13 @@
   "fileExtensions": [".a99"],
   "about": "The 16-bit chip inside the TI-99/4A. Written for the xas99 assembler.",
 
+  "caseFormat": {
+    "_about": "Which letter case each part is changed to when you save (or press Shift+Alt+U): upper, lower or keep (leave as typed). Numbers, comments and text in quotes are never changed.",
+    "instructions": "upper",
+    "directives": "upper",
+    "registers": "upper",
+    "labels": "upper"
+  },
   "syntax": {
     "lineComment": [";"],
     "col0Comment": ["*"],

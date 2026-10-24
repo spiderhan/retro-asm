@@ -8,6 +8,13 @@
   ".6502"
  ],
  "about": "The 8-bit chip in the Commodore 64 (a 6510, which is a 6502 with an extra port), and in the BBC Micro, Apple II, Atari 8-bit and NES. Written the KickAssembler way, with the C64's memory and chips explained.",
+ "caseFormat": {
+  "_about": "Which letter case each part is changed to when you save (or press Shift+Alt+U): upper, lower or keep (leave as typed). Numbers, comments and text in quotes are never changed.",
+  "instructions": "upper",
+  "directives": "keep",
+  "registers": "upper",
+  "labels": "keep"
+ },
  "syntax": {
   "lineComment": [
    "//"

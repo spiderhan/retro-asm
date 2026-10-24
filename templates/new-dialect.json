@@ -28,6 +28,14 @@
     "lowByteName": "low byte"
   },
 
+  "caseFormat": {
+    "_help": "Which letter case each part is changed to when the file is saved (or Shift+Alt+U is pressed): upper, lower or keep (leave as typed). The words come from this file's instructions, directives and registers. Delete this section to use the defaults (instructions and registers upper, directives and labels kept).",
+    "instructions": "upper",
+    "directives": "keep",
+    "registers": "upper",
+    "labels": "keep"
+  },
+
   "registers": {
     "names": ["A", "X", "Y"],
     "about": "One line about what a register is on this chip.",

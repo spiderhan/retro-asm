@@ -19,6 +19,7 @@ const SP = require('./lib/panel');
 const PH = require('./lib/panel-html');
 const SPR = require('./lib/sprites');
 const SH = require('./lib/sprite-html');
+const CF = require('./lib/caseformat');
 
 const LANG = 'retroasm';
 const NOTES_FILE = 'asm-notes.json';
@@ -769,6 +770,7 @@ function pictureLenses(doc, file) {
   const out = [];
   const marked = SPR.markedBlocks(project, file, A.dataBlock);
   const done = new Set();
+  const endsAt = new Map();   // last line of a picture block -> its @sprite shape, so a block right below it can borrow the shape
   for (const m of marked) {
     done.add(m.line);
     const blk = A.dataBlock(project, file, m.line);
@@ -777,6 +779,7 @@ function pictureLenses(doc, file) {
     const args = [doc.uri.toString(), m.line];
     if (pic.error) { out.push(new vscode.CodeLens(range, { title: '$(warning) Picture: ' + pic.error, command: 'retroAsm.editSprite', arguments: args })); continue; }
     const n = pic.frames.length;
+    endsAt.set(blk.endLine, m.spec);
     out.push(new vscode.CodeLens(range, { title: `$(paintcan) Edit picture`, tooltip: 'Open the picture editor for these lines', command: 'retroAsm.editSprite', arguments: args }));
     out.push(new vscode.CodeLens(range, { title: `${pic.shape.name}${n > 1 ? `, ${n} pictures` : ''}${pic.editable ? '' : ' (look only)'}`, command: '' }));
   }
@@ -794,12 +797,27 @@ function pictureLenses(doc, file) {
     if (!pl.label && prev && prev.mnem) continue;
     const top = !pl.label && prev && prev.label ? ln - 1 : ln;          // a label on its own line just above
     const name = model.lines[top].label && model.lines[top].label.name;
-    if (!A.pictureHint(name, model.docAbove(top).join(' ') + ' ' + model.trailingComment(top) + ' ' + model.trailingComment(ln))) continue;
+    // a block right below a picture (only blank or comment lines between) is probably another picture of the same shape
+    let above = null;
+    if (model.lines[top].label && !done.has(top)) {
+      let k = top - 1;
+      while (k >= 0 && !model.lines[k].mnem && !model.lines[k].label) k--;
+      if (k >= 0 && endsAt.has(k)) above = endsAt.get(k);
+    }
+    const hinted = A.pictureHint(name, model.docAbove(top).join(' ') + ' ' + model.trailingComment(top) + ' ' + model.trailingComment(ln));
+    if (!hinted && !above) continue;
     const blk = A.dataBlock(project, file, ln);
     if (!blk) continue;
     skipTo = blk.endLine;
-    if (done.has(blk.labelLine) || !A.looksLikePicture(blk)) continue;
-    out.push(new vscode.CodeLens(new vscode.Range(blk.labelLine, 0, blk.labelLine, 0), { title: '$(paintcan) Edit as a picture?', tooltip: 'Choose a shape for these bytes and open the picture editor', command: 'retroAsm.editSprite', arguments: [doc.uri.toString(), blk.labelLine] }));
+    if (done.has(blk.labelLine)) continue;
+    const range = new vscode.Range(blk.labelLine, 0, blk.labelLine, 0);
+    if (!hinted && above && SPR.frameCount(blk.bytes.length, SPR.shapeFor(model.D, above)) > 0) {
+      endsAt.set(blk.endLine, above);   // so a third picture below can borrow it too
+      out.push(new vscode.CodeLens(range, { title: '$(paintcan) Edit picture (same shape as above)?', tooltip: `Adds a "@sprite ${above}" line above these bytes, then opens the picture editor`, command: 'retroAsm.editSprite', arguments: [doc.uri.toString(), blk.labelLine, above] }));
+      continue;
+    }
+    if (!hinted || !A.looksLikePicture(blk)) continue;
+    out.push(new vscode.CodeLens(range, { title: '$(paintcan) Edit as a picture?', tooltip: 'Choose a shape for these bytes and open the picture editor', command: 'retroAsm.editSprite', arguments: [doc.uri.toString(), blk.labelLine] }));
   }
   return out;
 }
@@ -830,7 +848,7 @@ async function pickShape(D, length) {
 }
 
 /** Retro ASM: Edit these bytes as a picture. From a link (uri, line) or the cursor. */
-async function cmdEditSprite(uri, line) {
+async function cmdEditSprite(uri, line, knownSpec) {
   let doc = uri ? docFor(uri) : null;
   if (!doc) { const ed = vscode.window.activeTextEditor; if (!ed || !isOurs(ed.document)) { vscode.window.showInformationMessage('Open an assembly file and put the cursor on BYTE or DATA lines to edit them as a picture.'); return false; } doc = ed.document; line = (ed.selection.active || ed.selection.start).line; }
   const model = modelFor(doc);
@@ -850,7 +868,7 @@ async function cmdEditSprite(uri, line) {
   let mark = SPR.markerFor(model, blk.labelLine, blk.firstLine);
   let at = blk.labelLine;
   if (!mark) {
-    const spec = await pickShape(model.D, blk.bytes.length);
+    const spec = knownSpec || await pickShape(model.D, blk.bytes.length);
     if (!spec) return false;
     // remember the choice in the code, so the link and the tooltip know it too
     const we = new vscode.WorkspaceEdit();
@@ -1439,6 +1457,49 @@ function onPanelMessage(msg) {
 }
 
 // ---------------------------------------------------------------------------
+// letter case: instructions, directives, registers and labels (as the chip file says)
+// ---------------------------------------------------------------------------
+/** The changes for a file, or for the lines of a selection. */
+function caseFor(doc, range) {
+  if (!isOurs(doc) || !dialects.size) return { edits: [], skipped: [] };
+  const text = doc.getText();
+  const D = dialectForPath(keyOf(doc), text);
+  const opts = {};
+  if (range) {
+    opts.fromLine = range.start.line;
+    // a selection that ends at the start of a line doesn't include that line
+    opts.toLine = range.end.character === 0 && range.end.line > range.start.line ? range.end.line - 1 : range.end.line;
+  }
+  const r = CF.caseEdits(text, D, opts);
+  return { edits: r.edits.map(e => vscode.TextEdit.replace(new vscode.Range(e.line, e.start, e.line, e.end), e.text)), skipped: r.skippedLabels };
+}
+
+const caseFormatter = {
+  provideDocumentFormattingEdits: (doc) => caseFor(doc, null).edits,
+  provideDocumentRangeFormattingEdits: (doc, range) => caseFor(doc, range).edits
+};
+
+// Only when you press Save yourself: auto-save must not change a line while you are still typing on it
+function onWillSave(e) {
+  const doc = e.document;
+  if (!isOurs(doc) || e.reason !== vscode.TextDocumentSaveReason.Manual) return;
+  if (cfg().get('formatCaseOnSave') === false) return;
+  const { edits, skipped } = caseFor(doc, null);
+  if (skipped.length) output.appendLine(`Case change: left these labels as they were, because changing them would make two labels the same: ${skipped.join(', ')}`);
+  e.waitUntil(Promise.resolve(edits));
+}
+
+async function cmdChangeCase() {
+  const ed = vscode.window.activeTextEditor;
+  if (!ed || !isOurs(ed.document)) return;
+  const sel = ed.selection;
+  const { edits, skipped } = caseFor(ed.document, sel && !sel.isEmpty ? sel : null);
+  if (edits.length) await ed.edit((b) => { for (const e of edits) b.replace(e.range, e.newText); });
+  else vscode.window.setStatusBarMessage('Retro ASM: the letter case is already right', 3000);
+  if (skipped.length) vscode.window.showWarningMessage(`Retro ASM: left these labels as they were, because changing their case would make two labels the same: ${skipped.join(', ')}`);
+}
+
+// ---------------------------------------------------------------------------
 // start up
 // ---------------------------------------------------------------------------
 function activate(context) {
@@ -1479,6 +1540,9 @@ function activate(context) {
     L.registerDocumentLinkProvider(sel, linkProvider),
     L.registerDocumentSemanticTokensProvider(sel, semanticProvider, legend),
     L.registerCompletionItemProvider(sel, completionProvider, '@', ','),
+    L.registerDocumentFormattingEditProvider(sel, caseFormatter),
+    L.registerDocumentRangeFormattingEditProvider(sel, caseFormatter),
+    vscode.workspace.onWillSaveTextDocument(onWillSave),
     vscode.workspace.registerTextDocumentContentProvider(HELP_SCHEME, {
       onDidChange: helpChanged.event,
       provideTextDocumentContent: (uri) => helpPages.get(uri.toString()) || ''
@@ -1487,6 +1551,7 @@ function activate(context) {
     vscode.commands.registerCommand('retroAsm.showReference', cmdReference),
     vscode.commands.registerCommand('retroAsm.switchDialect', cmdSwitch),
     vscode.commands.registerCommand('retroAsm.insertSnippet', cmdInsertSnippet),
+    vscode.commands.registerCommand('retroAsm.changeCase', cmdChangeCase),
     vscode.commands.registerCommand('retroAsm.createNotesFile', cmdNotes),
     vscode.commands.registerCommand('retroAsm.newDialect', cmdNewDialect),
     vscode.commands.registerCommand('retroAsm.reloadDialects', cmdReload),
