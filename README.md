@@ -369,7 +369,25 @@ Things it doesn't follow yet:
 - Labels inside a macro aren't given addresses (the macro could be used many times), and a macro whose size depends on something it can't work out (such as `RND`) marks the addresses after it as rough.
 - String functions (`STR$`, `MID$` ...) and `TIME$` aren't worked out, so an `IF` that depends on them is marked as rough unless every branch is the same size.
 - `COPYBLOCK`, `CLEAR` and the `-D` names given to BeebAsm on its command line aren't followed.
-- BBC BASIC's own assembler (inside `[ ]` in a BASIC program) isn't read; only BeebAsm source.
+- **BBC BASIC's own assembler** (inside `[ ]` in a `.bas` BASIC program) is read since 0.18.0: see **BBC BASIC listings** just below the BBC Micro notes. Only the `[ ]` parts are read; there are no warnings or addresses there yet.
+
+### BBC BASIC listings (`.bas`)
+
+Lots of BBC programs are a BASIC program with machine code inside `[` and `]`:
+
+```basic
+ 50 [OPT pass%
+ 60 .start
+ 70 LDA #65 : JSR oswrch
+ 80 ]
+```
+
+Open a `.bas` file and the file type in the bottom-right corner reads **BBC BASIC**. The BASIC lines get BASIC colours. Between `[` and `]` the code is read as BBC assembly, so you get the same colours and tooltips as a `.6502` file (an instruction, a number, `&FE4E`, an OS call such as `LDA #19` before `JSR &FFF4`). Go to definition, find all references and the outline work on the `.labels`.
+
+- A plain number given a name on a BASIC line (`oswrch = &FFEE`, `LET ptr = &70`) is kept, so `JSR oswrch` is explained.
+- The size of an instruction is shown, but **not its address**: where the code lands is set by `P%` when the program runs.
+- A `[` inside a string, after `REM`, or on a `DATA` line is not the start of assembly. `OPT` is skipped.
+- No warnings, cycle counts or build for `.bas` files.
 
 ## Changing the chip
 
@@ -512,6 +530,8 @@ A short list of the big steps. The full details of every release are in `CHANGEL
 
 | Version | What it added |
 |---|---|
+| 0.18 | **BBC BASIC listings (`.bas`):** colours and tooltips for machine code between `[` and `]` |
+| 0.17 | **BBC Micro:** plain-English tooltips for OS calls (`OSBYTE`, `OSWRCH`, VDU codes) and hardware numbers (`&FE20`, `&FE4E`), and warnings for 65C02 without `CPU 1`, code past a `GUARD`, OS zero page, and code in screen memory |
 | 0.16.1 | A project's own `build.bat` / `build.sh` is now told which file is the main one, and a failed build says why in the message |
 | 0.16 | **Set up tools:** finds each computer's assembler and emulator (project, tools folder, PATH, usual install folders), tells you what is missing and where to get it, and **Build** / **F5** now work for the Spectrum (sjasmplus, Fuse) and C64 (KickAssembler, VICE) without any settings |
 | 0.15 | A warning for a **comment with only one space before it** (xas99 reads it as part of the operands), and **cycle counts** shown beside each line |
@@ -531,6 +551,9 @@ A short list of the big steps. The full details of every release are in `CHANGEL
 
 Ideas for later. Nothing here is promised or has a date.
 
+- **BBC BASIC: addresses.** Work out where the `[ ]` code lands when `P%` (or `O%`) is set to a plain number, so tooltips can show addresses, and follow `DIM` blocks where that is possible.
+- **BBC BASIC: checks.** Warn about a label used but never defined, a missing `OPT` pass, or a `]` with no `[`, as the other chips do for their own code.
+- **BBC BASIC: more of the language.** Read the BASIC around the assembly (procedures, variables) for go to definition, and read tokenised BBC BASIC files (the binary form saved by the BBC itself), not only text listings.
 - **Game Boy.** A fifth chip, written the way of RGBDS. It is close to the Z80, so the Z80 chip file is the starting point (see **Adding a chip of your own**).
 
 ## Licence

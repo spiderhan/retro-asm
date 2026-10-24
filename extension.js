@@ -21,8 +21,10 @@ const PH = require('./lib/panel-html');
 const SPR = require('./lib/sprites');
 const SH = require('./lib/sprite-html');
 const CF = require('./lib/caseformat');
+const BA = require('./lib/basicasm');
 
 const LANG = 'retroasm';
+const BASIC_LANG = 'bbcbasic';        // BBC BASIC listings: only the [ ] parts are read, as BBC assembly
 const NOTES_FILE = 'asm-notes.json';
 const HELP_SCHEME = 'retroasm-help';
 
@@ -50,6 +52,8 @@ const cfg = () => vscode.workspace.getConfiguration('retroAsm');
 const keyOf = (doc) => (doc.uri.scheme === 'file' ? doc.uri.fsPath : doc.uri.toString());
 const uriOf = (key) => (path.isAbsolute(key) ? vscode.Uri.file(key) : vscode.Uri.parse(key));
 const isOurs = (doc) => !!doc && doc.languageId === LANG;
+const isBasic = (doc) => !!doc && doc.languageId === BASIC_LANG;
+const basicFiles = new Set();     // files read as BBC BASIC (the model holds only their [ ] parts)
 // In a folder the user hasn't said they trust, tooltips and links still work, but nothing is run
 // and chip files from the project folder aren't loaded.
 const trusted = () => vscode.workspace.isTrusted !== false;
@@ -69,6 +73,7 @@ const picked = new Map();    // file with no extension (a new, unsaved one) -> c
 
 function dialectForPath(file, text) {
   const ext = path.extname(file).toLowerCase();
+  if (basicFiles.has(file) || ext === '.bas') return dialects.get('bbc') || null;
   if (!ext && picked.has(file) && dialects.has(picked.get(file))) return dialects.get(picked.get(file));
   const map = cfg().get('dialectByExtension') || {};
   for (const k of Object.keys(map)) if (k.toLowerCase() === ext && dialects.has(map[k])) return dialects.get(map[k]);
@@ -133,7 +138,19 @@ function loadDiskFile(file) {
   try { text = fs.readFileSync(file, 'utf8'); } catch (e) { project.remove(file); return; }
   if (text.length > 4 * 1024 * 1024) return;
   if (!dialects.size) return;
-  project.set(file, text, dialectForPath(file, text));
+  setFile(file, text);
+}
+
+/** Put a file in the index. A BBC BASIC listing goes in with only its [ ] parts (the rest is blanked). */
+function setFile(file, text) {
+  if (basicFiles.has(file) || path.extname(file).toLowerCase() === '.bas') {
+    const D = dialectForPath(file, text);
+    if (!D) { project.remove(file); return null; }
+    const model = project.set(file, BA.mask(text).text, D);
+    model.noAddresses = true;             // where the code lands is only known when BASIC runs
+    return model;
+  }
+  return project.set(file, text, dialectForPath(file, text));
 }
 
 /** Read in the other source files around this one: same folder, and anything it COPYs. */
@@ -160,10 +177,16 @@ function loadNeighbours(file, depth) {
 }
 
 function syncDoc(doc) {
+  if (isBasic(doc) && dialects.size) {
+    const key = keyOf(doc);
+    basicFiles.add(key);
+    openDocs.add(key);
+    return setFile(key, doc.getText());
+  }
   if (!isOurs(doc) || !dialects.size) return null;
   const key = keyOf(doc);
   openDocs.add(key);
-  const model = project.set(key, doc.getText(), dialectForPath(key, doc.getText()));
+  const model = setFile(key, doc.getText());
   loadNeighbours(key);
   return model;
 }
@@ -1718,6 +1741,7 @@ function activate(context) {
   loadDialects();
 
   const sel = { language: LANG };
+  const basicSel = { language: BASIC_LANG };
   const L = vscode.languages;
   context.subscriptions.push(
     output, diagnostics, buildDiagnostics, addressDecoration, status, tokensChanged, hintsChanged, helpChanged, lensChanged,
@@ -1731,6 +1755,13 @@ function activate(context) {
     vscode.commands.registerCommand('retroAsm.toggleAddresses', cmdToggleAddresses),
     vscode.window.onDidChangeVisibleTextEditors(() => scheduleAddresses()),
     L.registerHoverProvider(sel, hoverProvider),
+    // BBC BASIC listings (.bas): only the [ ] parts are read, so these few helps work there too
+    L.registerHoverProvider(basicSel, hoverProvider),
+    L.registerDefinitionProvider(basicSel, definitionProvider),
+    L.registerReferenceProvider(basicSel, referenceProvider),
+    L.registerDocumentHighlightProvider(basicSel, highlightProvider),
+    L.registerDocumentSymbolProvider(basicSel, symbolProvider, { label: 'Retro ASM' }),
+    L.registerDocumentSemanticTokensProvider(basicSel, semanticProvider, legend),
     L.registerDefinitionProvider(sel, definitionProvider),
     L.registerReferenceProvider(sel, referenceProvider),
     L.registerDocumentHighlightProvider(sel, highlightProvider),

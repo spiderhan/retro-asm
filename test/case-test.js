@@ -59,7 +59,7 @@ const lines=(...l)=>l.join('\n');
 // ---- every test file: a second run changes nothing, and the warnings stay the same ----
 {const fx=path.join(__dirname,'fixtures');const all=loadFolder(path.join(__dirname,'../dialects')).dialects;
  const pickOf={'.a99':'tms9900','.z80':'z80','.6502':'bbc'};let n=0,changed=0;
- for(const f of fs.readdirSync(fx)){if(f.endsWith('.skool'))continue;const ext=path.extname(f);const text=fs.readFileSync(path.join(fx,f),'utf8');
+ for(const f of fs.readdirSync(fx)){if(f.endsWith('.skool')||f.endsWith('.bas'))continue;const ext=path.extname(f);const text=fs.readFileSync(path.join(fx,f),'utf8');
   const D=pickOf[ext]?all.find(d=>d.id===pickOf[ext]):guessDialect(text,all.filter(d=>d.fileExtensions.includes(ext)));
   const r=CF.formatText(text,D);const again=CF.formatText(r.text,D);if(r.edits.length)changed++;
   const before=new Project(),after=new Project();before.set('/x/'+f,text,D);after.set('/x/'+f,r.text,D);

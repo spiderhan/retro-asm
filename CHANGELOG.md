@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.18.0
+
+New: **BBC BASIC listings (`.bas`)**. Machine code written between `[` and `]` in a BASIC program now gets colours and tooltips.
+
+- **A new file type, BBC BASIC, for `.bas` files.** The BASIC lines (`MODE 1`, `FOR ... NEXT`, `PRINT`, `CALL`) are coloured as BASIC. Everything between `[` and `]` is read as BBC assembly (the 6502 / 65C02 chip), with the same colours as a `.6502` file.
+- **Tooltips inside `[ ]`.** Hover an instruction, a number, a label or a `.label`, and you get the same plain-English notes as in a `.6502` file, including the new operating-system and hardware notes (`LDA #19` before `JSR &FFF4` says *wait for the next screen refresh*). Go to definition, find all references, highlighting the same label and the outline list also work on the labels.
+- **A plain number given a name in BASIC is understood.** `oswrch = &FFEE` or `LET ptr = &70` on a BASIC line is kept for the assembly to use, so `JSR oswrch` is explained as the OS call. Other BASIC (`P% = code%`, loops, anything with sums) is left alone.
+- **No addresses are shown.** In a BASIC program the code lands wherever `P%` says when the program runs, which can't be known from the listing, so tooltips show only sizes (*3 bytes*).
+- **Not done, on purpose.** No warnings or underlines in `.bas` files, no cycle counts, no build. Only the `[ ]` parts are read.
+- A `[` or `]` inside a quoted string, after `REM`, or in a `DATA` line does not count. `OPT` (as in `[OPT pass%`) is skipped. Line numbers are optional. Lines can end with `\n` or `\r\n`.
+- **Roadmap (not in this version):** work out addresses when `P%` is set to a plain number, and warn about labels that are used but never defined (see the README).
+- New tests in `test/basic-test.js` (run by `test/ext-test.js` too), with a made-up listing in `test/fixtures/basicdemo.bas`.
+- The 0.17.0 `.vsix` and older are left alone.
+
 ## 0.17.0
 
 Two BBC Micro helps: warnings for BBC mistakes, and plain-English tooltips for the numbers you give the operating system and the hardware.
