@@ -58,7 +58,39 @@
   "joinIndexed": true
  },
  "build": {
-  "_about": "How to build code for this chip. With no build command or build.bat, the hint is shown.",
+  "_about": "How to build and run code for this chip. With no build command or build.bat, KickAssembler (a Java program, KickAss.jar) is looked for and run with Java; VICE is started with the .prg it makes.",
+  "tool": {
+   "id": "kickassembler",
+   "name": "KickAssembler",
+   "why": "turns C64 source into a program",
+   "needs": "java",
+   "find": [
+    "KickAss.jar",
+    "kickass.jar",
+    "KickAssembler/KickAss.jar"
+   ],
+   "command": "\"${java}\" -jar \"${tool}\" \"${fileBasename}\"",
+   "url": "https://theweb.dk/KickAssembler/",
+   "get": "Download the KickAssembler zip from its website, unzip it, and put KickAss.jar into your tools folder (the other files in the zip are not needed). It also needs Java."
+  },
+  "run": {
+   "id": "vice",
+   "name": "VICE",
+   "why": "pretends to be a Commodore 64",
+   "find": [
+    "x64sc.exe",
+    "x64sc",
+    "x64.exe",
+    "x64"
+   ],
+   "args": [
+    "-autostart",
+    "${fileDirname}/${fileBasenameNoExtension}.prg"
+   ],
+   "output": "${fileDirname}/${fileBasenameNoExtension}.prg",
+   "url": "https://vice-emu.sourceforge.io/",
+   "get": "Windows: download VICE from its website and unzip it into your tools folder (x64sc.exe is inside its bin folder). Linux: sudo apt install vice. Mac: download it from the VICE website."
+  },
   "hint": "For 6502 code, set \"retroAsm.build.command\" to run KickAssembler, for example java -jar C:\\path\\to\\KickAss.jar \"${file}\" (or put a build.bat next to the file), and \"retroAsm.build.runCommand\" to start VICE."
  },
  "sizing": {
