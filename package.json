@@ -2,7 +2,7 @@
   "name": "retro-asm",
   "displayName": "Retro Assembly Helper",
   "description": "Plain-English tooltips, colours and jump-around navigation for retro assembly: TMS9900 (TI-99/4A, xas99), 6502 (Commodore 64, KickAssembler; BBC Micro, BeebAsm) and Z80 (ZX Spectrum, sjasmplus). Other chips are added as data files.",
-  "version": "0.13.1",
+  "version": "0.14.0",
   "publisher": "hanmade",
   "repository": {
     "type": "git",
@@ -457,6 +457,11 @@
           "icon": "images/activity.svg"
         },
         {
+          "id": "retroAsm.registers",
+          "name": "Registers",
+          "icon": "images/activity.svg"
+        },
+        {
           "type": "webview",
           "id": "retroAsm.memoryMap",
           "name": "Memory map",
@@ -473,6 +478,10 @@
       {
         "view": "retroAsm.project",
         "contents": "Open an assembly file (.a99, .asm, .6502, .z80 ...) to see its chip, size, warnings and routines here."
+      },
+      {
+        "view": "retroAsm.registers",
+        "contents": "Open an assembly file and click in a routine: what each register holds at that line will be listed here."
       },
       {
         "view": "retroAsm.hardware",
