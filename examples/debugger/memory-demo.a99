@@ -1,0 +1,47 @@
+* VSBR, VMBR and changing memory (made up for testing the debugger).
+* Row 1 shows HELLO, written with VMBW.
+* Row 3 shows the first letter, read back with VSBR and written again with VSBW.
+* Row 4 shows HELLO again: read back with VMBR and written with VMBW.
+* Row 5 shows the digit stored in SCORE.
+* To try changing memory: put a breakpoint on the line marked  <== BREAK HERE,
+* right-click it, Edit Breakpoint, Hit Count, type 1. Debug it, and when it stops
+* type   @SCORE = >0500   in the Debug Console. Press Continue: the digit becomes 5.
+        DEF   START
+        REF   VSBW,VSBR,VMBW,VMBR
+        AORG  >A000
+
+START   LWPI  WS
+        LIMI  0
+
+        LI    R0,>0000          ; row 1
+        LI    R1,MSG
+        LI    R2,5
+        BLWP  @VMBW             ; write HELLO
+
+        CLR   R0
+        BLWP  @VSBR             ; read the first letter back into R1 (left byte)
+        LI    R0,>0040
+        BLWP  @VSBW             ; and write it on row 3
+
+        CLR   R0
+        LI    R1,BUF
+        LI    R2,5
+        BLWP  @VMBR             ; read HELLO back into BUF
+
+        LI    R0,>0060
+        LI    R1,BUF
+        LI    R2,5
+        BLWP  @VMBW             ; write BUF on row 4
+
+LOOP    MOVB  @SCORE,R1         ; <== BREAK HERE
+        AI    R1,>3000          ; 0 becomes the character '0'
+        LI    R0,>0080
+        BLWP  @VSBW             ; show it on row 5
+        JMP   LOOP
+
+SCORE   DATA  >0000
+MSG     TEXT  'HELLO'
+        EVEN
+BUF     BSS   8
+WS      BSS   32
+        END   START

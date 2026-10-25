@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.21.6
+
+- **Two more made-up test programs** in `examples/debugger/`: `memory-demo.a99` (`VSBR`, `VMBR`, and changing a word with `@SCORE = >0500` in the Debug Console) and `lowmem-demo.a99` (code at `>2000`). Each says what the screen should show. Both worked on real MAME.
+- README: a note that the TI only sees key presses while it is running (found with `KSCAN`, which works on real MAME, as do programs in several blocks).
+
+## 0.21.5
+
+- **Two made-up test programs for the debugger** in `examples/debugger/`: `kscan-demo.a99` (reads keys with `KSCAN` and shows them) and `blocks-demo.a99` (code and text in two separate `AORG` blocks). Both end with room set aside by `BSS`, like a real program's workspace. Both worked on real MAME.
+
 ## 0.21.4
 
 - **Fix: changing a register under "Workspace of this caller" did nothing.** The change was always made in the workspace the chip is using right now, not in the caller's. It is now written into the caller's own workspace in memory (at that frame's workspace address + 2 x the register number).

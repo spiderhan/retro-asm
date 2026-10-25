@@ -1,0 +1,32 @@
+* KSCAN demo (made up for testing the debugger).
+* Shows PRESS A KEY, then writes each key you press on the next row.
+* Try it: debug it, set a breakpoint on the line marked  <== BREAK HERE,
+* press Continue, then press a letter in the MAME window.
+        DEF   START
+        REF   VSBW,VMBW,KSCAN
+        AORG  >A000
+
+START   LWPI  WS
+        LIMI  0
+
+        LI    R0,>0000          ; screen position 0 (top left)
+        LI    R1,MSG            ; where the text is
+        LI    R2,MSGEND-MSG     ; how many characters
+        BLWP  @VMBW             ; copy the text to the screen
+
+LOOP    CLR   R0
+        MOVB  R0,@>8374         ; keyboard mode 0 (the whole keyboard)
+        BLWP  @KSCAN            ; look at the keyboard
+        MOVB  @>8375,R1         ; the key (>FF means none)
+        CB    R1,@NONE
+        JEQ   LOOP              ; no key: look again
+
+        LI    R0,>0040          ; screen position 64 (third row)
+        BLWP  @VSBW             ; <== BREAK HERE (a key was pressed; R1 holds it)
+        JMP   LOOP
+
+NONE    BYTE  >FF
+MSG     TEXT  'PRESS A KEY'
+MSGEND  EVEN
+WS      BSS   32
+        END   START
