@@ -2,7 +2,7 @@
   "name": "retro-asm",
   "displayName": "Retro Assembly Helper",
   "description": "Plain-English tooltips, colours and jump-around navigation for retro assembly: TMS9900 (TI-99/4A, xas99), 6502 (Commodore 64, KickAssembler; BBC Micro, BeebAsm) and Z80 (ZX Spectrum, sjasmplus). Other chips are added as data files.",
-  "version": "0.19.0",
+  "version": "0.21.0",
   "publisher": "hanmade",
   "repository": {
     "type": "git",
@@ -42,7 +42,10 @@
   "main": "./extension.js",
   "activationEvents": [
     "onLanguage:retroasm",
-    "onLanguage:bbcbasic"
+    "onLanguage:bbcbasic",
+    "onDebugResolve:retroasm-ti99",
+    "onDebugDynamicConfigurations:retroasm-ti99",
+    "onCommand:retroAsm.debug"
   ],
   "scripts": {
     "test": "node test/ext-test.js",
@@ -251,6 +254,11 @@
       {
         "command": "retroAsm.panel.focusMap",
         "title": "Retro ASM: Show the memory map"
+      },
+      {
+        "command": "retroAsm.debug",
+        "title": "Retro ASM: Debug in MAME (TI-99/4A)",
+        "icon": "$(debug-alt)"
       }
     ],
     "menus": {
@@ -503,7 +511,9 @@
           "type": "object",
           "default": {},
           "scope": "application",
-          "additionalProperties": { "type": "string" },
+          "additionalProperties": {
+            "type": "string"
+          },
           "markdownDescription": "Tools you pointed to with **Retro ASM: Set up tools**, by name (`xas99`, `sjasmplus`, `kickassembler`, `beebasm`, `classic99`, `fuse`, `vice`, `beebem`, `java`, `python`). A file chosen here is used before anywhere else is searched. Only your own user settings count, never a project's."
         },
         "retroAsm.build.askFirst": {
@@ -511,6 +521,12 @@
           "default": true,
           "scope": "application",
           "markdownDescription": "Ask before running a build script, assembler or emulator that comes from the project (a `build.bat` near the source, a tool found in its folders, or a command in its own settings). Each command is asked about once per folder. Only your own user settings can switch this off."
+        },
+        "retroAsm.debug.romFolder": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "The folder with the TI-99/4A system ROMs (`ti99_4a.zip`) for MAME. Leave empty to use the `roms` folder beside `mame.exe`.",
+          "scope": "machine-overridable"
         }
       }
     },
@@ -571,6 +587,55 @@
       {
         "view": "retroAsm.hardware",
         "contents": "The screen, sound, keyboard and ROM addresses your code uses will be listed here."
+      }
+    ],
+    "breakpoints": [
+      {
+        "language": "retroasm"
+      }
+    ],
+    "debuggers": [
+      {
+        "type": "retroasm-ti99",
+        "label": "Retro ASM: TI-99/4A in MAME",
+        "languages": [
+          "retroasm"
+        ],
+        "configurationAttributes": {
+          "launch": {
+            "properties": {
+              "program": {
+                "type": "string",
+                "description": "The main .a99 file. Leave out to use the file that is open."
+              },
+              "stopOnEntry": {
+                "type": "boolean",
+                "description": "Stop at the first instruction.",
+                "default": true
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "type": "retroasm-ti99",
+            "request": "launch",
+            "name": "Debug TI-99/4A program in MAME",
+            "stopOnEntry": true
+          }
+        ],
+        "configurationSnippets": [
+          {
+            "label": "Retro ASM: TI-99/4A in MAME",
+            "description": "Step through a TI-99/4A program in MAME",
+            "body": {
+              "type": "retroasm-ti99",
+              "request": "launch",
+              "name": "Debug TI-99/4A program in MAME",
+              "stopOnEntry": true
+            }
+          }
+        ]
       }
     ]
   },

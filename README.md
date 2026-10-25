@@ -36,7 +36,7 @@ Run **Retro ASM: Set up tools** (Ctrl+Shift+P). It lists, for each computer, wha
 
 | Computer | Assembler | Emulator | Also needs |
 |---|---|---|---|
-| TI-99/4A | xas99 | Classic99 (Windows only) | Python 3 |
+| TI-99/4A | xas99 | Classic99 (Windows only) | Python 3. To step through a program: MAME and its TI-99/4A ROMs (see **Step through a program**) |
 | ZX Spectrum | sjasmplus | Fuse | |
 | Commodore 64 | KickAssembler (`KickAss.jar`) | VICE | Java |
 | BBC Micro | BeebAsm | BeebEm (Windows only) | |
@@ -182,6 +182,31 @@ It all comes from the chip files (see **Adding a chip of your own**), and it is 
 - The first time a project wants to run something of its own (a `build.bat`, an xas99 or Classic99 found in its folders, or a command in its `.vscode/settings.json`), you are asked first, showing the exact command. Say **Allow** and you won't be asked again in that folder unless the command changes. See **Safety** below.
 - The assembler's errors are underlined on the right lines and listed in the Problems panel. Everything it printed is in the **Retro ASM** output panel.
 - On Windows, Classic99 is started after a build. If it is already open, it is left alone and you are reminded to reload the program there. Classic99 runs on Windows only; on a Mac or Linux set `retroAsm.build.runCommand` to another TI emulator. For any other emulator, set `retroAsm.build.runCommand` too.
+
+### Step through a program (TI-99/4A)
+
+This stops your program on a line you choose and lets you step through it one instruction at a time, on a **real emulated TI-99/4A** (MAME), watching what the computer really does. It is new and only for the TI-99/4A so far.
+
+**What you need once:** MAME (from mamedev.org, unpacked into its own folder, for example inside your tools folder) and the TI-99/4A system ROMs as `ti99_4a.zip` in a folder called `roms` beside `mame.exe`. **Set up tools** now lists MAME and tells you if it isn't found. If your ROMs live somewhere else, set `retroAsm.debug.romFolder`.
+
+**How to use it:**
+1. Put `AORG >A000` (or any address from `>A000` up) before your code. The debugger puts the program in the TI's extra 32K memory, so it needs a fixed address there. Code placed at `>2000` to `>3FFF` should also work (not tried yet). A program with **more than one `AORG`** (say a block at `>A000` and another at `>C000`) is loaded as separate pieces, as long as each piece sits inside `>2000`-`>3FFF` or `>A000`-`>FFFF`.
+2. Click in the gutter beside a line of code to set a breakpoint (a red dot). Only lines that make an instruction can have one; a comment or data line gets a grey dot with a note.
+3. Press **Ctrl+Shift+P** and run **Retro ASM: Debug in MAME (TI-99/4A)** (or use **Run and Debug** and pick *Retro ASM: TI-99/4A in MAME*). The program is assembled, MAME opens, and the program stops on its first instruction.
+4. Use VS Code's usual buttons: **Continue**, **Step Over** (a `BL` or `BLWP` call is run in one go), **Step Into**, **Step Out** (runs to where the routine returns to) and **Pause**.
+5. The **Variables** panel shows PC, WP, ST, the status flags (L>, A>, EQ, C, OV, OP, X) and R0 to R15. In **Watch** or the Debug Console you can type a register (`R3`), a label (`score` shows the word stored there) or an address (`>8300`).
+6. **Change a register while stopped.** In the Variables panel, double-click a value (or right-click, **Set Value**) and type a new one: `5` (plain numbers are decimal), `>1F` or `0x1F` (hex), or a label (its address). You can change R0 to R15, WP and ST, and flip a status flag by typing `on` or `off`. In the Debug Console you can type `R3 = >1F`, or `@SCORE = 10` to change the word stored at a label or address (`@>8310 = >ABCD`). **PC can't be changed**: the chip has already read its next instruction, so it would run that one anyway. To run from somewhere else, put a breakpoint there and press Continue.
+7. **Call stack.** The Call Stack panel lists who called the routine you are in. The TI has no real call stack, so this is read from two clues: after `BL` the way back is in R11 (shown as *via R11*, a good guess), and after `BLWP` or `XOP` the old workspace and return address are saved in the new R13 and R14 (exact). Click a caller to see its line and its registers. Older callers are hidden if a routine saved R11 somewhere of its own or called another routine with `BL`: the chip alone can't show those.
+
+**Good to know:**
+- F5 on a code file still builds and starts Classic99 as before. Debugging is its own command.
+- The MAME window stays open beside VS Code while you debug; closing VS Code's debugger closes it.
+- If your program says `REF VSBW,VMBW` (or `VSBR`, `VMBR`, `VWTR`), the debugger supplies simple versions of those routines itself, because the loader that normally does it isn't there. `KSCAN` is also supplied: it calls the TI's own keyboard routine (in the console ROM), so the key comes back in `>8375` (`>FF` = none) and bit `>20` of `>837C` says a key was pressed. Other `REF` names (`GPLLNK`, `XMLLNK`, `DSRLNK`, `NUMASG` ...) belong to the Editor/Assembler cartridge, which isn't loaded; you are warned, and calling one restarts the TI.
+- Before your program starts, a few instructions set the screen to white text on light blue (the way Classic99 does). You don't step through them; the debugger stops at your first instruction. A program that sets its own colours overrides them.
+- Your own program is loaded after MAME has started the TI's menu, so the screen and memory are as the TI left them. A program that expects something set up by a cartridge or the disc system won't find it.
+- It talks to MAME only on your own computer (address 127.0.0.1); nothing goes over the internet.
+- **Stop only when something is true.** Right-click a red dot and choose **Edit Breakpoint**. *Expression* takes things like `R2 = 5`, `R0 >= >0100`, `@SCORE > 9` or `R1 & 1` (a register, a number such as `>1F`, a label, or `@` plus an address or label; join with `and` / `or`). *Hit Count* takes `10` (the 10th time), `>=10` or `%10` (every 10th time). This is how to stop inside a loop. Stepping always stops where it lands, whatever the condition says.
+- Not done yet: the other three computers (Spectrum, C64, BBC Micro), `GPLLNK`/`XMLLNK`/`DSRLNK` and the other cartridge routines, and callers older than the last `BL`.
 
 ### More mistakes caught before you build
 
@@ -488,6 +513,7 @@ The `sprites` section lists the picture shapes for the picture editor: each has 
 | `retroAsm.toolPaths` | The tools you pointed to with **Set up tools**, by name. Filled in for you. |
 | `retroAsm.build.xas99Path`, `retroAsm.build.python` | Where xas99.py is, and how to run Python, if the defaults don't find them. |
 | `retroAsm.build.askFirst` | Ask before running a build script, tool or command that comes from the project. On to start with. Only your own user settings can switch it off, never a project. |
+| `retroAsm.debug.romFolder` | The folder with `ti99_4a.zip` for MAME when you step through a program. Empty means the `roms` folder beside `mame.exe`. |
 | `retroAsm.loadAddress` | Where the program loads (hex). Empty means the chip's usual place. |
 | `retroAsm.showAddresses` | Addresses beside the code, on or off. |
 | `retroAsm.showCycles` | Cycle counts beside the code, on or off. Off to start with. |
@@ -525,6 +551,8 @@ Building runs programs, so a project downloaded from someone else could run anyt
 - **Asked first.** In a trusted folder, a build script, tool or command that comes from the project is shown to you before it runs the first time (see **Build and run**). If the command changes later, you are asked again. Changes *inside* a `build.bat` you've already allowed are not noticed, so only allow scripts from people you trust.
 - **Odd file names.** A file or folder name with `"`, `` ` ``, `$`, `%` or a line break in it is refused for building, because those characters could sneak an extra command into it.
 
+- **Stepping through a program.** MAME is started by the extension (asked first if it came from the project) and is reached only on 127.0.0.1, your own computer. It writes its own settings beside `mame.exe`, never into your project.
+
 Chip files are checked as they load: a search pattern that could lock up the editor (one like `(a+)+`) stops that chip file loading, and the **Retro ASM** output panel says which pattern and why. Text taken from a `.skool` file is cleaned before it goes into a tooltip.
 
 ## Checking it works (for changing the extension)
@@ -538,6 +566,15 @@ From the `retro-asm` folder:
 | `node test/sprite-test.js` | The picture editor: the example files, every computer's way of storing pixels, numbers kept in their own style, and drawing in the editor changing the code. `node test/ext-test.js` runs it too. |
 | `node test/case-test.js` | The letter-case change: each chip's rules, what is never changed, labels, every test file giving the same warnings and no more changes on a second run, and the save, Format Document and Shift+Alt+U parts. `node test/ext-test.js` runs it too. |
 | `node test/lineup-test.js` | Lining up and the xas99 conversion: each chip's layout, what is left alone, only the spaces changing (the words, warnings and line count stay the same), a second run changing nothing, your own columns and a bad setting, and the commands. `node test/ext-test.js` runs it too. |
+| `node test/listing-test.js` | Reading an xas99 listing: which line is at which address, the program's bytes, where it starts. Made-up listing. `node test/ext-test.js` runs it too. |
+| `node test/condition-test.js` | Breakpoint conditions and hit counts: what each one means, and the messages for ones that make no sense. `node test/ext-test.js` runs it too. |
+| `node test/vdp-routines-test.js` | The added VSBW, VMBW, VSBR, VMBR and VWTR routines run on a pretend chip and screen chip, checked against what each is documented to do. `node test/ext-test.js` runs it too. |
+| `node test/utils-test.js` | The added VSBW / VMBW routines: calls pointed at them, other words left alone. `node test/ext-test.js` runs it too. |
+| `node test/callstack-test.js` | The "who called me" guess for the debugger (`BL` and `BLWP` callers, and the cases it must ignore). `node test/ext-test.js` runs it too. |
+| `node test/debug-test.js` | The debugger against a pretend MAME: breakpoints, step in, over and out, registers, watches, closing. `node test/ext-test.js` runs it too. |
+| `node test/mame-test.js` | The link to MAME against a pretend one (only ever 127.0.0.1). `node test/ext-test.js` runs it too. |
+| `python test/mame-lua-check.py` | The script that runs inside MAME, run against a pretend MAME and a pretend TI chip (`pip install lupa`). |
+| `node test/mame-proof.js <mame.exe> [roms folder]` | Needs real MAME: loads a tiny program, stops it, steps it and checks the registers. |
 | `node test/lib-test.js misc` | Prints the outline, warnings, folds and original-game addresses for the test files. |
 | `node test/real-check.js <folder>` | Runs the checks over every `.a99`, `.z80`, `.asm`, `.a80`, `.s` and `.6502` file in a folder (a finished program should give 0 warnings). |
 | `node test/beebasm-check.js file.6502 [beebasm]` | Builds the file with the real BeebAsm and compares the address of every label with ours. Give the path to `beebasm` (or set `BEEBASM`); `node test/ext-test.js` runs it too when `BEEBASM` is set. |
@@ -563,6 +600,8 @@ A short list of the big steps. The full details of every release are in `CHANGEL
 
 | Version | What it added |
 |---|---|
+| 0.21 | **More for the TI-99/4A debugger:** change registers and memory while stopped, a call stack, programs in several blocks of memory, and `KSCAN` |
+| 0.20 | **Step through a TI-99/4A program** in MAME: breakpoints on your own lines (with conditions and hit counts), step in, over and out, registers and watches |
 | 0.19 | **Line up** the label, instruction, operands and comment in columns (Shift+Alt+L), and **convert a whole TI-99/4A file to xas99 style** |
 | 0.18 | **BBC BASIC listings (`.bas`):** colours and tooltips for machine code between `[` and `]` |
 | 0.17 | **BBC Micro:** plain-English tooltips for OS calls (`OSBYTE`, `OSWRCH`, VDU codes) and hardware numbers (`&FE20`, `&FE4E`), and warnings for 65C02 without `CPU 1`, code past a `GUARD`, OS zero page, and code in screen memory |
