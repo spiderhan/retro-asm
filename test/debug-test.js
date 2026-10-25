@@ -97,8 +97,13 @@ class FakeLink extends EventEmitter {
   assert.strictEqual(r.body.stackFrames.length, 2, 'inside SUB there is a caller');
   assert.strictEqual(r.body.stackFrames[1].line, 3, 'the caller is the BL line');
   assert.ok(/via R11/.test(r.body.stackFrames[1].name), 'the guess is labelled');
-  r = await call('scopes', { frameId: 2 }); assert.strictEqual(r.body.scopes.length, 1, 'a caller shows its workspace');
-  r = await call('variables', { variablesReference: r.body.scopes[0].variablesReference }); assert.strictEqual(r.body.variables.length, 16);
+  r = await call('scopes', { frameId: 2 }); assert.strictEqual(r.body.scopes.length, 2, 'a caller shows its workspace and the current registers');
+  assert.ok(/Registers/.test(r.body.scopes[0].name), 'registers (PC, WP, ST) are still there');
+  const callerRef = r.body.scopes[1].variablesReference;
+  r = await call('variables', { variablesReference: callerRef }); assert.strictEqual(r.body.variables.length, 16);
+  r = await call('setVariable', { variablesReference: callerRef, name: 'R2', value: '>0007' });
+  assert.ok(r.success && r.body.value === '>0007', 'a register in a caller\'s workspace can be changed');
+  assert.deepStrictEqual(link.poked[link.poked.length - 1], [0x8300 + 4, '0007'], 'and it is written in THAT workspace in memory, not the one running now');
 
   // step out: runs to the address in R11, which is AFTER
   await call('stepOut', { threadId: 1 });
@@ -118,6 +123,14 @@ class FakeLink extends EventEmitter {
   r = await call('evaluate', { expression: 'start' }); assert.ok(/^>0200/.test(r.body.result), 'label shows the word stored there');
   r = await call('evaluate', { expression: 'nonsense!' }); assert.ok(!r.success);
 
+  // break at a name or address
+  r = await call('setFunctionBreakpoints', { breakpoints: [{ name: 'sub' }, { name: '>A008' }, { name: '0xA00A', condition: 'R1 = 9' }, { name: 'nonsense' }, { name: '>A009' }] });
+  assert.deepStrictEqual(r.body.breakpoints.map(b => b.verified), [true, true, true, false, false], 'label, address, address with a condition; a bad name and an odd address are explained');
+  assert.ok(/not a label/.test(r.body.breakpoints[3].message) && /odd/.test(r.body.breakpoints[4].message));
+  assert.ok(link.armed.has(0xA00C) && link.armed.has(0xA008) && link.armed.has(0xA00A), 'they are armed in MAME');
+  r = await call('setFunctionBreakpoints', { breakpoints: [] });
+  assert.ok(!link.armed.has(0xA00A), 'and cleared again');
+
   // changing registers while stopped
   r = await call('setVariable', { variablesReference: 3, name: 'R3', value: '>1F' });
   assert.ok(r.success && r.body.value === '>001F', 'R3 set'); assert.strictEqual(link.r.R3, 0x1F);
@@ -135,7 +148,7 @@ class FakeLink extends EventEmitter {
   r = await call('setVariable', { variablesReference: 2, name: 'EQ', value: 'off' }); assert.strictEqual(link.st, 0);
   r = await call('evaluate', { expression: 'R2 = 7', context: 'repl' }); assert.ok(r.success && link.r.R2 === 7, 'Debug Console: R2 = 7 changes it');
   r = await call('evaluate', { expression: 'R2 = 7', context: 'watch' }); assert.ok(!r.success || link.r.R2 === 7, 'in a Watch it is not an assignment');
-  r = await call('evaluate', { expression: '@>8310 = >ABCD', context: 'repl' }); assert.deepStrictEqual(link.poked[0], [0x8310, 'abcd'], 'memory word written');
+  r = await call('evaluate', { expression: '@>8310 = >ABCD', context: 'repl' }); assert.deepStrictEqual(link.poked[link.poked.length - 1], [0x8310, 'abcd'], 'memory word written');
   r = await call('setExpression', { expression: 'R6', value: '3' }); assert.strictEqual(link.r.R6, 3);
 
   // continue runs to the next breakpoint or forever

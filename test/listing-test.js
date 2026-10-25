@@ -75,4 +75,15 @@ assert.strictEqual(odd.bytes.get(0xA005), 0x54, 'the first byte of text at an od
 assert.strictEqual(odd.bytes.get(0xA006), 0x48);
 assert.strictEqual(odd.bytes.get(0xA007), 0x45);
 assert.strictEqual(odd.bytes.get(0xA008), 0x03);
+{ // room set aside with BSS at the end (a program's own workspace) is not free
+  const t = ['     **** ****     > w.a99', '0001                      AORG >A000',
+    '0002 A000 02E0  18 START  LWPI WS', '     A002 A00C     ', '0003 A004 10FF  14 LOOP   JMP  LOOP', '0004 A006 0001     DAT    DATA 1',
+    '0005                      EVEN', '0006 A008          VARS   BSS  >4', '0007 A00C          WS     BSS  2*16', '0008                      END  START', '',
+    '    dat................. >a006 :     ', '    start............... >a000 :     ', '    vars................ >a008 :     ', '    ws.................. >a00c :     '].join('\n');
+  const q = L.parseListing(t, '/x/w.a99');
+  assert.deepStrictEqual(q.reserved, [{ start: 0xA008, end: 0xA00B }, { start: 0xA00C, end: 0xA02B }], 'BSS sizes are worked out (decimal, hex, sums)');
+  assert.strictEqual(L.roomAfter(q, 4), 0xA02C, 'extra code goes after the workspace, not on top of it');
+  const q2 = L.parseListing(t.replace('2*16', 'MYSTERY'), '/x/w.a99');
+  assert.ok(L.roomAfter(q2, 4) >= 0xA10C, 'a size that can not be worked out keeps well clear');
+}
 console.log('listing-test: all good');

@@ -41,6 +41,7 @@ assert.strictEqual(word(0xA018), 0, 'the other DATA word is left alone');
 assert.strictEqual(word(vsbw), word(vsbw + 2) === 0 ? 0 : word(vsbw), 'vector has a workspace and entry');
 assert.strictEqual(word(vsbw + 2) % 2, 0);
 assert.strictEqual(word(word(vsbw + 2)), 0xC01D, 'entry is the first instruction (MOV *R13,R0)');
+assert.strictEqual(p.symbols.get('VSBW'), word(vsbw + 2), 'the routine\'s name now means its address, so you can break on it');
 assert.strictEqual(L.checkImage(p), '', 'the image is still one block');
 const none = L.parseListing('     **** ****     > a.a99\n0001 A000 0380  18        RTWP\n', '/x/a.a99');
 assert.deepStrictEqual(U.supply(none, L.segmentsOf).added, []);

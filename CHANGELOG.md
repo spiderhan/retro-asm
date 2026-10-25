@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.21.4
+
+- **Fix: changing a register under "Workspace of this caller" did nothing.** The change was always made in the workspace the chip is using right now, not in the caller's. It is now written into the caller's own workspace in memory (at that frame's workspace address + 2 x the register number).
+- Test added in `test/debug-test.js`. Not tried on real MAME yet. The 0.21.3 `.vsix` is left alone.
+
+## 0.21.3
+
+- **Registers no longer vanish when a caller is selected.** When the top line of the Call Stack has no source (a supplied routine such as `VSBW`), VS Code selects the caller instead, and the Variables panel only offered that caller's workspace, so PC, WP and ST seemed to disappear. Every line of the Call Stack now also offers *Registers (where it is stopped now)*.
+- Test updated in `test/debug-test.js`. Not tried on real MAME yet. The 0.21.2 `.vsix` is left alone.
+
+## 0.21.2
+
+Fix: **the debugger built its added routines on top of a program's own workspace.**
+
+- A program that ends with room set aside by `BSS` (for example `WRCSPC BSS 32` used with `LWPI WRCSPC`) has no bytes in the assembler's listing for that room, so the debugger thought the memory was free and put the VSBW/VMBW workspace and code right on it. The program and the routines then shared one workspace. It mostly worked by luck, but the registers, the call stack ("via R11" from the program's own R11) and the saved `BLWP` return values were wrong or overwritten.
+- `BSS` and `BES` sizes are now read from the listing (decimal, `>hex`, labels and sums such as `2*16+>10`), and the added routines and start-up code go after that space. A size that can't be worked out keeps a generous gap (256 bytes) instead.
+- Test added to `test/listing-test.js`. Checked against your `test2.a99`'s real listing (read only): the routines now start at `>A192`, after `WRCSPC`. **Not tried on real MAME yet.** The 0.21.1 `.vsix` is left alone.
+
+## 0.21.1
+
+- **Break at a name or address.** The *Function Breakpoints* box in the Breakpoints panel now works: type a label, `VSBW` / `VMBW` / `VSBR` / `VMBR` / `VWTR` / `KSCAN`, or an address (`>A000`, `0xA000`), and the program stops there. Conditions and hit counts work too. A name that isn't known, or an odd address, gets a plain message.
+- The supplied routines now have names the debugger knows, so the Call Stack shows `VSBW+4` instead of a bare address, and you can use `VSBW` in a condition or the Watch box.
+- Tests added to `test/debug-test.js` and `test/utils-test.js`. **Not tried on real MAME yet.** The 0.21.0 `.vsix` is left alone.
+
 ## 0.21.0
 
 Four more things for the TI-99/4A debugger (the other three computers are not done yet).
