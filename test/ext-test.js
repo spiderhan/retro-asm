@@ -278,8 +278,12 @@ const at=(doc,needle,sub)=>{const lines=doc.getText().split(/\r?\n/);const l=lin
   const t=V['retroAsm.project'].getChildren();const ti=t.map(x=>V['retroAsm.project'].getTreeItem(x));
   ok('side panel: tree items build',t.length>3&&ti[0].label.startsWith('Z80')&&ti[0].iconPath&&ti.some(x=>x.collapsibleState===mock.TreeItemCollapsibleState.Expanded),t.map(x=>x.label));
   // nothing in the extension reaches the internet or an AI service
-  const src=[path.join(__dirname,'..','extension.js'),...fs.readdirSync(path.join(__dirname,'..','lib')).map(f=>path.join(__dirname,'..','lib',f))].map(f=>fs.readFileSync(f,'utf8')).join('\n');
+  const src=[path.join(__dirname,'..','extension.js'),...fs.readdirSync(path.join(__dirname,'..','lib')).filter(f=>f!=='mame.js').map(f=>path.join(__dirname,'..','lib',f))].map(f=>fs.readFileSync(f,'utf8')).join('\n');
   ok('no internet: no http, https, net or fetch in the code',!/require\(['"](https?|net|tls|http2|dgram)['"]\)|\bfetch\(|XMLHttpRequest|WebSocket/.test(src));
+  // the one exception: lib/mame.js talks to MAME on this computer only (127.0.0.1), nowhere else
+  { const m=fs.readFileSync(path.join(__dirname,'..','lib','mame.js'),'utf8');
+    const hosts=[...m.matchAll(/net\.connect\([^)]*\)/g)].map(x=>x[0]);
+    ok('MAME link: only ever connects to this computer (127.0.0.1)',hosts.length>0&&hosts.every(h=>h.includes("'127.0.0.1'"))&&!/https?:\/\/|fetch\(|XMLHttpRequest|WebSocket|dgram|createServer\(/.test(m),hosts); }
   ok('no AI keys or services in the code',!/api[_-]?key|openai|anthropic|claude|gemini|copilot|languageModel|\blm\./i.test(src));
   mock.window.activeTextEditor=editor;
  }
@@ -442,5 +446,13 @@ const at=(doc,needle,sub)=>{const lines=doc.getText().split(/\r?\n/);const l=lin
  {const r=require('child_process').spawnSync(process.execPath,[path.join(__dirname,'basic-test.js')],{encoding:'utf8'});const bad=(r.stdout||'').split('\n').filter(l=>l.startsWith('FAIL'));ok('BBC BASIC [ ] listings (test/basic-test.js)',r.status===0,bad.length?bad:(r.stderr||'').slice(0,500));}
  {const r=require('child_process').spawnSync(process.execPath,[path.join(__dirname,'case-test.js')],{encoding:'utf8'});const bad=(r.stdout||'').split('\n').filter(l=>l.startsWith('FAIL'));ok('letter case tests (test/case-test.js)',r.status===0,bad.length?bad:(r.stderr||'').slice(0,500));}
  {const r=require('child_process').spawnSync(process.execPath,[path.join(__dirname,'lineup-test.js')],{encoding:'utf8'});const bad=(r.stdout||'').split('\n').filter(l=>l.startsWith('FAIL'));ok('line-up and convert-to-xas99 tests (test/lineup-test.js)',r.status===0,bad.length?bad:(r.stderr||'').slice(0,500));}
+ {const r=require('child_process').spawnSync(process.execPath,[path.join(__dirname,'mame-test.js')],{encoding:'utf8'});const bad=(r.stdout||'').split('\n').filter(l=>l.startsWith('FAIL'));ok('MAME link tests (test/mame-test.js)',r.status===0,bad.length?bad:(r.stderr||'').slice(0,500));}
+ for(const f of ['listing-test.js','utils-test.js','vdp-routines-test.js','condition-test.js','callstack-test.js','debug-test.js']){const r=require('child_process').spawnSync(process.execPath,[path.join(__dirname,f)],{encoding:'utf8'});const bad=(r.stdout||'').split('\n').filter(l=>l.startsWith('FAIL')||l.includes('AssertionError'));ok('Debugger tests ('+f+')',r.status===0,bad.length?bad:(r.stderr||'').slice(0,500));}
+ {const pj=JSON.parse(fs.readFileSync(path.join(__dirname,'..','package.json'),'utf8'));const d=(pj.contributes.debuggers||[])[0];
+  ok('debugger is declared for the TI-99/4A (and breakpoints allowed in .a99 files)',d&&d.type==='retroasm-ti99'&&(pj.contributes.breakpoints||[]).some(b=>b.language==='retroasm'),d);
+  ok('debug command and adapter are registered',typeof C['retroAsm.debug']==='function'&&P['debugAdapter:retroasm-ti99']&&P['debugConfig:retroasm-ti99']);
+  const cfgd=P['debugConfig:retroasm-ti99'].resolveDebugConfiguration(null,{});ok('F5 with no launch.json fills in a launch configuration',cfgd.type==='retroasm-ti99'&&cfgd.request==='launch'&&cfgd.stopOnEntry===true,cfgd);
+  const ad=P['debugAdapter:retroasm-ti99'].createDebugAdapterDescriptor();const got=[];ad.adapter.onDidSendMessage(m=>got.push(m));ad.adapter.handleMessage({type:'request',seq:1,command:'initialize',arguments:{}});await new Promise(r=>setTimeout(r,20));
+  ok('adapter answers initialize',got.some(m=>m.type==='response'&&m.command==='initialize'&&m.success),got);ad.adapter.dispose();}
  console.log(fails?`\n${fails} FAILED`:'\nall passed');process.exit(fails?1:0);
 })().catch(e=>{console.error(e);process.exit(1);});

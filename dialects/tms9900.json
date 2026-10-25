@@ -67,6 +67,18 @@
       ],
       "url": "https://www.harmlesslion.com/software/classic99",
       "get": "Download Classic99 from its website and unzip it into your tools folder. It runs on Windows only; on Mac or Linux use another emulator (such as MAME) and set retroAsm.build.runCommand."
+    },
+    "debug": {
+      "id": "mame",
+      "name": "MAME",
+      "why": "runs a real TI-99/4A so you can stop and step through your program",
+      "find": [
+        "mame.exe",
+        "mame/mame.exe",
+        "mame"
+      ],
+      "url": "https://www.mamedev.org/release.html",
+      "get": "Download MAME from mamedev.org and unpack it into its own folder (inside your tools folder is fine). It also needs the TI-99/4A system ROMs as ti99_4a.zip in a folder called roms beside mame.exe."
     }
   },
   "sizing": {

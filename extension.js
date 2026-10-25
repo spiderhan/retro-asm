@@ -24,6 +24,11 @@ const CF = require('./lib/caseformat');
 const LU = require('./lib/lineup');
 const X99 = require('./lib/xas99');
 const BA = require('./lib/basicasm');
+const LST = require('./lib/listing');
+const DBG = require('./lib/debug');
+const MAME = require('./lib/mame');
+const U99 = require('./lib/utils99');
+const T = require('./lib/tools');
 
 const LANG = 'retroasm';
 const BASIC_LANG = 'bbcbasic';        // BBC BASIC listings: only the [ ] parts are read, as BBC assembly
@@ -1177,7 +1182,7 @@ function toolContextFor(file) {
   return B.toolContext(settings, file ? path.dirname(file) : null);
 }
 
-const ROLE_TEXT = { assembler: 'the assembler', runtime: 'needed to run it', emulator: 'the emulator' };
+const ROLE_TEXT = { assembler: 'the assembler', runtime: 'needed to run it', emulator: 'the emulator', debugger: 'for stepping through your program' };
 
 /** Every chip with something to find: the one you are working on first. */
 function toolChips() {
@@ -1347,6 +1352,106 @@ async function cmdBuild(andRun) {
     return 'started';
   } finally { building = false; }
 }
+
+
+// ---------------------------------------------------------------------------
+// debugging (TI-99/4A, in MAME)
+// ---------------------------------------------------------------------------
+const DEBUG_TYPE = 'retroasm-ti99';
+let debugLaunches = 0;   // each launch gets its own port, so a MAME that is slow to close can't block the next one
+
+/** Assemble for a listing, find MAME, start it with the program loaded. Handed to the debugger. */
+async function debugPrepare(args) {
+  if (!trusted()) throw new Error('Debugging is switched off because this folder isn\'t trusted. Use "Manage Workspace Trust" if you trust it.');
+  const ed = vscode.window.activeTextEditor;
+  let file = args.program;
+  if (!file && ed && isOurs(ed.document) && ed.document.uri.scheme === 'file') file = keyOf(ed.document);
+  if (!file) throw new Error('Open the assembly file you want to debug first.');
+  for (const doc of vscode.workspace.textDocuments) if (isOurs(doc) && doc.isDirty) await doc.save();
+  const root = project.rootOf(file);
+  modelFor(await vscode.workspace.openTextDocument(vscode.Uri.file(root)));
+  const chip = project.get(root) ? project.get(root).D : dialectForPath(root);
+  const settings = buildSettings(root);
+  const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'retro-asm-debug-'));
+  const lp = B.listingPlan(root, settings, undefined, chip, folder);
+  if (lp.error) throw new Error(lp.error);
+  if (lp.fromProject && !(await okToRun(lp.command, 'the assembler'))) throw new Error('Cancelled: the assembler was not allowed to run.');
+  output.appendLine('');
+  output.appendLine(`--- Debug build ${new Date().toLocaleTimeString()} ---`);
+  output.appendLine(`> ${lp.command}`);
+  const result = await B.run(lp, (t) => output.append(t));
+  const errors = result.problems.filter(p => p.severity !== 'warning');
+  if (errors.length || result.code !== 0 || !fs.existsSync(lp.lst)) {
+    output.show(true);
+    throw new Error(errors.length ? `The program has ${errors.length} error${errors.length === 1 ? '' : 's'}; fix them first (first one: ${errors[0].message}).` : 'The assembler did not finish. The "Retro ASM" output panel has what it said.');
+  }
+  const parsed = LST.parseListing(fs.readFileSync(lp.lst, 'utf8'), root);
+  const notes = [];
+  const sup = U99.supply(parsed, LST.segmentsOf);
+  if (sup.error) throw new Error(sup.error);
+  if (sup.added.length) notes.push(`Your program says REF ${sup.added.join(', ')}. The debugger added its own versions of those routines after your program and pointed your calls at them.`);
+  for (const n of sup.missing) notes.push(`Your program says REF ${n}, which the debugger can't supply${/^(GPLLNK|XMLLNK|DSRLNK|LOADER|NUMASG|NUMREF|STRASG|STRREF|ERR|UTLTAB|ASSGNV|CFI|CIF|CNS|CSN|FADD|FSUB|FMUL|FDIV|FCOMP|SADD|SSUB|SMUL|SDIV|SCOMP|VDPADR|VPUSH|VPOP|VSBW|VMBW|VSBR|VMBR|VWTR)$/i.test(n) ? ' (it belongs to the Editor/Assembler cartridge, which is not loaded here)' : ''}. A call to it will jump to address 0 and restart the TI. Only VSBW, VMBW, VSBR, VMBR, VWTR and KSCAN are supplied.`);
+  const userEntry = parsed.entry === null ? parsed.segments[0].start : parsed.entry;
+  const stub = U99.startup(parsed, LST.segmentsOf, userEntry);
+  if (stub !== null) notes.push('The screen is set up first (white text on light blue, as when Classic99 starts a program), then your program starts.');
+  const problem = LST.checkImage(parsed);
+  if (problem) throw new Error(problem);
+  return { parsed, blocks: LST.blocksOf(parsed), root, folder, chip, notes, startAt: stub === null ? userEntry : stub, runUntil: stub === null ? undefined : userEntry };
+}
+
+async function debugLaunchMame(info) {
+  const ctx = toolContextFor(info.root);
+  const spec = info.chip && info.chip.build && info.chip.build.debug;
+  const found = spec ? T.locate(spec, ctx) : null;
+  if (!found) {
+    const pick = await vscode.window.showErrorMessage('Retro ASM: MAME wasn\'t found. ' + (spec ? spec.get : ''), 'Set up tools');
+    if (pick) vscode.commands.executeCommand('retroAsm.checkTools');
+    throw new Error(spec ? T.missingMessage(spec, ctx) : 'There is no debugger for this chip yet.');
+  }
+  if (found.fromProject && !(await okToRun(found.file, 'MAME'))) throw new Error('Cancelled: MAME was not allowed to run.');
+  const setRoms = (cfg().get('debug.romFolder') || '').trim();
+  const rompath = setRoms || path.join(path.dirname(found.file), 'roms');
+  if (!fs.existsSync(path.join(rompath, 'ti99_4a.zip')) && !fs.existsSync(path.join(rompath, 'ti99_4a'))) {
+    throw new Error(`MAME needs the TI-99/4A system ROMs: put ti99_4a.zip in ${rompath} (or set "retroAsm.debug.romFolder" to the folder that has it).`);
+  }
+  return MAME.startMame({ mamePath: found.file, rompath, blocks: info.blocks, entry: info.startAt, folder: info.folder, port: MAME.DEFAULT_PORT + (debugLaunches++ % 50) });
+}
+
+async function startDebugging() {
+  const ed = vscode.window.activeTextEditor;
+  if (!ed || !isOurs(ed.document) || ed.document.uri.scheme !== 'file') { vscode.window.showInformationMessage('Open (and save) a TI-99/4A assembly file first.'); return; }
+  const folder = vscode.workspace.getWorkspaceFolder(ed.document.uri);
+  // a second start while one is open would leave two MAME windows: close the first
+  const open = vscode.debug.activeDebugSession;
+  if (open && open.type === DEBUG_TYPE) { await vscode.debug.stopDebugging(open); await new Promise(r => setTimeout(r, 1500)); }
+  return vscode.debug.startDebugging(folder, { type: DEBUG_TYPE, request: 'launch', name: 'Debug TI-99/4A program in MAME', program: keyOf(ed.document), stopOnEntry: true });
+}
+
+const debugConfigProvider = {
+  resolveDebugConfiguration(folder, config) {
+    if (!config.type && !config.request && !config.name) {
+      config.type = DEBUG_TYPE; config.request = 'launch'; config.name = 'Debug TI-99/4A program in MAME'; config.stopOnEntry = true;
+    }
+    if (!config.program) {
+      const ed = vscode.window.activeTextEditor;
+      if (ed && isOurs(ed.document) && ed.document.uri.scheme === 'file') config.program = keyOf(ed.document);
+    }
+    return config;
+  }
+};
+
+const debugAdapterFactory = {
+  createDebugAdapterDescriptor() {
+    const session = new DBG.DebugSession({ prepare: debugPrepare, launchMame: debugLaunchMame });
+    const sent = new vscode.EventEmitter();
+    session.on('message', (m) => sent.fire(m));
+    return new vscode.DebugAdapterInlineImplementation({
+      onDidSendMessage: sent.event,
+      handleMessage: (m) => { session.handleMessage(m); },
+      dispose: () => { session.close().catch(() => {}); sent.dispose(); }
+    });
+  }
+};
 
 // ---------------------------------------------------------------------------
 // commands
@@ -1801,6 +1906,9 @@ function activate(context) {
     vscode.commands.registerCommand('retroAsm.build', () => cmdBuild(false)),
     vscode.commands.registerCommand('retroAsm.buildAndRun', () => cmdBuild(true)),
     vscode.commands.registerCommand('retroAsm.checkTools', cmdCheckTools),
+    vscode.commands.registerCommand('retroAsm.debug', startDebugging),
+    vscode.debug.registerDebugConfigurationProvider(DEBUG_TYPE, debugConfigProvider),
+    vscode.debug.registerDebugAdapterDescriptorFactory(DEBUG_TYPE, debugAdapterFactory),
     vscode.commands.registerCommand('retroAsm.toggleAddresses', cmdToggleAddresses),
     vscode.window.onDidChangeVisibleTextEditors(() => scheduleAddresses()),
     L.registerHoverProvider(sel, hoverProvider),

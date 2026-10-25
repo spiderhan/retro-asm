@@ -1,0 +1,20 @@
+* Two blocks of memory (made up for testing the debugger).
+* The code is at >A000 and the text is in a separate block at >B000.
+* Try it: debug it. The text TWO BLOCKS WORK should appear at the top left.
+        DEF   START
+        REF   VMBW
+        AORG  >A000
+
+START   LWPI  WS
+        LIMI  0
+        LI    R0,>0000          ; screen position 0 (top left)
+        LI    R1,MSG            ; the text lives in the other block
+        LI    R2,MSGEND-MSG
+        BLWP  @VMBW
+DONE    JMP   DONE              ; wait here
+WS      BSS   32
+
+        AORG  >B000
+MSG     TEXT  'TWO BLOCKS WORK'
+MSGEND  EVEN
+        END   START

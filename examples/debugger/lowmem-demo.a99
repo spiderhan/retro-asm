@@ -1,0 +1,17 @@
+* Code in the low part of the extra memory (>2000-3FFF), made up for testing the debugger.
+* Try it: debug it. LOW MEMORY WORKS should appear at the top left.
+        DEF   START
+        REF   VMBW
+        AORG  >2000
+
+START   LWPI  WS
+        LIMI  0
+        LI    R0,>0000
+        LI    R1,MSG
+        LI    R2,MSGEND-MSG
+        BLWP  @VMBW
+DONE    JMP   DONE
+MSG     TEXT  'LOW MEMORY WORKS'
+MSGEND  EVEN
+WS      BSS   32
+        END   START

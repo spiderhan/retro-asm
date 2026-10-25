@@ -96,7 +96,7 @@ const world = () => { const root = tmp(); const home = path.join(root, 'home'); 
   const roles = (id) => B.reportTools(chip(id), ctx).map(r => r.role + ':' + r.name);
   ok('report: Spectrum', roles('z80').join() === 'assembler:sjasmplus,emulator:Fuse', roles('z80'));
   ok('report: C64 lists Java too', roles('6502').join() === 'assembler:KickAssembler,runtime:Java,emulator:VICE', roles('6502'));
-  ok('report: TI lists Python too', roles('tms9900').join() === 'assembler:xas99,runtime:Python,emulator:Classic99', roles('tms9900'));
+  ok('report: TI lists Python too', roles('tms9900').join() === 'assembler:xas99,runtime:Python,emulator:Classic99,debugger:MAME', roles('tms9900'));
   ok('report: BBC', roles('bbc').join() === 'assembler:BeebAsm,emulator:BeebEm', roles('bbc'));
   ok('report: nothing is found in an empty world', B.reportTools(chip('z80'), ctx).every(r => !r.found));
   touch(path.join(w.settings.toolsFolder, 'sjasmplus'));

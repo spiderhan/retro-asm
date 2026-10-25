@@ -1,5 +1,120 @@
 # Changelog
 
+## 0.21.6
+
+- **Two more made-up test programs** in `examples/debugger/`: `memory-demo.a99` (`VSBR`, `VMBR`, and changing a word with `@SCORE = >0500` in the Debug Console) and `lowmem-demo.a99` (code at `>2000`). Each says what the screen should show. Both worked on real MAME.
+- README: a note that the TI only sees key presses while it is running (found with `KSCAN`, which works on real MAME, as do programs in several blocks).
+
+## 0.21.5
+
+- **Two made-up test programs for the debugger** in `examples/debugger/`: `kscan-demo.a99` (reads keys with `KSCAN` and shows them) and `blocks-demo.a99` (code and text in two separate `AORG` blocks). Both end with room set aside by `BSS`, like a real program's workspace. Both worked on real MAME.
+
+## 0.21.4
+
+- **Fix: changing a register under "Workspace of this caller" did nothing.** The change was always made in the workspace the chip is using right now, not in the caller's. It is now written into the caller's own workspace in memory (at that frame's workspace address + 2 x the register number).
+- Test added in `test/debug-test.js`. Not tried on real MAME yet. The 0.21.3 `.vsix` is left alone.
+
+## 0.21.3
+
+- **Registers no longer vanish when a caller is selected.** When the top line of the Call Stack has no source (a supplied routine such as `VSBW`), VS Code selects the caller instead, and the Variables panel only offered that caller's workspace, so PC, WP and ST seemed to disappear. Every line of the Call Stack now also offers *Registers (where it is stopped now)*.
+- Test updated in `test/debug-test.js`. Not tried on real MAME yet. The 0.21.2 `.vsix` is left alone.
+
+## 0.21.2
+
+Fix: **the debugger built its added routines on top of a program's own workspace.**
+
+- A program that ends with room set aside by `BSS` (for example `WRCSPC BSS 32` used with `LWPI WRCSPC`) has no bytes in the assembler's listing for that room, so the debugger thought the memory was free and put the VSBW/VMBW workspace and code right on it. The program and the routines then shared one workspace. It mostly worked by luck, but the registers, the call stack ("via R11" from the program's own R11) and the saved `BLWP` return values were wrong or overwritten.
+- `BSS` and `BES` sizes are now read from the listing (decimal, `>hex`, labels and sums such as `2*16+>10`), and the added routines and start-up code go after that space. A size that can't be worked out keeps a generous gap (256 bytes) instead.
+- Test added to `test/listing-test.js`. Checked against your `test2.a99`'s real listing (read only): the routines now start at `>A192`, after `WRCSPC`. **Not tried on real MAME yet.** The 0.21.1 `.vsix` is left alone.
+
+## 0.21.1
+
+- **Break at a name or address.** The *Function Breakpoints* box in the Breakpoints panel now works: type a label, `VSBW` / `VMBW` / `VSBR` / `VMBR` / `VWTR` / `KSCAN`, or an address (`>A000`, `0xA000`), and the program stops there. Conditions and hit counts work too. A name that isn't known, or an odd address, gets a plain message.
+- The supplied routines now have names the debugger knows, so the Call Stack shows `VSBW+4` instead of a bare address, and you can use `VSBW` in a condition or the Watch box.
+- Tests added to `test/debug-test.js` and `test/utils-test.js`. **Not tried on real MAME yet.** The 0.21.0 `.vsix` is left alone.
+
+## 0.21.0
+
+Four more things for the TI-99/4A debugger (the other three computers are not done yet).
+
+- **Programs in more than one block of memory.** A program with several `AORG` lines is loaded as separate pieces, each of which must sit inside `>2000`-`>3FFF` or `>A000`-`>FFFF`. Before, it was refused unless it was one block. The added routines and the start-up code go in the first gap after the last piece.
+- **Change a register while stopped.** Variables panel: double-click a value (or **Set Value**) for R0 to R15, WP and ST; flags take `on` / `off`. Debug Console: `R3 = >1F`, and `@SCORE = 10` or `@>8310 = >ABCD` to change a word in memory. Numbers can be decimal, `>hex`, `0x` hex, or a label. **PC can't be changed** (the chip has already read its next instruction); the message says to use a breakpoint instead. New bridge commands `setreg` and `poke`; new `setVariable` / `setExpression` in the debugger.
+- **Call stack.** New `lib/callstack.js`. After `BL` the caller is found from R11 (labelled *via R11*, a good guess: it is only kept when the instruction just before the way-back address really is a `BL`, and, for `BL @LABEL`, when you are at or after that label, so an old R11 doesn't invent a caller). After `BLWP` / `XOP` it is exact, from the new R13 and R14. Each caller shows its own registers. Older callers are hidden when a routine saves R11 elsewhere. **Step Out** now also works inside a `BLWP` routine (it runs to the saved PC in R14), not only after `BL`.
+- **`KSCAN`.** A program that says `REF KSCAN` now gets it: a small wrapper switches to the console's workspace (`>83E0`), keeps the console's R11, calls the console's own keyboard routine at `>000E`, and switches back. The key is in `>8375` and bit `>20` of `>837C` is set when a key was pressed. Other `REF` names (`GPLLNK`, `XMLLNK`, `DSRLNK`, `NUMASG` ...) are still not supplied; the warning now says they belong to the Editor/Assembler cartridge.
+- New tests: `test/callstack-test.js`, plus new cases in `debug-test.js` (set variable, set expression, callers, scopes), `utils-test.js`, `vdp-routines-test.js` (KSCAN on a pretend chip), `listing-test.js` and `mame-test.js` (several blocks), and `mame-lua-check.py` (`setreg`, `poke`, a second block). The wrapper's bytes were checked against xas99.
+- **Not tried on real MAME yet:** setting registers and memory, the call stack, several blocks, and KSCAN. Everything was checked against pretend versions of MAME and the chip.
+- The 0.20.10 `.vsix` is left alone.
+
+## 0.20.10
+
+Two fixes found when a program went blank and lost the first letter of each message.
+
+- **`VWTR` was the wrong way round.** The register number goes in the left byte of R0 and the value in the right (`LI R0,>0601` = VDP register 6 gets 1). The stand-in routine did the opposite, so `LI R0,>0601` set register 1 to 6, which turns the screen off. Fixed.
+- **The first byte of text at an odd address was lost.** For a byte at an odd address (such as `TEXT` right after a one-byte `BYTE` length) xas99 prints the byte further to the right in its listing, and the listing reader missed it, so it was loaded as zero. That is why `THE QUICK BROWN FOX` and `JUMPS...` lost their first letter. The listing is now read by column.
+- **New test `test/vdp-routines-test.js`** runs the five stand-in routines (VSBW, VMBW, VSBR, VMBR, VWTR) on a pretend TMS9900 and VDP, checking each against what the Editor/Assembler documents. A regression test for the odd-address byte is in `test/listing-test.js`. Both run from `test/ext-test.js`.
+- The 0.20.9 `.vsix` is left alone.
+
+## 0.20.9
+
+Fix: the screen colours. A program started in the debugger used the colours of MAME's start screen (black text on cyan), so it looked different from how it looks in Classic99.
+
+- **A few start-up instructions now run first**, then your program starts: the screen colour is set to light blue and every entry of the colour table (at `>0380`) to white on light blue, the same as when the Editor/Assembler starts a program. The debugger runs them by itself and stops at your first instruction, so you never step through them.
+- The Debug Console says so when it happens. A program that sets its own colours is not affected (its own writes come after).
+- The start-up code is added after your program in memory (like the VSBW and VMBW routines), so it needs a few more bytes free after the end.
+- The test for it is in `test/utils-test.js` and `test/debug-test.js`. The 0.20.8 `.vsix` is left alone.
+
+## 0.20.8
+
+New: **conditional breakpoints and hit counts** when stepping through a TI-99/4A program.
+
+- **Right-click a red dot, choose Edit Breakpoint**, and pick *Expression* or *Hit Count*.
+- **Expression:** stop only when it is true. Examples: `R2 = 5`, `R0 >= >0100`, `@SCORE > 9` (the word stored at the label `SCORE`), `R1 & 1` (the lowest bit of R1 is on), `PC <> LOOP`, `R3 = 5 and R0 < 32`. Each side is a register (R0 to R15, PC, WP, ST), a number (`12`, `>1F`, `0x1F`), a label, or `@` and an address or label. Joined by `and` / `&&` / `or` / `||`. Compared as plain 16-bit numbers.
+- **Hit count:** `10` stops the 10th time the line is reached; `>=10`, `>10`, `<10`, `==10` and `%10` (every 10th time) also work. With both, the count only goes up when the expression is true.
+- A condition that makes no sense turns the dot grey, with a message saying what is wrong and some examples.
+- **Stepping always stops where it lands**, even on a line whose condition is false. Only Continue, Step Over and Step Out skip a breakpoint whose condition is not true.
+- New `lib/condition.js`, and tests in `test/condition-test.js` and `test/debug-test.js` (run by `test/ext-test.js` too). The 0.20.7 `.vsix` is left alone.
+
+## 0.20.7
+
+Fix: Continue (and Step Over / Step Out) could seem to do nothing when the program was sitting on a breakpoint, because MAME reported the same breakpoint again straight away. The debugger now steps off the breakpoint first, then runs on. The 0.20.6 `.vsix` is left alone.
+
+## 0.20.6
+
+Fix: the routines added in 0.20.4 were never connected to your calls. xas99 writes an address it leaves to the loader as `0000e` (with a letter after it) and the listing reader skipped those lines, so `BLWP @VSBW` still jumped to address 0. They are read now. Checked against a real xas99 listing of a program with `REF VSBW,VMBW`. The 0.20.4 `.vsix` is left alone. (A 0.20.5 `.vsix` was packaged by mistake with old files in it: delete it.)
+
+## 0.20.4
+
+Fix: a program that says `REF VSBW,VMBW` (the usual way to use the Editor/Assembler routines) could not run in the debugger: the loader that normally fills those in isn't there, so the first `BLWP @VSBW` jumped to address 0 and restarted the TI.
+
+- **The debugger now supplies `VSBW`, `VMBW`, `VSBR`, `VMBR` and `VWTR`.** They are small routines written for this extension (`lib/utils99.js`), put in memory just after your program, and every call that names one (`BLWP @VSBW`, `DATA VSBW,...`) is pointed at them. Your own source is not changed.
+- **A `REF` it can't supply** (such as `KSCAN`) is named in the Debug Console, with a warning that calling it restarts the TI.
+- **The Debug Console now says where each stop happened** (for example `Stopped at >A00A (step)`), to make it easier to see what the debugger did.
+- New test `test/utils-test.js` (made-up listing), run by `test/ext-test.js` too. The 0.20.2 `.vsix` and older are left alone. (A 0.20.3 `.vsix` was packaged by mistake with old files in it: delete it.)
+
+## 0.20.2
+
+Fix: the debugger never said "hello" to the script inside MAME, so MAME stayed stopped at the very start of the TI's start-up and your program was never loaded. It now does, so the program is loaded and stops on its first instruction. The 0.20.1 `.vsix` is left alone.
+
+## 0.20.1
+
+Fix for stepping: starting the debugger again while MAME was still open could fail with "Could not connect to MAME on port 2161". Each start now closes the earlier session first and uses its own port. The 0.20.0 `.vsix` is left alone.
+
+## 0.20.0
+
+New: **step through a TI-99/4A program** with breakpoints, on a real emulated TI-99/4A (MAME), using VS Code's own debug buttons.
+
+- **Retro ASM: Debug in MAME (TI-99/4A)** (Ctrl+Shift+P, or *Run and Debug*). Assembles the program with xas99, starts MAME with it loaded, and stops on the first instruction.
+- **Breakpoints on your own lines.** Click in the gutter. The extension reads the xas99 listing (`-L`), so a line becomes the right address; comment and data lines can't hold one and say so. Lines in `COPY`'d files work too.
+- **Continue, Step Over, Step Into, Step Out and Pause.** Step Over runs a `BL`, `BLWP` or `XOP` call in one go; Step Out runs to the address in R11. A breakpoint inside a call you step over still stops there.
+- **Registers and watches.** PC, WP, ST, the status flags and R0 to R15 are shown, and Watch / the Debug Console understand a register, a label (shows the word stored there) or an address (`>8300`).
+- **Set up tools lists MAME** and says where to get it. New setting `retroAsm.debug.romFolder` for the folder with `ti99_4a.zip` (empty means the `roms` folder beside `mame.exe`).
+- **A plain message when the program can't be debugged:** no `AORG` (no fixed address), code outside the extra 32K memory (`>2000`-`>3FFF`, `>A000`-`>FFFF`), or code in two separate blocks.
+- **How it works.** A small script (`mame/ti99-bridge.lua`) runs inside MAME and talks over a text line connection to `127.0.0.1` only (the one place in the extension allowed to open a connection, still checked by a test). MAME's own debugging protocol does not support the TMS9900, so the script drives MAME's debugger instead. The program is started by writing its address into a register the idle TI is about to jump through.
+- New files: `lib/listing.js` (reads the listing), `lib/debug.js` (the debugger), `lib/mame.js` (the link to MAME), `mame/ti99-bridge.lua`, plus `B.listingPlan` in `lib/build.js`.
+- New tests: `test/listing-test.js`, `test/debug-test.js`, `test/mame-test.js` (all run by `test/ext-test.js`), `test/mame-lua-check.py` and `test/mame-proof.js` (needs real MAME). Made-up code only.
+- **Not done yet:** changing registers while stopped, conditional breakpoints, a call stack, programs in more than one block, and the other three computers. F5 on a code file still builds and starts Classic99 as before.
+- The 0.19.0 `.vsix` and older are left alone.
+
 ## 0.19.0
 
 Two tidy-ups: **line up the columns** for all four computers, and **convert a whole TI-99/4A file to xas99 style**. Both were on the roadmap.
