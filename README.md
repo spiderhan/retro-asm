@@ -298,6 +298,25 @@ On the C64, write the marker with `//`, not inside `/* */`.
 
 This part is for the TI-99/4A (the Spectrum's border, keyboard and sound ports are covered in **ZX Spectrum** below). Hover a number that is on its way to the sound chip or the video chip and the tooltip says what it means: `>9F` is "volume of voice 1: off", and a value sent to a video register is spelt out (screen on, 16x16 sprites ...). This works for `LI` followed by `MOVB` to `>8400` or `>8C02`, for `BLWP @VWTR`, and for byte lists that are sent to the sound chip.
 
+### Sound player (TI-99/4A)
+
+If you keep a sound in your code as BYTE or DATA lines, you can hear it. Put a comment with `@sound` just above the block, and a **Play sound** link appears above it:
+
+```
+* @sound
+BEEP   BYTE 3,>8E,>0F,>90,10     ; voice 1 at about 440 Hz, for 10/60 s
+       BYTE 1,>9F,1              ; voice 1 off
+       BYTE 0                    ; the end
+```
+
+The layout it reads is the console's sound list. Each step is a count, then that many bytes for the sound chip, then how long to wait in 60ths of a second. A count of 0 ends the list.
+
+Click the link and a player opens beside your code. It has **Play**, **Stop** and **repeat**, a picture of the pitch and loudness of each voice (three tone voices and the noise), and a table of the steps with what each byte does in plain English. Change a number in the code and the player updates. The player never changes your code.
+
+A block that is *named* like a sound (`SND_...`, `MUSIC`, `BEEP`, `TUNE` ...), or has a comment that says so, and reads cleanly as a sound list from start to finish, gets a **Play as a sound?** link even without the marker. A block that doesn't read as a list is left alone. If a marked block doesn't add up, the link says why (for example *Step 2 says 5 bytes go to the sound chip, but the data stops*).
+
+It only knows the TI-99/4A's sound chip for now. The other computers have different sound chips, so each needs its own player. `retroAsm.soundLinks` switches the links off. The `examples/sounds` folder has `sounds.a99` to try it on (it is data only, not a program to run).
+
 ### Side by side with the original game
 
 Porting a game from another computer? If you have its disassembly as a [SkoolKit](https://skoolkit.ca) `.skool` file, addresses of the original written in your comments become links:
@@ -535,6 +554,7 @@ The `sprites` section lists the picture shapes for the picture editor: each has 
 | `retroAsm.routineSummaries` | The summary line above each routine, on or off. |
 | `retroAsm.pictures` | Pictures in tooltips: `auto`, `always` or `never`. `never` also hides the *Edit as a picture?* links. |
 | `retroAsm.pictureLinks` | The *Edit picture* links above picture data, on or off. |
+| `retroAsm.soundLinks` | The *Play sound* links above sound data, on or off. |
 | `retroAsm.checks` | Wavy underlines on or off. |
 | `retroAsm.formatCaseOnSave` | Change the letter case of instructions, registers and labels when you press Save (see **Capitals and lower case**). On to start with. |
 | `retroAsm.lineUpColumns` | Where Shift+Alt+L starts the instruction, the operands and the comment, for one chip, for example `{ "tms9900": { "comment": 30 } }`. Empty to start with, so each chip uses the layout in its chip file (see **Lining up the columns**). |
@@ -579,6 +599,7 @@ From the `retro-asm` folder:
 | `node test/ext-test.js` | The whole extension against a small stand-in for VS Code. Quick. Set `XAS99` to the path of `xas99.py` to include the build. |
 | `node test/tools-test.js` | Finding the assemblers and emulators (in the tools folder, on the PATH, and so on), and the build and emulator commands for each computer, using stand-in tools. Set `SJASMPLUS` to a real `sjasmplus` to also build a made-up Spectrum program with it. `node test/ext-test.js` runs it too. |
 | `node test/sprite-test.js` | The picture editor: the example files, every computer's way of storing pixels, numbers kept in their own style, and drawing in the editor changing the code. `node test/ext-test.js` runs it too. |
+| `node test/sound-test.js` | The sound player: reading a sound list, the sound chip's pitch, volume and noise, the example file, the player page, and the links in the editor. `node test/ext-test.js` runs it too. |
 | `node test/case-test.js` | The letter-case change: each chip's rules, what is never changed, labels, every test file giving the same warnings and no more changes on a second run, and the save, Format Document and Shift+Alt+U parts. `node test/ext-test.js` runs it too. |
 | `node test/lineup-test.js` | Lining up and the xas99 conversion: each chip's layout, what is left alone, only the spaces changing (the words, warnings and line count stay the same), a second run changing nothing, your own columns and a bad setting, and the commands. `node test/ext-test.js` runs it too. |
 | `node test/gpl-test.js` | The GPL chip file against a made-up GPL program: no false warnings, the memory marks (`V@`, `G@`, `#`, `*`, offsets) explained, names such as `I/O` and `ROW+` recognised, and the xga99 build command and error messages. Set `XGA99` to the path of `xga99.py` to also build the program with the real xga99. `node test/ext-test.js` runs it too. |
@@ -616,6 +637,7 @@ A short list of the big steps. The full details of every release are in `CHANGEL
 
 | Version | What it added |
 |---|---|
+| 0.23 | **Sound player (TI-99/4A):** mark a sound list with `@sound` and play it, with a picture of each voice and what every byte does |
 | 0.22 | **TI-99/4A GPL:** plain-English tooltips, colours, warnings and a build with xga99 for `.gpl` files (cartridge programs in GROM) |
 | 0.21 | **More for the TI-99/4A debugger:** change registers and memory while stopped, a call stack, programs in several blocks of memory, and `KSCAN` |
 | 0.20 | **Step through a TI-99/4A program** in MAME: breakpoints on your own lines (with conditions and hit counts), step in, over and out, registers and watches |

@@ -1,0 +1,34 @@
+* Sound examples for the TI-99/4A (made up, for trying the Retro ASM sound player).
+*
+* This file is only data: it is not a program to run. Click "Play sound" above a block
+* to hear it. Each step of a sound list is: a count, that many bytes for the sound
+* chip, then how long to wait (in 60ths of a second). A count of 0 ends the list.
+* The @sound comment above a block says it is a sound.
+
+* @sound
+BEEP   BYTE 3,>8E,>0F,>90,10        ; voice 1 at about 440 Hz, full volume, for 10/60 s
+       BYTE 1,>9F,1                 ; voice 1 off
+       BYTE 0                       ; the end
+
+* @sound
+ZAP    BYTE 2,>E4,>F0,2             ; noise (a hiss), loud
+       BYTE 1,>F4,3                 ; a bit quieter
+       BYTE 1,>F8,3                 ; quieter
+       BYTE 1,>FC,3                 ; quieter still
+       BYTE 1,>FF,1                 ; noise off
+       BYTE 0
+
+* @sound
+CHORD  BYTE 6,>8E,>0F,>90,>A4,>0C,>B0,30   ; voices 1 and 2 together for half a second
+       BYTE 2,>9F,>BF,1                    ; both off
+       BYTE 0
+
+* This block is named like a sound and reads cleanly as a list, so it gets a
+* "Play as a sound?" link even without the marker.
+SND_UP BYTE 3,>8E,>0F,>90,8
+       BYTE 3,>87,>0B,>90,8
+       BYTE 3,>84,>08,>90,8
+       BYTE 1,>9F,1
+       BYTE 0
+
+       END
