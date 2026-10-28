@@ -20,6 +20,9 @@ const RT = require('./lib/regtrack');
 const PH = require('./lib/panel-html');
 const SPR = require('./lib/sprites');
 const SH = require('./lib/sprite-html');
+const SND = require('./lib/sound');
+const SNDH = require('./lib/sound-html');
+const DEC = require('./lib/decoders');
 const CF = require('./lib/caseformat');
 const LU = require('./lib/lineup');
 const X99 = require('./lib/xas99');
@@ -790,6 +793,10 @@ const lensProvider = {
       try { out.push(...pictureLenses(doc, file)); }
       catch (e) { output.appendLine(`Picture links: ${e.stack || e.message}`); }
     }
+    if (cfg().get('soundLinks') !== false) {
+      try { out.push(...soundLenses(doc, file)); }
+      catch (e) { output.appendLine(`Sound links: ${e.stack || e.message}`); }
+    }
     return out;
   }
 };
@@ -1035,6 +1042,133 @@ async function paintSprite(frame, pixels) {
   const okay = await vscode.workspace.applyEdit(we);
   if (!okay) sendSprite();
   return okay;
+}
+
+// ---------------------------------------------------------------------------
+// the sound player: BYTE / DATA lines played through the sound chip
+// ---------------------------------------------------------------------------
+/** "Play sound" links above blocks marked with @sound, and "Play as a sound?" above ones that read as a sound list and are named like one. */
+function soundLenses(doc, file) {
+  const model = project.get(file);
+  if (!model || !SND.settings(model.D) || doc.lineCount > 30000) return [];
+  const out = [];
+  const done = new Set();
+  for (const m of SND.markedBlocks(project, file, A.dataBlock)) {
+    done.add(m.line);
+    const blk = A.dataBlock(project, file, m.line);
+    const info = blk ? SND.analyse(blk.bytes) : { error: 'no data found' };
+    const range = new vscode.Range(m.line, 0, m.line, 0);
+    const args = [doc.uri.toString(), m.line];
+    if (info.error) { out.push(new vscode.CodeLens(range, { title: '$(warning) Sound: ' + info.error, command: 'retroAsm.playSound', arguments: args })); continue; }
+    out.push(new vscode.CodeLens(range, { title: '$(play) Play sound', tooltip: 'Open the sound player for these lines', command: 'retroAsm.playSound', arguments: args }));
+    out.push(new vscode.CodeLens(range, { title: `${info.steps.length} ${info.steps.length === 1 ? 'step' : 'steps'}, ${info.seconds.toFixed(2)} s`, command: '' }));
+  }
+  let skipTo = -1;
+  for (let ln = 0; ln < model.lines.length; ln++) {
+    if (ln <= skipTo) continue;
+    const pl = model.lines[ln];
+    if (!pl.mnem) continue;
+    const d = model.D.directive(pl.mnem.upper);
+    if (!d || d.kind !== 'data' || !(d.unit === 1 || d.unit === 2)) continue;
+    const prev = ln > 0 ? model.lines[ln - 1] : null;
+    if (!pl.label && prev && prev.mnem) continue;
+    const top = !pl.label && prev && prev.label ? ln - 1 : ln;
+    const name = model.lines[top].label && model.lines[top].label.name;
+    if (!SND.soundHint(name, model.docAbove(top).join(' ') + ' ' + model.trailingComment(top) + ' ' + model.trailingComment(ln))) continue;
+    const blk = A.dataBlock(project, file, ln);
+    if (!blk) continue;
+    skipTo = blk.endLine;
+    if (done.has(blk.labelLine) || !SND.looksLikeSound(blk)) continue;
+    out.push(new vscode.CodeLens(new vscode.Range(blk.labelLine, 0, blk.labelLine, 0), { title: '$(play) Play as a sound?', tooltip: 'These bytes read as a sound list. Open the sound player (nothing in your code is changed)', command: 'retroAsm.playSound', arguments: [doc.uri.toString(), blk.labelLine] }));
+  }
+  return out;
+}
+
+let sound = null;          // { panel, uri, label, line }
+
+/** Retro ASM: Play this sound. From a link (uri, line) or the cursor. */
+async function cmdPlaySound(uri, line) {
+  let doc = uri ? docFor(uri) : null;
+  if (!doc) { const ed = vscode.window.activeTextEditor; if (!ed || !isOurs(ed.document)) { vscode.window.showInformationMessage('Open an assembly file and put the cursor on BYTE or DATA lines to play them as a sound.'); return false; } doc = ed.document; line = (ed.selection.active || ed.selection.start).line; }
+  const model = modelFor(doc);
+  if (!model) return false;
+  if (!SND.settings(model.D)) { vscode.window.showInformationMessage(`The sound player does not know the ${model.D.short} sound chip yet. It plays TI-99/4A sound lists.`); return false; }
+  const file = keyOf(doc);
+  let blk = A.dataBlock(project, file, Number(line) || 0);
+  if (!blk) {
+    const m = SND.markedBlocks(project, file, A.dataBlock).find(b => b.marker === Number(line));
+    if (m) blk = A.dataBlock(project, file, m.line);
+  }
+  if (!blk) { vscode.window.showInformationMessage('There are no BYTE or DATA lines here to play.'); return false; }
+  openSound(doc, blk.labelLine, blk.label);
+  return true;
+}
+
+function openSound(doc, line, label) {
+  if (!sound) {
+    const panel = vscode.window.createWebviewPanel('retroAsm.sound', 'Sound', { viewColumn: vscode.ViewColumn.Beside, preserveFocus: true }, { enableScripts: true, retainContextWhenHidden: true, localResourceRoots: [] });
+    sound = { panel };
+    panel.webview.onDidReceiveMessage(onSoundMessage);
+    panel.onDidDispose(() => { if (sound && sound.panel === panel) sound = null; });
+    panel.webview.html = SNDH.page(nonce(), panel.webview.cspSource);
+  } else sound.panel.reveal(vscode.ViewColumn.Beside, true);
+  Object.assign(sound, { uri: doc.uri.toString(), label: label || null, line });
+  sendSound();
+}
+
+function sendSound() {
+  if (!sound || !sound.panel) return;
+  const name = sound.label || `line ${sound.line + 1}`;
+  sound.panel.title = `Sound: ${name}`;
+  const msg = { type: 'state', key: sound.uri + '|' + name, title: name, where: '' };
+  const doc = docFor(sound.uri);
+  const model = doc ? modelFor(doc) : null;
+  if (!doc) msg.error = 'The file holding this sound has been closed.';
+  else if (!model) msg.error = 'The file holding this sound is not open as assembly any more.';
+  else {
+    const file = keyOf(doc);
+    let line = sound.line;
+    if (sound.label) {      // lines may have moved: find the label again, the nearest one if there are several
+      let best = -1;
+      model.lines.forEach((pl, i) => { if (pl.label && pl.label.name === sound.label && (best < 0 || Math.abs(i - sound.line) < Math.abs(best - sound.line))) best = i; });
+      if (best < 0) msg.error = `${sound.label} can't be found in the file any more.`;
+      else line = best;
+    }
+    sound.line = line;
+    msg.where = `${path.basename(doc.uri.fsPath || doc.uri.path)}, line ${line + 1}`;
+    const blk = msg.error ? null : A.dataBlock(project, file, line);
+    if (!msg.error && !blk) msg.error = `There are no BYTE or DATA lines at ${sound.label || 'line ' + (line + 1)} any more.`;
+    if (blk) {
+      const info = SND.analyse(blk.bytes);
+      if (info.error) msg.error = info.error;
+      else {
+        Object.assign(msg, {
+          steps: info.steps.map(s => ({ bytes: s.bytes, ticks: s.ticks, items: s.bytes.map(b => ({ hex: '>' + b.toString(16).toUpperCase().padStart(2, '0'), text: DEC.sn76489(b) })) })),
+          ticks: info.ticks, seconds: info.seconds, ended: info.ended, spare: info.spare
+        });
+      }
+    }
+  }
+  sound.panel.webview.postMessage(msg);
+  return msg;
+}
+
+let soundTimer = null;
+function scheduleSound() {
+  if (!sound) return;
+  if (soundTimer) clearTimeout(soundTimer);
+  soundTimer = setTimeout(() => { soundTimer = null; sendSound(); }, 40);
+}
+
+async function onSoundMessage(m) {
+  if (!m || !sound) return;
+  if (m.type === 'ready') { sendSound(); return; }
+  if (m.type === 'goto') {
+    const doc = docFor(sound.uri);
+    if (!doc) return;
+    const ed = await vscode.window.showTextDocument(doc, { viewColumn: vscode.ViewColumn.One, preserveFocus: false });
+    if (ed) { const p = new vscode.Position(sound.line, 0); ed.selection = new vscode.Selection(p, p); ed.revealRange(new vscode.Range(p, p), vscode.TextEditorRevealType.InCenterIfOutsideViewport); }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1949,12 +2083,14 @@ function activate(context) {
     vscode.commands.registerCommand('retroAsm.openOriginal', cmdOpenOriginal),
     vscode.commands.registerCommand('retroAsm.editSprite', cmdEditSprite),
     vscode.commands.registerCommand('retroAsm.newSprite', cmdNewSprite),
+    vscode.commands.registerCommand('retroAsm.playSound', cmdPlaySound),
 
     vscode.workspace.onDidOpenTextDocument((doc) => { if (syncDoc(doc)) refreshEverything(); }),
     vscode.workspace.onDidChangeTextDocument((e) => {
       if (!syncDoc(e.document)) return;
       tokensChanged.fire(); lensChanged.fire(); hintsChanged.fire(); scheduleChecks(); scheduleAddresses(); updateStatus(); refreshPanels();
       if (sprite && e.document.uri.toString() === sprite.uri) scheduleSprite();
+      if (sound && e.document.uri.toString() === sound.uri) scheduleSound();
       if (e.contentChanges.length) buildDiagnostics.delete(e.document.uri);   // the assembler's notes go stale once the file is edited
     }),
     vscode.workspace.onDidCloseTextDocument((doc) => {
@@ -2023,7 +2159,7 @@ function activate(context) {
   refreshEverything();
   scanWorkspace();
   // for the tests: what the side panel would show for the file it is following
-  return { spriteNow: () => sendSprite(), spriteMessage: (m) => onSpriteMessage(m), panelNow: () => { const f = panelTarget(); return { file: f, line: panelLine, thisLine: lineHtml(f), registers: registerNodes(f), memoryMap: mapHtml(f), project: projectNodes(f), hardware: hardwareNodes(f) }; } };
+  return { soundNow: () => sendSound(), spriteNow: () => sendSprite(), spriteMessage: (m) => onSpriteMessage(m), panelNow: () => { const f = panelTarget(); return { file: f, line: panelLine, thisLine: lineHtml(f), registers: registerNodes(f), memoryMap: mapHtml(f), project: projectNodes(f), hardware: hardwareNodes(f) }; } };
 }
 
 function deactivate() { if (spriteTimer) clearTimeout(spriteTimer); if (checkTimer) clearTimeout(checkTimer); if (panelTimer) clearTimeout(panelTimer); if (lineTimer) clearTimeout(lineTimer); }

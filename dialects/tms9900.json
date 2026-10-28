@@ -308,6 +308,12 @@
     "9C02": "GROM: write an address here (two bytes, high byte first)."
   },
 
+  "sound": {
+    "_help": "Turns on the sound player. A BYTE or DATA block marked '@sound' (or named like a sound) gets a Play link. The layout is the console's sound list: a count, that many bytes for the sound chip, then how long to wait in 60ths of a second; a count of 0 ends the list.",
+    "format": "ti-sound-list",
+    "about": "The TI-99/4A's sound chip (the SN76489) has three tone voices and one noise voice. A sound list sends it bytes in steps: after each step the chip keeps sounding for the wait that was given."
+  },
+
   "sprites": {
     "_help": "Pictures kept as BYTE or DATA lines. Put a comment with @sprite (and a shape or size) just above the block to draw and edit it.",
     "about": "The TI-99/4A's video chip (the TMS9918A) draws characters and sprites from 8 bytes each, one byte a row, the left-most pixel in the top bit.",

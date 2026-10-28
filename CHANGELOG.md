@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.23.0
+
+- **New: sound player (TI-99/4A).** Put a comment with `@sound` above a block of BYTE or DATA lines and a **Play sound** link appears above it. It opens a player beside your code with **Play**, **Stop** and **repeat**, a picture of the pitch and loudness of the three tone voices and the noise, and a table of the steps with what each byte does in plain English. Change a number in the code and the player updates. It never changes your code.
+- **The layout it reads** is the console's sound list: a count, that many bytes for the sound chip, then how long to wait in 60ths of a second, and a count of 0 to end the list. A list with no ending still plays and says so. Anything after the ending is not played. A list that stops in the middle of a step shows what is wrong. A sound over a minute long is cut short.
+- **"Play as a sound?"** appears above a block that is named like a sound (`SND_`, `MUSIC`, `BEEP`, `TUNE` ...) or has a comment that says so, and reads cleanly as a sound list from start to finish. Pictures and other data are left alone.
+- **How the sound is made:** the same rules as the earlier sound lab page: three square-wave voices (pitch number = 111,861 divided by the frequency), 2 dB a loudness step with 15 as off, and a 15-bit noise generator (a hiss or a buzz, at three speeds or following voice 3). The player page makes its sound with the same code the tests use.
+- **New:** chip file section `sound` (only `tms9900.json` has one, so only the TI-99/4A gets the player). New setting `retroAsm.soundLinks` to switch the links off. New command **Retro ASM: Play these bytes as a sound** (it uses the block at the cursor).
+- New files: `lib/sound.js`, `lib/sound-html.js`, `test/sound-test.js`, and a made-up example `examples/sounds/sounds.a99`. `test/ext-test.js` runs the new tests.
+- **Only the player, not an editor, for now.** Drawing and reshaping a sound, the way the lab page does, is not in this version.
+- **Tested:** the new checks pass (reading lists, pitch near 440 Hz for pitch number 254, volume steps, noise, the example file, the page's script, and the links and player in a stand-in for VS Code), and so do the main run and the other checks that apply. **Not tested:** nobody has listened to it, because there is no sound in the place it was built. It has not been tried in real VS Code (`npm run test:vscode` was not run), and the browser sound inside VS Code's panel has not been tried. It has not been checked against a real TI or MAME, and the way a count of 0 ends a list and what a wait of 0 does follow general knowledge of the TI sound list, not TI's manual. The 0.22.0 `.vsix` is left alone.
+
 ## 0.22.0
 
 - **New: TI-99/4A GPL.** A new chip file, `dialects/gpl.json`, for `.gpl` files: GPL is TI's own language, run by the console from GROM, and xga99 is the assembler. Tooltips, colours, the outline, go to definition, find uses, rename, letter case, Line up and warnings all work on it.
