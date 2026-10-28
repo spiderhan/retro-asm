@@ -1,0 +1,36 @@
+* Made-up GPL test file. Not taken from any real program.
+        GROM 6
+        AORG >0000
+LIVES   EQU  >8310
+SCORE   EQU  >8312
+TICKS   EQU  >8314
+
+        BYTE >AA,>01,>00
+START   ALL  >20                  ; clear the screen
+        BACK >04
+        ST   >03,@LIVES
+        DCLR @SCORE
+        MOVE >0008,G@SHAPE,V@>0800
+        MOVE >0002,@SCORE,#7
+        FMT
+        ROW  >02
+        COL  >05
+        HTEXT 'DEMO SCREEN'
+        ROW+ >02
+        HCHAR >08,>2A
+        FEND
+LOOP    SCAN
+        CEQ  >FF,@>8375
+        BS   LOOP
+        CZ   *TICKS
+        BR   NEXT
+        ST   >00,V@>0400(@TICKS)
+        DEC  @LIVES
+NEXT    DINC @TICKS
+        CALL BEEP
+        B    LOOP
+BEEP    I/O  >00,SOUND
+        RTN
+SHAPE   BYTE >18,>3C,>7E,>FF,>FF,>7E,>3C,>18
+SOUND   BYTE >03,>9F,>BF,>DF,>00
+        END

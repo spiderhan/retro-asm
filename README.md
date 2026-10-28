@@ -12,6 +12,7 @@ New here? **[QUICKSTART.md](QUICKSTART.md)** gets you from install to a built pr
 | ZX Spectrum | Z80 | sjasmplus (and SkoolKit's `skool2asm` output) | `.z80` | **ZX Spectrum** below |
 | Commodore 64 | 6502 | KickAssembler | (`.asm`, see below) | **Commodore 64** below |
 | BBC Micro (and Master) | 6502 / 65C02 | BeebAsm | `.6502` | **BBC Micro** below |
+| TI-99/4A GPL (cartridge programs) | GPL, TI's own language run from GROM | xga99 | `.gpl` | **TI-99/4A GPL** below |
 
 Everything in **What you get** works for all four: tooltips, a plain-English sentence for each line, go to definition, find uses, rename, the outline, summary lines above routines, warnings, addresses and sizes, the side panel, the explain page, the cheat sheet, build and run. The few parts that only suit one computer say so.
 
@@ -448,6 +449,15 @@ Open a `.bas` file and the file type in the bottom-right corner reads **BBC BASI
 - A `[` inside a string, after `REM`, or on a `DATA` line is not the start of assembly. `OPT` is skipped.
 - No warnings, cycle counts or build for `.bas` files.
 
+## TI-99/4A GPL (GROM, xga99)
+
+GPL is TI's own language. The console runs it one step at a time from GROM (read-only chips), which is how its menus and many cartridges start. A `.gpl` file is read the way xga99 reads it.
+
+- **What works:** tooltips and a plain-English sentence for every GPL command (about 100, including the screen-drawing ones inside `FMT` ... `FEND`), the memory marks in front of an address (`@` the console's fast memory, `*` an address kept in memory, `V@` video memory, `G@` GROM, `#` a video chip setting, and an offset in brackets such as `V@>0400(@TICKS)`), the names xga99 already knows (`KEY`, `TIMER`, `YPT` ...), colours, the outline, go to definition, find uses, rename, warnings for unknown names and wrong operand counts, letter case and Line up.
+- **Build:** **Retro ASM: Build** runs xga99 (needs Python) and makes a GROM image, `name.gbc`; its error messages are underlined on their lines. There is no run step: a GROM image can't be started on its own. For a cartridge image for MAME, set `retroAsm.build.command` to `python xga99.py -c "${file}"` (with the right path to `xga99.py`).
+- **What is not there:** no Registers panel (GPL has no registers), no timing and no debugger.
+- **Try it:** `test/fixtures/gpl-demo.gpl` is a small made-up GPL file.
+
 ## Changing the chip
 
 - Click the chip name in the bottom-right corner (or run **Retro ASM: Switch chip**) to choose how files with this extension are read. On a new file that hasn't been saved yet, the choice is used for that file; save it with an extension to keep it.
@@ -571,6 +581,7 @@ From the `retro-asm` folder:
 | `node test/sprite-test.js` | The picture editor: the example files, every computer's way of storing pixels, numbers kept in their own style, and drawing in the editor changing the code. `node test/ext-test.js` runs it too. |
 | `node test/case-test.js` | The letter-case change: each chip's rules, what is never changed, labels, every test file giving the same warnings and no more changes on a second run, and the save, Format Document and Shift+Alt+U parts. `node test/ext-test.js` runs it too. |
 | `node test/lineup-test.js` | Lining up and the xas99 conversion: each chip's layout, what is left alone, only the spaces changing (the words, warnings and line count stay the same), a second run changing nothing, your own columns and a bad setting, and the commands. `node test/ext-test.js` runs it too. |
+| `node test/gpl-test.js` | The GPL chip file against a made-up GPL program: no false warnings, the memory marks (`V@`, `G@`, `#`, `*`, offsets) explained, names such as `I/O` and `ROW+` recognised, and the xga99 build command and error messages. Set `XGA99` to the path of `xga99.py` to also build the program with the real xga99. `node test/ext-test.js` runs it too. |
 | `node test/listing-test.js` | Reading an xas99 listing: which line is at which address, the program's bytes, where it starts. Made-up listing. `node test/ext-test.js` runs it too. |
 | `node test/condition-test.js` | Breakpoint conditions and hit counts: what each one means, and the messages for ones that make no sense. `node test/ext-test.js` runs it too. |
 | `node test/vdp-routines-test.js` | The added VSBW, VMBW, VSBR, VMBR and VWTR routines run on a pretend chip and screen chip, checked against what each is documented to do. `node test/ext-test.js` runs it too. |
@@ -605,6 +616,7 @@ A short list of the big steps. The full details of every release are in `CHANGEL
 
 | Version | What it added |
 |---|---|
+| 0.22 | **TI-99/4A GPL:** plain-English tooltips, colours, warnings and a build with xga99 for `.gpl` files (cartridge programs in GROM) |
 | 0.21 | **More for the TI-99/4A debugger:** change registers and memory while stopped, a call stack, programs in several blocks of memory, and `KSCAN` |
 | 0.20 | **Step through a TI-99/4A program** in MAME: breakpoints on your own lines (with conditions and hit counts), step in, over and out, registers and watches |
 | 0.19 | **Line up** the label, instruction, operands and comment in columns (Shift+Alt+L), and **convert a whole TI-99/4A file to xas99 style** |
