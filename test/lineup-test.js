@@ -40,6 +40,15 @@ const same=(id,a,b)=>shape(a,dia(id))===shape(b,dia(id));
  ok('TI: the spacing inside the operands and the text in quotes is copied as typed',o.text===sp(8)+'LI'+sp(4)+'R0, 5'+sp(13)+'* x\n'+sp(8)+'TEXT'+sp(2)+"'a ; b * c'"+sp(7)+'* note',o.text.split('\n'));
  ok('TI: a comment after only one space ends up with two or more (the one-space warning goes)',(()=>{const t=up('tms9900','       LI   R0,>10 * star').text;const P=new Project();P.set('/x/t',t,dia('tms9900'));return /  \* star$/.test(t)&&!F.check(P,'/x/t').some(c=>c.fix==='oneSpaceComment');})());}
 
+// ---- a label pushed in from the left by accident is left alone (it used to be read as an instruction) ----
+{const src=lines('       DEF  START','   START LWPI WS','       LIMI 0','DONE JMP DONE','MSG TEXT \'HI\'','WS BSS 32');
+ const r=up('tms9900',src);const l=r.text.split('\n');
+ ok('TI: an accidentally indented label line is left exactly as typed',l[1]==='   START LWPI WS',l[1]);
+ ok('TI: the lines around it are still lined up, and the other labels stay at the left',l[2]===sp(8)+'LIMI'+sp(2)+'0'&&l[3].startsWith('DONE')&&l[4].startsWith('MSG')&&l[5].startsWith('WS'),l);
+ ok('TI: only that one line is skipped (lines 0 and 2 to 5 may change, line 1 never)',r.edits.every(e=>e.line!==1),r.edits.map(e=>e.line));
+ const u=up('tms9900','  MOV R0,R1 * ok\n  FOO R0,R1');
+ ok('TI: a real instruction that is indented is still lined up (it is not mistaken for a label)',u.text.split('\n')[0]===sp(8)+'MOV'+sp(3)+'R0,R1'+sp(13)+'* ok',u.text.split('\n')[0]);}
+
 // ---- Z80: instruction at 8, operands at 16, comment at 32 ----
 {const src=lines('start: ld hl,SCREEN ; point at it','  loop: djnz loop','        defm "a ; b"','  ret','; a note');
  const want=lines('start:'+sp(2)+'ld'+sp(6)+'hl,SCREEN'+sp(7)+'; point at it','loop:'+sp(3)+'djnz'+sp(4)+'loop',sp(8)+'defm'+sp(4)+'"a ; b"',sp(8)+'ret','; a note');
