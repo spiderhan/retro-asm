@@ -117,6 +117,7 @@ Make the label, the instruction, the operands and the comment of every line star
 
 - **Shift+Alt+L** (or **Retro ASM: Line up the label, instruction, operands and comment in columns**) does it for the lines you have selected, or for the whole file if nothing is selected. It is never done by itself: not when you save, and not by Format Document.
 - A label starts at the left edge. The instruction, the operands and a comment at the end of a line each start at a set place. Each chip starts with its own layout (the number is how many characters come before it):
+- **A label pushed in from the left by accident is left alone.** On the TI-99/4A a label only counts as a label at the left edge, so `   START LWPI WS` is read as the instruction `START`. Line up now spots that the next word is a real instruction and leaves the line exactly as typed, instead of spreading it into the instruction, operand and comment columns. Move the label back to the left edge and line up again.
 
 | Chip | Instruction | Operands | Comment |
 |---|---|---|---|

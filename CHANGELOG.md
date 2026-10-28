@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.21.7
+
+- **Fix: Line up no longer mangles a label that was pushed in from the left by accident.** On the TI-99/4A, `   START LWPI WS` (the label `START` indented by mistake) was read as the instruction `START` with `LWPI` as its operand and `WS` as a comment, so Line up spread the three words into those columns and the real instruction ended up far to the right. A line like that, where the first word is not an instruction but the next word is, is now left exactly as typed. Real indented instructions are still lined up.
+- Test added to `test/lineup-test.js`. Line up only ever changes spaces, so the other labels in a file were never moved by it. Not tried in real VS Code yet. The 0.21.6 `.vsix` is left alone.
+
 ## 0.21.6
 
 - **Two more made-up test programs** in `examples/debugger/`: `memory-demo.a99` (`VSBR`, `VMBR`, and changing a word with `@SCORE = >0500` in the Debug Console) and `lowmem-demo.a99` (code at `>2000`). Each says what the screen should show. Both worked on real MAME.
