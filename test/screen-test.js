@@ -65,6 +65,31 @@ ok('an unknown kind is said so',problems(TEXT.replace('ti-bitmap','zx-bitmap')).
  ok('a marker problem sits on "@screen", and a gentle note is only information',w3.length===1&&raw.slice(w3[0].start,w3[0].end)==='@screen'&&w3[0].severity==='info',w3);
  ok('a kind it does not know is not nagged about',pf(TEXT.replace('ti-bitmap','zx-bitmap')).length===0);}
 
+// ---- the registers against the addresses ----
+{const REGS='regs=>02,>E2,>06,>FF,>03,>3E,>01,>04';
+ const withRegs=(r,t)=>(t||TEXT).replace(REGS,'regs='+r);
+ const probs=(r,t)=>{const L=load(withRegs(r,t));return SC.check(L.spec,L.g);};
+ const msg=(r,t)=>probs(r,t).map(p=>p.text);
+ ok('registers that agree with the line give nothing',probs('>02,>E2,>06,>FF,>03,>3E,>01,>04').length===0);
+ ok('... also for the pixel editor\'s own example line',SC.registerProblems(SC.parseMarker('* @screen ti-bitmap bands=3 shared=no run=SCRRUN grid=SCRMAP gridat=>1800 patterns=SCRPAT0,SCRPAT1,SCRPAT2 patat=>0000 colours=SCRCOL0,SCRCOL1,SCRCOL2 colat=>2000 sprites=SCRSPR96 sprat=>1800 spritelist=SCRSLIST listat=>1F00 regs=>02,>E2,>06,>FF,>03,>3E,>03,>01')).length===0);
+ ok('register 0 without the bitmap bit is explained',msg('>00,>E2,>06,>FF,>03,>3E,>01,>04').some(t=>/Register 0 is >00, which does not switch the bitmap screen on/.test(t)));
+ ok('register 1 with the text or multicolour bit is explained',msg('>02,>FA,>06,>FF,>03,>3E,>01,>04').some(t=>/Register 1 is >FA, which has the text-screen or multicolour bit set/.test(t)));
+ const off=probs('>02,>A2,>06,>FF,>03,>3E,>01,>04');
+ ok('a screen left switched off is only a gentle note',off.length===1&&off[0].severity==='info'&&/leaves the screen switched off/.test(off[0].text),off);
+ ok('register 2 against the grid address',msg('>02,>E2,>07,>FF,>03,>3E,>01,>04').some(t=>/Register 2 puts the screen grid at >1C00, but gridat on the line says >1800/.test(t)));
+ ok('register 4 against the shapes address',msg('>02,>E2,>06,>FF,>07,>3E,>01,>04').some(t=>/Register 4 puts the shapes at >2000, but patat on the line says >0000/.test(t)));
+ ok('register 3 against the colours address',msg('>02,>E2,>06,>7F,>03,>3E,>01,>04').some(t=>/Register 3 puts the colours at >0000, but colat on the line says >2000/.test(t)));
+ ok('register 5 against the sprite list address',msg('>02,>E2,>06,>FF,>03,>3F,>01,>04').some(t=>/Register 5 puts the sprite list at >1F80, but listat on the line says >1F00/.test(t)));
+ ok('register 6 against the sprite pictures address',msg('>02,>E2,>06,>FF,>03,>3E,>02,>04').some(t=>/Register 6 puts the sprite pictures at >1000, but sprat on the line says >0800/.test(t)));
+ ok('separate shapes on the line but shared by register 4',msg('>02,>E2,>06,>FF,>00,>3E,>01,>04').some(t=>/gives each band its own shapes, but the register that places them makes the bands share the first set/.test(t)));
+ ok('separate colours on the line but shared by register 3',msg('>02,>E2,>06,>9F,>03,>3E,>01,>04').some(t=>/gives each band its own colours, but the register that places them makes the bands share/.test(t)));
+ const sh=TEXT.replace('shared=no','shared=yes');
+ ok('shared on the line but separate by register 4',msg('>02,>E2,>06,>FF,>03,>3E,>01,>04',sh).some(t=>/every band shares one set of shapes, but the register/.test(t)));
+ ok('shared on the line and by the registers is fine',msg('>02,>E2,>06,>9F,>00,>3E,>01,>04',sh).filter(t=>/egister/.test(t)).length===0,msg('>02,>E2,>06,>9F,>00,>3E,>01,>04',sh));
+ ok('fewer than 8 register values only gets the count message',(()=>{const m=msg('>02,>E2,>06',TEXT);return m.length===1&&/8 registers/.test(m[0]);})());
+ const q=new Project();q.set('/x/f',withRegs('>02,>E2,>07,>FF,>03,>3E,>01,>04'),dia('tms9900'));const pr=SC.problemsFor(q,'/x/f',A.dataBlock),rawl=TEXT.split('\n')[1];
+ ok('the editor underlines the word the problem is about',pr.length===1&&rawl.replace(REGS,'regs=>02,>E2,>07,>FF,>03,>3E,>01,>04').slice(pr[0].start,pr[0].end)==='gridat=>1800',pr);}
+
 // ---- drawing it ----
 {const {spec,g}=load(TEXT);const r=SC.render(spec,g);
  ok('256 x 192 colour numbers, never 0',r.pixels.length===256*192&&r.pixels.every(v=>v>=1&&v<=15));
