@@ -22,6 +22,8 @@ const SPR = require('./lib/sprites');
 const SH = require('./lib/sprite-html');
 const SND = require('./lib/sound');
 const SNDH = require('./lib/sound-html');
+const SCR = require('./lib/screen');
+const SCRH = require('./lib/screen-html');
 const DEC = require('./lib/decoders');
 const CF = require('./lib/caseformat');
 const LU = require('./lib/lineup');
@@ -390,6 +392,16 @@ function runChecks() {
       if (c.fix) d.code = c.fix;
       return d;
     });
+    const mdl = project.get(keyOf(doc));
+    if (mdl.D.id === 'tms9900' && doc.lineCount <= 30000) {
+      try {
+        for (const c of SCR.problemsFor(project, keyOf(doc), A.dataBlock)) {
+          const d = new vscode.Diagnostic(new vscode.Range(c.line, c.start, c.line, c.end), c.message, c.severity === 'info' ? vscode.DiagnosticSeverity.Information : vscode.DiagnosticSeverity.Warning);
+          d.source = 'Retro ASM';
+          list.push(d);
+        }
+      } catch (e) { output.appendLine('Screen checks: ' + (e.stack || e.message)); }
+    }
     diagnostics.set(doc.uri, list);
   }
   diagnostics.forEach((uri) => { if (!seen.has(uri.toString())) diagnostics.delete(uri); });
@@ -429,6 +441,8 @@ const hoverProvider = {
   provideHover(doc, pos) {
     if (!modelFor(doc)) return null;
     const file = keyOf(doc);
+    const scr = screenHoverAt(doc, pos, file);
+    if (scr) return scr;
     const ref = originalRefAt(doc, pos);
     if (ref) {
       const parts = originalHover(ref, file).map(md);
@@ -796,6 +810,10 @@ const lensProvider = {
     if (cfg().get('soundLinks') !== false) {
       try { out.push(...soundLenses(doc, file)); }
       catch (e) { output.appendLine(`Sound links: ${e.stack || e.message}`); }
+    }
+    if (cfg().get('screenLinks') !== false) {
+      try { out.push(...screenLenses(doc, file)); }
+      catch (e) { output.appendLine(`Screen links: ${e.stack || e.message}`); }
     }
     return out;
   }
@@ -1168,6 +1186,129 @@ async function onSoundMessage(m) {
     if (!doc) return;
     const ed = await vscode.window.showTextDocument(doc, { viewColumn: vscode.ViewColumn.One, preserveFocus: false });
     if (ed) { const p = new vscode.Position(sound.line, 0); ed.selection = new vscode.Selection(p, p); ed.revealRange(new vscode.Range(p, p), vscode.TextEditorRevealType.InCenterIfOutsideViewport); }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// the screen preview: a whole bitmap screen, described by an @screen comment
+// ---------------------------------------------------------------------------
+/** "Show this screen" above each @screen comment (TI-99/4A), with a plain-English line about it. */
+function screenLenses(doc, file) {
+  const model = project.get(file);
+  if (!model || model.D.id !== 'tms9900' || doc.lineCount > 30000) return [];
+  const out = [];
+  for (const m of SCR.markedScreens(model)) {
+    const range = new vscode.Range(m.line, 0, m.line, 0);
+    if (m.spec.kind === 'ti-bitmap') out.push(new vscode.CodeLens(range, { title: '$(device-desktop) Show this screen', tooltip: 'Open a preview that draws the picture from the tables in this file', command: 'retroAsm.showScreen', arguments: [doc.uri.toString(), m.line] }));
+    out.push(new vscode.CodeLens(range, { title: SCR.describe(m.spec), command: '' }));
+  }
+  return out;
+}
+
+/** The tooltip on the "@screen ti-bitmap" words: what the line describes, what each table is, and anything wrong. */
+function screenHoverAt(doc, pos, file) {
+  const model = project.get(file);
+  if (!model || model.D.id !== 'tms9900') return null;
+  const at = SCR.markerAt(model, pos.line, pos.character);
+  if (!at) return null;
+  const g = SCR.gather(project, file, at.spec, A.dataBlock);
+  const parts = SCR.hoverParts(at.spec, g, SCR.check(at.spec, g)).map(md);
+  if (at.spec.kind === 'ti-bitmap') {
+    const link = md('[Show this screen](command:retroAsm.showScreen?' + encodeURIComponent(JSON.stringify([doc.uri.toString(), pos.line])) + ')');
+    link.isTrusted = { enabledCommands: ['retroAsm.showScreen'] };
+    parts.push(link);
+  }
+  return new vscode.Hover(parts, new vscode.Range(pos.line, at.start, pos.line, at.end));
+}
+
+let screen = null;         // { panel, uri, line }
+
+/** Retro ASM: Show this screen. From a link (uri, line) or the cursor (the nearest @screen line above it, else the first). */
+async function cmdShowScreen(uri, line) {
+  let doc = uri ? docFor(uri) : null;
+  if (!doc) { const ed = vscode.window.activeTextEditor; if (!ed || !isOurs(ed.document)) { vscode.window.showInformationMessage('Open an assembly file with an @screen comment to see the screen.'); return false; } doc = ed.document; line = (ed.selection.active || ed.selection.start).line; }
+  const model = modelFor(doc);
+  if (!model) return false;
+  if (model.D.id !== 'tms9900') { vscode.window.showInformationMessage('The screen preview draws TI-99/4A bitmap screens. It does not know the ' + model.D.short + ' yet.'); return false; }
+  const all = SCR.markedScreens(model).filter(s => s.spec.kind === 'ti-bitmap');
+  if (!all.length) { vscode.window.showInformationMessage('There is no @screen ti-bitmap comment in this file.'); return false; }
+  const at = Number(line) || 0;
+  const pick = all.filter(s => s.line <= at).pop() || all[0];
+  openScreen(doc, pick.line);
+  return true;
+}
+
+function openScreen(doc, line) {
+  if (!screen) {
+    const panel = vscode.window.createWebviewPanel('retroAsm.screen', 'Screen', { viewColumn: vscode.ViewColumn.Beside, preserveFocus: true }, { enableScripts: true, retainContextWhenHidden: true, localResourceRoots: [] });
+    screen = { panel };
+    panel.webview.onDidReceiveMessage(onScreenMessage);
+    panel.onDidDispose(() => { if (screen && screen.panel === panel) screen = null; });
+    panel.webview.html = SCRH.page(nonce(), panel.webview.cspSource);
+  } else screen.panel.reveal(vscode.ViewColumn.Beside, true);
+  Object.assign(screen, { uri: doc.uri.toString(), line });
+  sendScreen();
+}
+
+const bytes64 = (u8) => Buffer.from(u8).toString('base64');
+const SCREEN_TABLES = { patterns: 'Shapes', colours: 'Colours', grid: 'Screen grid', sprites: 'Sprite pictures', list: 'Sprite list', run: 'Start of program' };
+
+function sendScreen() {
+  if (!screen || !screen.panel) return;
+  const msg = { type: 'state', title: 'Screen', where: '', about: '', palette: SCR.PALETTE };
+  const doc = docFor(screen.uri);
+  const model = doc ? modelFor(doc) : null;
+  if (!doc) msg.error = 'The file holding this screen has been closed.';
+  else if (!model) msg.error = 'The file holding this screen is not open as assembly any more.';
+  else {
+    const all = SCR.markedScreens(model).filter(s => s.spec.kind === 'ti-bitmap');
+    if (!all.length) msg.error = 'There is no @screen ti-bitmap comment in this file any more.';
+    else {
+      let best = all[0];                       // lines may have moved: take the nearest comment
+      for (const s of all) if (Math.abs(s.line - screen.line) < Math.abs(best.line - screen.line)) best = s;
+      screen.line = best.line;
+      const spec = best.spec;
+      msg.where = `${path.basename(doc.uri.fsPath || doc.uri.path)}, line ${best.line + 1}`;
+      msg.about = SCR.describe(spec);
+      const g = SCR.gather(project, keyOf(doc), spec, A.dataBlock);
+      const plain = SCR.render(spec, g, { sprites: false });
+      const full = SCR.render(spec, g);
+      msg.pixels = bytes64(plain.pixels);
+      msg.withSprites = full.sprites ? bytes64(full.pixels) : null;
+      msg.hasSprites = full.sprites > 0;
+      msg.spriteCount = full.sprites;
+      const bd = plain.regs[7] & 15;
+      msg.backdrop = `${bd} (${SCR.COLOUR_NAMES[bd]})`;
+      const problems = SCR.check(spec, g);
+      msg.notes = problems.map(p => p.text);
+      msg.tables = g.tables.map(t => {
+        const want = t.role === 'patterns' || t.role === 'colours' ? SCR.BAND_BYTES : t.role === 'grid' ? SCR.GRID_BYTES : 0;
+        const bad = problems.some(p => p.table === t.role && p.label === t.label);
+        const band = (t.role === 'patterns' || t.role === 'colours') && spec.patterns.length + spec.colours.length > 2 ? `, band ${(t.index || 0) + 1}` : '';
+        return { what: SCREEN_TABLES[t.role] + band, label: t.label, line: t.line, at: t.at === null ? '' : SCR.hex4(t.at), ok: !bad, size: t.role === 'run' ? (t.why ? 'not found' : '') : t.bytes ? `${t.bytes.length} bytes${want && t.bytes.length !== want ? ` (should be ${want})` : ''}` : 'not found' };
+      });
+    }
+  }
+  screen.panel.title = 'Screen';
+  screen.panel.webview.postMessage(msg);
+  return msg;
+}
+
+let screenTimer = null;
+function scheduleScreen() {
+  if (!screen) return;
+  if (screenTimer) clearTimeout(screenTimer);
+  screenTimer = setTimeout(() => { screenTimer = null; sendScreen(); }, 150);
+}
+
+async function onScreenMessage(m) {
+  if (!m || !screen) return;
+  if (m.type === 'ready') { sendScreen(); return; }
+  if (m.type === 'goto') {
+    const doc = docFor(screen.uri);
+    if (!doc) return;
+    const ed = await vscode.window.showTextDocument(doc, { viewColumn: vscode.ViewColumn.One, preserveFocus: false });
+    if (ed) { const p = new vscode.Position(screen.line, 0); ed.selection = new vscode.Selection(p, p); ed.revealRange(new vscode.Range(p, p), vscode.TextEditorRevealType.InCenterIfOutsideViewport); }
   }
 }
 
@@ -2084,6 +2225,7 @@ function activate(context) {
     vscode.commands.registerCommand('retroAsm.editSprite', cmdEditSprite),
     vscode.commands.registerCommand('retroAsm.newSprite', cmdNewSprite),
     vscode.commands.registerCommand('retroAsm.playSound', cmdPlaySound),
+    vscode.commands.registerCommand('retroAsm.showScreen', cmdShowScreen),
 
     vscode.workspace.onDidOpenTextDocument((doc) => { if (syncDoc(doc)) refreshEverything(); }),
     vscode.workspace.onDidChangeTextDocument((e) => {
@@ -2091,6 +2233,7 @@ function activate(context) {
       tokensChanged.fire(); lensChanged.fire(); hintsChanged.fire(); scheduleChecks(); scheduleAddresses(); updateStatus(); refreshPanels();
       if (sprite && e.document.uri.toString() === sprite.uri) scheduleSprite();
       if (sound && e.document.uri.toString() === sound.uri) scheduleSound();
+      if (screen && e.document.uri.toString() === screen.uri) scheduleScreen();
       if (e.contentChanges.length) buildDiagnostics.delete(e.document.uri);   // the assembler's notes go stale once the file is edited
     }),
     vscode.workspace.onDidCloseTextDocument((doc) => {
@@ -2159,7 +2302,7 @@ function activate(context) {
   refreshEverything();
   scanWorkspace();
   // for the tests: what the side panel would show for the file it is following
-  return { soundNow: () => sendSound(), spriteNow: () => sendSprite(), spriteMessage: (m) => onSpriteMessage(m), panelNow: () => { const f = panelTarget(); return { file: f, line: panelLine, thisLine: lineHtml(f), registers: registerNodes(f), memoryMap: mapHtml(f), project: projectNodes(f), hardware: hardwareNodes(f) }; } };
+  return { screenNow: () => sendScreen(), soundNow: () => sendSound(), spriteNow: () => sendSprite(), spriteMessage: (m) => onSpriteMessage(m), panelNow: () => { const f = panelTarget(); return { file: f, line: panelLine, thisLine: lineHtml(f), registers: registerNodes(f), memoryMap: mapHtml(f), project: projectNodes(f), hardware: hardwareNodes(f) }; } };
 }
 
 function deactivate() { if (spriteTimer) clearTimeout(spriteTimer); if (checkTimer) clearTimeout(checkTimer); if (panelTimer) clearTimeout(panelTimer); if (lineTimer) clearTimeout(lineTimer); }

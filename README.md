@@ -317,6 +317,20 @@ A block that is *named* like a sound (`SND_...`, `MUSIC`, `BEEP`, `TUNE` ...), o
 
 It only knows the TI-99/4A's sound chip for now. The other computers have different sound chips, so each needs its own player. `retroAsm.soundLinks` switches the links off. The `examples/sounds` folder has `sounds.a99` to try it on (it is data only, not a program to run).
 
+### Screen preview (TI-99/4A)
+
+A whole bitmap screen can be kept in your code as its tables of shapes, colours and a grid. When a file has an `@screen` comment line that names those tables, a **Show this screen** link appears above it, with a plain-English line such as *a whole screen: 3 bands, shapes at >0000, colours at >2000, grid at >1800, sprites listed at >1F00*:
+
+```
+* @screen ti-bitmap bands=3 shared=no run=SCRRUN grid=SCRMAP gridat=>1800 patterns=SCRPAT0,SCRPAT1,SCRPAT2 patat=>0000 colours=SCRCOL0,SCRCOL1,SCRCOL2 colat=>2000 sprites=SCRSPR96 sprat=>1800 spritelist=SCRSLIST listat=>1F00 regs=>02,>E2,>06,>FF,>03,>3E,>03,>01
+```
+
+Click the link and a preview opens beside your code. It draws the picture the way the video chip would, from the tables in the file: each square of the grid picks a shape, each band of the screen has its own shapes and colours (unless `shared=yes`), and the sprites in the sprite list are drawn on top (switch them off with **show sprites**). Under the picture a table says where each table goes in video memory, how big it is, and whether that is the right size. Hover `@screen` for the same list, and a table that is the wrong size or a name that can't be found is also underlined in the `@screen` comment and listed in the Problems panel. A table that is the wrong size, or a name that can't be found, gets a plain note, and the picture is still drawn from what is there. Change a number in the code and the preview updates. It never changes your code.
+
+The right sizes are 2048 bytes for each band of shapes and each band of colours, 768 for the grid (32 across, 24 down), and a sprite list of 4 bytes a sprite that ends in `>D0`. Words in the line that Retro ASM doesn't know are ignored, so the line can grow. `retroAsm.screenLinks` switches the links off. The `examples/screens` folder has `screen-demo.a99` (made up) to try it on.
+
+What the preview does **not** do yet: it ignores the video chip's rule that only four sprites show on one row, it draws from the addresses and tables named in the line (not from where the register values say they are), and it only draws the TI-99/4A bitmap screen.
+
 ### Side by side with the original game
 
 Porting a game from another computer? If you have its disassembly as a [SkoolKit](https://skoolkit.ca) `.skool` file, addresses of the original written in your comments become links:
@@ -555,6 +569,7 @@ The `sprites` section lists the picture shapes for the picture editor: each has 
 | `retroAsm.pictures` | Pictures in tooltips: `auto`, `always` or `never`. `never` also hides the *Edit as a picture?* links. |
 | `retroAsm.pictureLinks` | The *Edit picture* links above picture data, on or off. |
 | `retroAsm.soundLinks` | The *Play sound* links above sound data, on or off. |
+| `retroAsm.screenLinks` | The *Show this screen* links above an `@screen` comment, on or off. |
 | `retroAsm.checks` | Wavy underlines on or off. |
 | `retroAsm.formatCaseOnSave` | Change the letter case of instructions, registers and labels when you press Save (see **Capitals and lower case**). On to start with. |
 | `retroAsm.lineUpColumns` | Where Shift+Alt+L starts the instruction, the operands and the comment, for one chip, for example `{ "tms9900": { "comment": 30 } }`. Empty to start with, so each chip uses the layout in its chip file (see **Lining up the columns**). |
@@ -600,6 +615,7 @@ From the `retro-asm` folder:
 | `node test/tools-test.js` | Finding the assemblers and emulators (in the tools folder, on the PATH, and so on), and the build and emulator commands for each computer, using stand-in tools. Set `SJASMPLUS` to a real `sjasmplus` to also build a made-up Spectrum program with it. `node test/ext-test.js` runs it too. |
 | `node test/sprite-test.js` | The picture editor: the example files, every computer's way of storing pixels, numbers kept in their own style, and drawing in the editor changing the code. `node test/ext-test.js` runs it too. |
 | `node test/sound-test.js` | The sound player: reading a sound list, the sound chip's pitch, volume and noise, the example file, the player page, and the links in the editor. `node test/ext-test.js` runs it too. |
+| `node test/screen-test.js` | The screen preview: reading the `@screen` line, finding and checking the tables, drawing the screen (bands, colours, sprites), the preview page, and the links in the editor. `node test/ext-test.js` runs it too. |
 | `node test/case-test.js` | The letter-case change: each chip's rules, what is never changed, labels, every test file giving the same warnings and no more changes on a second run, and the save, Format Document and Shift+Alt+U parts. `node test/ext-test.js` runs it too. |
 | `node test/lineup-test.js` | Lining up and the xas99 conversion: each chip's layout, what is left alone, only the spaces changing (the words, warnings and line count stay the same), a second run changing nothing, your own columns and a bad setting, and the commands. `node test/ext-test.js` runs it too. |
 | `node test/gpl-test.js` | The GPL chip file against a made-up GPL program: no false warnings, the memory marks (`V@`, `G@`, `#`, `*`, offsets) explained, names such as `I/O` and `ROW+` recognised, and the xga99 build command and error messages. Set `XGA99` to the path of `xga99.py` to also build the program with the real xga99. `node test/ext-test.js` runs it too. |
@@ -637,6 +653,7 @@ A short list of the big steps. The full details of every release are in `CHANGEL
 
 | Version | What it added |
 |---|---|
+| 0.24 | **Screen preview (TI-99/4A):** mark a whole bitmap screen with `@screen` and see the picture drawn from its tables, with their sizes checked |
 | 0.23 | **Sound player (TI-99/4A):** mark a sound list with `@sound` and play it, with a picture of each voice and what every byte does |
 | 0.22 | **TI-99/4A GPL:** plain-English tooltips, colours, warnings and a build with xga99 for `.gpl` files (cartridge programs in GROM) |
 | 0.21 | **More for the TI-99/4A debugger:** change registers and memory while stopped, a call stack, programs in several blocks of memory, and `KSCAN` |
