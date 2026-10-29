@@ -2,7 +2,7 @@
   "name": "retro-asm",
   "displayName": "Retro Assembly Helper",
   "description": "Plain-English tooltips, colours and jump-around navigation for retro assembly: TMS9900 (TI-99/4A, xas99), 6502 (Commodore 64, KickAssembler; BBC Micro, BeebAsm) and Z80 (ZX Spectrum, sjasmplus). Other chips are added as data files.",
-  "version": "0.23.0",
+  "version": "0.24.0",
   "publisher": "hanmade",
   "repository": {
     "type": "git",
@@ -199,6 +199,11 @@
         "command": "retroAsm.playSound",
         "title": "Retro ASM: Play these bytes as a sound",
         "icon": "$(play)"
+      },
+      {
+        "command": "retroAsm.showScreen",
+        "title": "Retro ASM: Show this screen (from an @screen comment)",
+        "icon": "$(device-desktop)"
       },
       {
         "command": "retroAsm.openOriginal",
@@ -486,6 +491,11 @@
           "type": "boolean",
           "default": true,
           "markdownDescription": "Show a **Play sound** link above BYTE and DATA blocks marked with `@sound` (and **Play as a sound?** above ones that are named like a sound and read cleanly as a TI-99/4A sound list). The link opens the sound player."
+        },
+        "retroAsm.screenLinks": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show a **Show this screen** link above a `@screen` comment (TI-99/4A). The link opens a preview that draws the whole bitmap screen from the tables the comment names."
         },
         "retroAsm.original.skoolFile": {
           "type": "string",

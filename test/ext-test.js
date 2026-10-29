@@ -439,6 +439,8 @@ const at=(doc,needle,sub)=>{const lines=doc.getText().split(/\r?\n/);const l=lin
  {const r=require('child_process').spawnSync(process.execPath,[path.join(__dirname,'sprite-test.js')],{encoding:'utf8'});const bad=(r.stdout||'').split('\n').filter(l=>l.startsWith('FAIL'));ok('picture editor tests (test/sprite-test.js)',r.status===0,bad.length?bad:(r.stderr||'').slice(0,500));}
  // the sound player has its own file of tests too
  {const r=require('child_process').spawnSync(process.execPath,[path.join(__dirname,'sound-test.js')],{encoding:'utf8'});const bad=(r.stdout||'').split('\n').filter(l=>l.startsWith('FAIL'));ok('sound player tests (test/sound-test.js)',r.status===0,bad.length?bad:(r.stderr||'').slice(0,500));}
+// the screen preview has its own file of tests too
+{const r=require('child_process').spawnSync(process.execPath,[path.join(__dirname,'screen-test.js')],{encoding:'utf8'});const bad=(r.stdout||'').split('\n').filter(l=>l.startsWith('FAIL'));ok('screen preview tests (test/screen-test.js)',r.status===0,bad.length?bad:(r.stderr||'').slice(0,500));}
  // the letter-case change has its own file of tests too
  {const r=require('child_process').spawnSync(process.execPath,[path.join(__dirname,'regs-test.js')],{encoding:'utf8'});const bad=(r.stdout||'').split('\n').filter(l=>l.startsWith('FAIL'));ok('register tracker tests (test/regs-test.js)',r.status===0,bad.length?bad:(r.stderr||'').slice(0,500));}
  {const r=require('child_process').spawnSync(process.execPath,[path.join(__dirname,'marker-test.js')],{encoding:'utf8'});const bad=(r.stdout||'').split('\n').filter(l=>l.startsWith('FAIL'));ok('end-marker label tests (test/marker-test.js)',r.status===0,bad.length?bad:(r.stderr||'').slice(0,500));}
