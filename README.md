@@ -689,6 +689,12 @@ Ideas for later, roughly in the order we plan to do them. Nothing here is promis
 - [ ] **BBC BASIC: checks.** Warn about a label used but never defined, a missing `OPT` pass, or a `]` with no `[`, as the other chips do for their own code.
 - [ ] **BBC BASIC: more of the language.** Read the BASIC around the assembly (procedures, variables) for go to definition, and read tokenised BBC BASIC files (the binary form saved by the BBC itself), not only text listings.
 
+**Whole screens (the `@screen` line)**
+- [ ] **ZX Spectrum screens.** A Spectrum kind of `@screen` (the picture is 6144 bytes and the colours 768 bytes), with the same link, hover, warnings and preview as the TI. The pixel editor has to write the new kind first.
+- [ ] **Commodore 64 screens.** The same for the C64's bitmap screen (the picture, the screen memory and the colour memory), in the modes the pixel editor can export.
+- [ ] **BBC Micro screens.** The same for the BBC, which has many screen modes, so it comes last.
+- [ ] **TI screens: more checks and a closer picture.** Warn when two tables overlap in video memory, draw from the register values and not only the addresses on the line, and keep to the video chip's four-sprites-a-row limit.
+
 **Building and projects**
 - [ ] **Several named build targets.** A list of builds per project, with a key to switch between them, instead of one build command.
 - [ ] **New and imported projects.** Commands to start a project from a template, or to bring in existing source.

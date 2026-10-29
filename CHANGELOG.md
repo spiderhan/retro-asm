@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.24.3
+
+- **Roadmap:** a new "Whole screens" part in the README's Roadmap for the next steps of `@screen`: ZX Spectrum, Commodore 64 and BBC Micro screens (each needs the pixel editor to write its own kind of marker first), and more checks and a closer picture for the TI screen (tables that overlap in video memory, drawing from the register values, the four-sprites-a-row limit).
+- Documentation only: the code is unchanged. **Tested:** the main run and the other checks that apply pass. The 0.24.2 `.vsix` is left alone.
+
 ## 0.24.2
 
 - **New: the `@screen` line is checked against its own video register values.** A register can only say where a table is in steps (the screen grid in 1K steps, the shapes and colours at `>0000` or `>2000`, the sprite list in 128-byte steps, the sprite pictures in 2K steps), so a table at some other address would be looked for in the wrong place by the real video chip. You now get a plain-English warning when the registers on the line and the addresses on the line disagree, for example *Register 2 puts the screen grid at >1C00, but gridat on the line says >1800.* It is underlined on the word it is about (`gridat=...`), shows in the Problems list and in the hover and preview notes, like the other `@screen` checks.
