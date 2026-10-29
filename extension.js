@@ -24,6 +24,7 @@ const SND = require('./lib/sound');
 const SNDH = require('./lib/sound-html');
 const SCR = require('./lib/screen');
 const SCRH = require('./lib/screen-html');
+const MH = require('./lib/markerhover');
 const DEC = require('./lib/decoders');
 const CF = require('./lib/caseformat');
 const LU = require('./lib/lineup');
@@ -441,7 +442,7 @@ const hoverProvider = {
   provideHover(doc, pos) {
     if (!modelFor(doc)) return null;
     const file = keyOf(doc);
-    const scr = screenHoverAt(doc, pos, file);
+    const scr = screenHoverAt(doc, pos, file) || markerHoverAt(doc, pos, file);
     if (scr) return scr;
     const ref = originalRefAt(doc, pos);
     if (ref) {
@@ -1203,6 +1204,21 @@ function screenLenses(doc, file) {
     out.push(new vscode.CodeLens(range, { title: SCR.describe(m.spec), command: '' }));
   }
   return out;
+}
+
+/** The tooltip on a @sprite or @sound comment: what it does, what is below it, and a link to the editor or player. */
+function markerHoverAt(doc, pos, file) {
+  let h = null;
+  if (cfg().get('pictureLinks') !== false) h = MH.spriteHover(project, file, pos.line, pos.character, A.dataBlock);
+  if (!h && cfg().get('soundLinks') !== false) h = MH.soundHover(project, file, pos.line, pos.character, A.dataBlock);
+  if (!h) return null;
+  const parts = h.parts.map(md);
+  if (h.link) {
+    const link = md('[' + h.link.title + '](command:' + h.link.command + '?' + encodeURIComponent(JSON.stringify([doc.uri.toString(), h.link.line])) + ')');
+    link.isTrusted = { enabledCommands: [h.link.command] };
+    parts.push(link);
+  }
+  return new vscode.Hover(parts, new vscode.Range(pos.line, h.start, pos.line, h.end));
 }
 
 /** The tooltip on the "@screen ti-bitmap" words: what the line describes, what each table is, and anything wrong. */

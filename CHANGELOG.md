@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.24.1
+
+- **New: hover on `@sprite` and `@sound`.** Hover the `@sprite` word in a comment and a tooltip says what it does ("This marks the bytes below as a picture"), what the block below is (its name, the picture shape, how many pictures and bytes), and has an **Edit picture** link. If the block can't be drawn on, it says why. Hover `@sound` and it says how many steps the sound has and how long it is, with a **Play sound** link. A comment that only mentions the word (for example "the @sprite comment above") gets nothing, a marker with no data below it says so, and a sound list that doesn't add up says why. These follow the same settings as the links: `retroAsm.pictureLinks` and `retroAsm.soundLinks` switch them off.
+- **Why:** the `@screen` line already had a tooltip, but `@sprite` and `@sound` had nothing, so the only thing a hover showed on `@sprite` was another extension's GitHub profile card for a user called "sprite". Nothing about how `@sprite` or `@sound` work has changed.
+- New files: `lib/markerhover.js` (the tooltip text) and `test/markerhover-test.js` (17 checks, run by `test/ext-test.js` too). `extension.js` gets a short function that turns that text into a tooltip.
+- **Tested:** the new checks pass (the text for each case, where the tooltip starts and ends, the links, a comment that only mentions the word, the setting that switches them off, and a chip with no sound player), and so do the main run and the other checks that apply. **Not tested:** the tooltips have only run in the stand-in for VS Code, not been looked at in real VS Code, and `npm run test:vscode` was not run. The 0.24.0 `.vsix` is left alone.
+
 ## 0.24.0
 
 - **New: screen preview (TI-99/4A).** A file with a `* @screen ti-bitmap ...` comment line (the pixel editor writes one when it exports a whole screen as a program) now gets a **Show this screen** link above that line, and a plain-English line beside it, such as *a whole screen: 3 bands, shapes at >0000, colours at >2000, grid at >1800, sprites listed at >1F00*. The link opens a preview beside your code that draws the picture from the tables the line names. Change a number in the code and the preview updates. It never changes your code.

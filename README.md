@@ -265,7 +265,7 @@ MAN    BYTE >03,>07,>05,>07,>02,>01,>0F,>1F
 
 The comment is ignored by the assembler. After `@sprite` comes the shape: one of the computer's own (below) or a size such as `16x8`.
 
-An **Edit picture** link then appears above the block. Click it and the picture editor opens beside your code:
+An **Edit picture** link then appears above the block (hover `@sprite` for a short explanation of the block and the same link). Click it and the picture editor opens beside your code:
 
 - Click or drag to draw. Clicking a pixel that is already that colour, or using the right mouse button, rubs it out.
 - Each stroke changes the numbers in your code straight away. Only the numbers that change are touched, written the way you wrote them (`>3C`, `$3c`, `%00111100`, `60`...). **Ctrl+Z** in the code undoes it, and the editor has its own Undo too.
@@ -315,7 +315,7 @@ Click the link and a player opens beside your code. It has **Play**, **Stop** an
 
 A block that is *named* like a sound (`SND_...`, `MUSIC`, `BEEP`, `TUNE` ...), or has a comment that says so, and reads cleanly as a sound list from start to finish, gets a **Play as a sound?** link even without the marker. A block that doesn't read as a list is left alone. If a marked block doesn't add up, the link says why (for example *Step 2 says 5 bytes go to the sound chip, but the data stops*).
 
-It only knows the TI-99/4A's sound chip for now. The other computers have different sound chips, so each needs its own player. `retroAsm.soundLinks` switches the links off. The `examples/sounds` folder has `sounds.a99` to try it on (it is data only, not a program to run).
+Hover `@sound` for what the sound is (how many steps, how long) and a **Play sound** link. It only knows the TI-99/4A's sound chip for now. The other computers have different sound chips, so each needs its own player. `retroAsm.soundLinks` switches the links off. The `examples/sounds` folder has `sounds.a99` to try it on (it is data only, not a program to run).
 
 ### Screen preview (TI-99/4A)
 
@@ -616,6 +616,7 @@ From the `retro-asm` folder:
 | `node test/sprite-test.js` | The picture editor: the example files, every computer's way of storing pixels, numbers kept in their own style, and drawing in the editor changing the code. `node test/ext-test.js` runs it too. |
 | `node test/sound-test.js` | The sound player: reading a sound list, the sound chip's pitch, volume and noise, the example file, the player page, and the links in the editor. `node test/ext-test.js` runs it too. |
 | `node test/screen-test.js` | The screen preview: reading the `@screen` line, finding and checking the tables, drawing the screen (bands, colours, sprites), the preview page, and the links in the editor. `node test/ext-test.js` runs it too. |
+| `node test/markerhover-test.js` | The tooltips on `@sprite` and `@sound` comments: the text, where they start and end, the links, and switching them off. `node test/ext-test.js` runs it too. |
 | `node test/case-test.js` | The letter-case change: each chip's rules, what is never changed, labels, every test file giving the same warnings and no more changes on a second run, and the save, Format Document and Shift+Alt+U parts. `node test/ext-test.js` runs it too. |
 | `node test/lineup-test.js` | Lining up and the xas99 conversion: each chip's layout, what is left alone, only the spaces changing (the words, warnings and line count stay the same), a second run changing nothing, your own columns and a bad setting, and the commands. `node test/ext-test.js` runs it too. |
 | `node test/gpl-test.js` | The GPL chip file against a made-up GPL program: no false warnings, the memory marks (`V@`, `G@`, `#`, `*`, offsets) explained, names such as `I/O` and `ROW+` recognised, and the xga99 build command and error messages. Set `XGA99` to the path of `xga99.py` to also build the program with the real xga99. `node test/ext-test.js` runs it too. |
