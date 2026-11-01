@@ -22,6 +22,8 @@ const SPR = require('./lib/sprites');
 const SH = require('./lib/sprite-html');
 const SND = require('./lib/sound');
 const GB = require('./lib/blocks');
+const GE = require('./lib/blocks-edit');
+const GH = require('./lib/blocks-html');
 const SNDH = require('./lib/sound-html');
 const SCR = require('./lib/screen');
 const SCRH = require('./lib/screen-html');
@@ -986,7 +988,9 @@ async function cmdNewGameFromKit() {
   const text = require('fs').readFileSync(pick.kit.file, 'utf8');
   const jsonUri = vscode.Uri.joinPath(folder.uri, name + '.blocks.json');
   await vscode.workspace.fs.writeFile(jsonUri, Buffer.from(text, 'utf8'));
-  return writeGameFile(jsonUri, true);
+  const made = await writeGameFile(jsonUri, true);
+  if (made) openBlocksPanel(jsonUri);
+  return made;
 }
 
 async function writeGameFile(jsonUri, firstTime) {
@@ -1014,6 +1018,85 @@ async function cmdGameFromBlocks() {
   if (!ed || !/\.blocks\.json$/i.test(ed.document.fileName)) { vscode.window.showInformationMessage('Open a .blocks.json file first.'); return false; }
   await ed.document.save();
   return writeGameFile(ed.document.uri, false);
+}
+
+// ---- the blocks panel: drag blocks into lists instead of typing the .blocks.json ----
+let blocksPanel = null;   // { panel, uri, lastText }
+
+function blocksText(uri) {
+  const key = uri.toString();
+  const d = vscode.workspace.textDocuments.find(x => x.uri.toString() === key);
+  return d ? d.getText() : require('fs').readFileSync(uri.fsPath, 'utf8');
+}
+
+function sendBlocks(status) {
+  if (!blocksPanel) return;
+  const { panel, uri } = blocksPanel;
+  let project;
+  try { project = JSON.parse(blocksText(uri)); }
+  catch (e) { panel.webview.postMessage({ type: 'state', error: 'The blocks file can’t be read yet (' + e.message + '). Fix it in the text editor and this page will come back.' }); return; }
+  const blocks = GB.loadBlocks(project.machine || 'ti99');
+  const r = GB.generate(project, blocks);
+  panel.title = 'Game blocks: ' + (project.title || path.basename(uri.fsPath));
+  panel.webview.postMessage({ type: 'state', project, catalogue: GE.catalogue(blocks), problems: r.problems, asm: r.problems.length ? '' : r.asm, fileName: path.basename(uri.fsPath), status: status || '' });
+}
+
+/** Write the project back to the .blocks.json (in the open editor if there is one, so nothing goes out of step). */
+async function saveBlocksProject(project) {
+  const { uri } = blocksPanel;
+  const text = JSON.stringify(project, null, 2) + '\n';
+  blocksPanel.lastText = text;
+  const key = uri.toString();
+  const d = vscode.workspace.textDocuments.find(x => x.uri.toString() === key);
+  if (d) {
+    const we = new vscode.WorkspaceEdit();
+    we.replace(uri, new vscode.Range(d.positionAt(0), d.positionAt(d.getText().length)), text);
+    await vscode.workspace.applyEdit(we);
+    await d.save();
+  } else require('fs').writeFileSync(uri.fsPath, text, 'utf8');
+}
+
+async function onBlocksMessage(m) {
+  if (!blocksPanel || !m) return;
+  if (m.type === 'ready') sendBlocks();
+  else if (m.type === 'change' && m.project && typeof m.project === 'object') {
+    try { await saveBlocksProject(m.project); } catch (e) { vscode.window.showWarningMessage('The blocks file could not be saved: ' + e.message); return; }
+    sendBlocks();
+  } else if (m.type === 'make') {
+    const ok = await writeGameFile(blocksPanel.uri, false);
+    if (ok) sendBlocks('The game file was made: ' + path.basename(blocksPanel.uri.fsPath).replace(/\.blocks\.json$/i, '') + '.a99');
+  } else if (m.type === 'openJson') {
+    vscode.window.showTextDocument(await vscode.workspace.openTextDocument(blocksPanel.uri), { viewColumn: vscode.ViewColumn.Beside, preview: false });
+  }
+}
+
+function openBlocksPanel(uri) {
+  if (!blocksPanel) {
+    const panel = vscode.window.createWebviewPanel('retroAsm.blocks', 'Game blocks', { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false }, { enableScripts: true, retainContextWhenHidden: true, localResourceRoots: [] });
+    blocksPanel = { panel, uri, lastText: null };
+    panel.webview.onDidReceiveMessage(onBlocksMessage);
+    panel.onDidDispose(() => { if (blocksPanel && blocksPanel.panel === panel) blocksPanel = null; });
+    panel.webview.html = GH.page(nonce(), panel.webview.cspSource);
+  } else {
+    blocksPanel.uri = uri;
+    blocksPanel.panel.reveal(vscode.ViewColumn.Beside, false);
+    sendBlocks();
+  }
+}
+
+async function cmdOpenBlocksPanel() {
+  const ed = vscode.window.activeTextEditor;
+  if (ed && /\.blocks\.json$/i.test(ed.document.fileName)) { openBlocksPanel(ed.document.uri); return true; }
+  const found = await vscode.workspace.findFiles('**/*.blocks.json', '**/node_modules/**', 20);
+  if (!found.length) { vscode.window.showInformationMessage('There is no .blocks.json file here yet. Run "Retro ASM: Start a game from a kit" first.'); return false; }
+  let pick = found[0];
+  if (found.length > 1) {
+    const p = await vscode.window.showQuickPick(found.map(u => ({ label: path.basename(u.fsPath), description: vscode.workspace.asRelativePath ? vscode.workspace.asRelativePath(u) : '', uri: u })), { placeHolder: 'Which game?' });
+    if (!p) return false;
+    pick = p.uri;
+  }
+  openBlocksPanel(pick);
+  return true;
 }
 
 function openSprite(doc, line, label) {
@@ -2397,6 +2480,12 @@ function activate(context) {
     vscode.commands.registerCommand('retroAsm.editSprite', cmdEditSprite),
     vscode.commands.registerCommand('retroAsm.newSprite', cmdNewSprite),
     vscode.commands.registerCommand('retroAsm.newGameFromKit', cmdNewGameFromKit),
+    vscode.commands.registerCommand('retroAsm.openBlocksPanel', cmdOpenBlocksPanel),
+    vscode.workspace.onDidChangeTextDocument((e) => {
+      if (!blocksPanel || e.document.uri.toString() !== blocksPanel.uri.toString()) return;
+      if (e.document.getText() === blocksPanel.lastText) return;   // our own save coming back
+      sendBlocks();
+    }),
     vscode.commands.registerCommand('retroAsm.gameFromBlocks', cmdGameFromBlocks),
     vscode.commands.registerCommand('retroAsm.playSound', cmdPlaySound),
     vscode.commands.registerCommand('retroAsm.showScreen', cmdShowScreen),

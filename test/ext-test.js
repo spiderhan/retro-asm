@@ -88,6 +88,27 @@ const at=(doc,needle,sub)=>{const lines=doc.getText().split(/\r?\n/);const l=lin
     mock.__.debugStarted=null;await C['retroAsm.debug']();const s2=mock.__.debugStarted;
     ok('Run in MAME starts MAME without stopping at the first line',s1&&s1.stopOnEntry===false&&s1.request==='launch',s1);
     ok('Debug in MAME still stops at the first line',s2&&s2.stopOnEntry===true,s2);}
+   {const fs=require('fs'),os=require('os'),pth=require('path');
+    const dir=fs.mkdtempSync(pth.join(os.tmpdir(),'bp-'));const f=pth.join(dir,'g.blocks.json');
+    fs.writeFileSync(f,fs.readFileSync(pth.join(__dirname,'../kits/bricks.blocks.json'),'utf8'));
+    mock.window.activeTextEditor={document:{fileName:f,uri:mock.Uri.file(f)}};
+    const before=mock.__.panels.length;
+    ok('the blocks panel command is registered',typeof C['retroAsm.openBlocksPanel']==='function');
+    await C['retroAsm.openBlocksPanel']();
+    const pn=mock.__.panels[mock.__.panels.length-1];
+    ok('the blocks panel opens',mock.__.panels.length===before+1&&pn.id==='retroAsm.blocks');
+    ok('the blocks panel page blocks anything from outside',/default-src 'none'/.test(pn.webview.html)&&/script-src 'nonce-/.test(pn.webview.html)&&!/https?:\/\//.test(pn.webview.html));
+    pn.send({type:'ready'});
+    const st=pn.sent.filter(m=>m.type==='state').pop();
+    ok('the page is sent the game, the blocks and no problems',st&&st.project.title==='Bat, ball and bricks'&&st.catalogue.length>=14&&st.problems.length===0&&/END\s+START/.test(st.asm),st&&Object.keys(st));
+    const proj=JSON.parse(JSON.stringify(st.project));proj.every_frame.pop();
+    await pn.send({type:'change',project:proj});
+    ok('a change from the page is saved to the blocks file',JSON.parse(fs.readFileSync(f,'utf8')).every_frame.length===proj.every_frame.length);
+    pn.send({type:'change',project:'junk'});pn.send({type:'nonsense'});pn.send(null);
+    ok('junk messages are ignored',JSON.parse(fs.readFileSync(f,'utf8')).every_frame.length===proj.every_frame.length);
+    fs.writeFileSync(f,'{ not json');pn.send({type:'ready'});
+    ok('a broken blocks file is explained, not crashed on',/can.t be read/.test(pn.sent.filter(m=>m.type==='state').pop().error||''));
+    fs.rmSync(dir,{recursive:true,force:true});mock.window.activeTextEditor=null;}
    mock.window.activeTextEditor=fake('');let r1=await C['retroAsm.insertSnippet']();
    ok('insert starter code on a blank line',r1===true&&inserted[0].sn.value.includes('MOVB R1,@>8C00')&&inserted[0].where.start.line===3&&inserted[0].where.start.character===0,inserted[0]);
    mock.window.activeTextEditor=fake('       CLR  R0');await C['retroAsm.insertSnippet']();

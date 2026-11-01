@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.28.0
+
+- **New: the blocks panel (drag and drop).** Run **Retro ASM: Open the blocks panel** (or use the button at the top right of a `.blocks.json` file; it also opens by itself after you start a game from a kit). Every block is listed on the left by what it does; the game's two lists (*When the game starts*, *Every frame*) are in the middle. Drag a block into a list, drag blocks to reorder them or into an *if* block, or click a block to add it to the list you last clicked in. Numbers, things and sounds are set in small boxes on each block, with ▲ ▼ × buttons for move and delete (so it works without dragging too). **Make the game file** writes the `.a99`, and the assembly is shown at the bottom of the panel.
+- **It edits your file, not a copy.** Each change is saved straight into the `.blocks.json`, in the open editor if there is one, so the panel and the text never disagree. Edit the text and the panel follows. If the file can't be read (for instance a typo), the panel says so and comes back when it is fixed. The blocks file is written back with two-space indents.
+- **Plain-English rules:** a block that only works at the start can't be dropped in the every-frame list, a block can't be dropped inside itself, numbers are kept inside their limits, and if the blocks can't make a game the panel says why.
+- **Not yet:** the panel can't add new things or drawings; the things' positions and colours can be changed. There is no undo in the panel (use the text editor's undo on the `.blocks.json`).
+- **Tested:** the editing rules (insert, remove, move up/down/into an *if*/out of one, refusing a block into itself or in the wrong list, number limits, every kit still makes a game after moves); the extension side (the command, the page being sent the game, a change being saved to the file, junk messages ignored, a broken file explained); the real page in a headless browser: it draws with no page errors, dragging a block from the list, reordering, dragging into an *if*, a refused drop, editing numbers and things, the buttons, and clicking to add. The browser run found a real fault (the page's security rules blocked the coloured stripes on blocks), which is fixed.
+- **Not tested:** the panel has not been opened inside real VS Code by hand, so its colours with your theme and the feel of dragging in the real panel are unchecked. `npm run test:vscode` was not run.
+
 ## 0.27.1
 
 - **New: bricks for the game blocks (TI-99/4A).** Three new blocks: **Build a wall of bricks** (rows, how far down, and an optional colour), **If a thing hits a brick** (rubs the whole brick out, bounces the thing, then runs the blocks inside, for the score and a sound) and **If all the bricks are gone** (put a new wall inside it to start again). Bricks are screen tiles, not sprites, so a wall can be as big as the screen. The game keeps the number of bricks left in a number called `BRICKS`.

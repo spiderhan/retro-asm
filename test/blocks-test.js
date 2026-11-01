@@ -101,6 +101,43 @@ for (const k of kits) {
   ok('a third thing is drawn and moved with no new code', /MATE_X/.test(r.asm) && /@MATE_Y,R1/.test(r.asm) && r.problems.length === 0);
 }
 
+// ---- the editing rules behind the blocks panel ----
+{
+  const E = require('../lib/blocks-edit');
+  const names = (l) => l.map(b => b.block).join(',');
+  const cat = E.catalogue(blocks);
+  ok('the panel gets every block with its settings', cat.length === ids.length && cat.every(c => c.id && c.name && c.params && c.category));
+  const p = kit('bricks');
+  const n0 = p.every_frame.length;
+  ok('a new block starts with sensible settings', (() => { const b = E.newBlock(blocks['set-speed'], p); return b.block === 'set-speed' && b.thing === 'bat' && typeof b.across === 'number'; })());
+  ok('a block with a list starts with an empty list', Array.isArray(E.newBlock(blocks['if-touching'], p).do));
+  ok('a start-only block cannot go in the every-frame list', !E.canDrop(blocks['screen-colour'], ['every_frame']) && E.canDrop(blocks['screen-colour'], ['start']));
+  ok('a start-only block cannot go inside a block in the every-frame list', !E.canDrop(blocks['screen-colour'], ['every_frame', 3, 'do']));
+  ok('a block that works anywhere goes anywhere', E.canDrop(blocks['place'], ['start']) && E.canDrop(blocks['place'], ['every_frame', 3, 'do']));
+  E.insertBlock(p, ['every_frame'], 1, E.newBlock(blocks['play-sound'], p));
+  ok('inserting puts the block in the gap', p.every_frame[1].block === 'play-sound' && p.every_frame.length === n0 + 1);
+  E.removeBlock(p, ['every_frame'], 1);
+  ok('removing takes it out again', p.every_frame.length === n0 && p.every_frame[1].block !== 'play-sound');
+  const before = names(p.every_frame);
+  ok('moving a block down one place', E.moveBlock(p, ['every_frame'], 0, ['every_frame'], 2, blocks) && names(p.every_frame).split(',').slice(0, 2).join() === before.split(',').slice(1, 2).concat(before.split(',')[0]).join());
+  E.moveBlock(p, ['every_frame'], 1, ['every_frame'], 0, blocks);
+  ok('moving it back gives the same list', names(p.every_frame) === before);
+  const p2 = kit('bricks'); const ti2 = p2.every_frame.findIndex(b => b.block === 'if-touching');
+  E.moveBlock(p2, ['every_frame'], 0, ['every_frame', ti2, 'do'], 0, blocks);
+  ok('the block is inside now, and the outer list is one shorter', p2.every_frame.length === n0 - 1 && p2.every_frame[ti2 - 1].do[0].block === 'move-with-joystick', p2.every_frame.map(b => b.block));
+  ok('a block can come back out of an "if"', E.moveBlock(p2, ['every_frame', ti2 - 1, 'do'], 0, ['every_frame'], 0, blocks) && p2.every_frame.length === n0);
+  ok('a block can not be dropped into itself', E.moveBlock(p2, ['every_frame'], ti2, ['every_frame', ti2, 'do'], 0, blocks) === false && p2.every_frame.length === n0);
+  ok('an every-frame-only block can not go to the start list', E.moveBlock(p2, ['every_frame'], 0, ['start'], 0, blocks) === false && p2.every_frame.length === n0);
+  ok('a number is kept inside its limits', (() => { E.setParam(p2, ['start'], 1, 'rows', 99, blocks['brick-wall']); return p2.start[1].rows === 10; })());
+  ok('a number that is not a number gets the default', (() => { E.setParam(p2, ['start'], 1, 'rows', 'abc', blocks['brick-wall']); return p2.start[1].rows === 4; })());
+  ok('a thing\'s position is kept on the screen', (() => { E.setThing(p2, 'bat', 'x', 999); E.setThing(p2, 'bat', 'y', -5); return p2.things.bat.x === 255 && p2.things.bat.y === 0 && E.setThing(p2, 'bat', 'nonsense', 1) === false; })());
+  for (const k of kits) {
+    const q = JSON.parse(fs.readFileSync(k.file, 'utf8')); const orig = JSON.stringify(q);
+    E.moveBlock(q, ['every_frame'], 0, ['every_frame'], 2, blocks); E.moveBlock(q, ['every_frame'], 1, ['every_frame'], 0, blocks);
+    ok(`${k.id}: any order of blocks the panel makes still makes a game`, GB.generate(q, blocks).problems.length === 0 && JSON.stringify(q) === orig);
+  }
+}
+
 // ---- with xas99: the real assembler agrees, and the debugger's loader accepts the program ----
 if (process.env.XAS99) {
   const cp = require('child_process'), os = require('os');
