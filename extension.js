@@ -24,6 +24,7 @@ const SND = require('./lib/sound');
 const SNDH = require('./lib/sound-html');
 const SCR = require('./lib/screen');
 const SCRH = require('./lib/screen-html');
+const PL = require('./lib/pixellink');
 const MH = require('./lib/markerhover');
 const DEC = require('./lib/decoders');
 const CF = require('./lib/caseformat');
@@ -1201,6 +1202,7 @@ function screenLenses(doc, file) {
   for (const m of SCR.markedScreens(model)) {
     const range = new vscode.Range(m.line, 0, m.line, 0);
     if (m.spec.kind === 'ti-bitmap') out.push(new vscode.CodeLens(range, { title: '$(device-desktop) Show this screen', tooltip: 'Open a preview that draws the picture from the tables in this file', command: 'retroAsm.showScreen', arguments: [doc.uri.toString(), m.line] }));
+    if (m.spec.kind === 'ti-bitmap' && pixelEditorOn()) out.push(new vscode.CodeLens(range, { title: '$(edit) Edit in pixel editor', tooltip: 'Open this screen in your pixel editor. "Send to code" there puts the changed tables back into this file.', command: 'retroAsm.editScreenInPixelEditor', arguments: [doc.uri.toString(), m.line] }));
     out.push(new vscode.CodeLens(range, { title: SCR.describe(m.spec), command: '' }));
   }
   return out;
@@ -1233,6 +1235,11 @@ function screenHoverAt(doc, pos, file) {
     const link = md('[Show this screen](command:retroAsm.showScreen?' + encodeURIComponent(JSON.stringify([doc.uri.toString(), pos.line])) + ')');
     link.isTrusted = { enabledCommands: ['retroAsm.showScreen'] };
     parts.push(link);
+    if (pixelEditorOn()) {
+      const edit = md('[Edit in pixel editor](command:retroAsm.editScreenInPixelEditor?' + encodeURIComponent(JSON.stringify([doc.uri.toString(), pos.line])) + ')');
+      edit.isTrusted = { enabledCommands: ['retroAsm.editScreenInPixelEditor'] };
+      parts.push(edit);
+    }
   }
   return new vscode.Hover(parts, new vscode.Range(pos.line, at.start, pos.line, at.end));
 }
@@ -1326,6 +1333,104 @@ async function onScreenMessage(m) {
     const ed = await vscode.window.showTextDocument(doc, { viewColumn: vscode.ViewColumn.One, preserveFocus: false });
     if (ed) { const p = new vscode.Position(screen.line, 0); ed.selection = new vscode.Selection(p, p); ed.revealRange(new vscode.Range(p, p), vscode.TextEditorRevealType.InCenterIfOutsideViewport); }
   }
+}
+
+// ---------------------------------------------------------------------------
+// editing a screen in the pixel editor (your own separate program), only when its folder is set
+// ---------------------------------------------------------------------------
+let pixel = null;        // { proc, dir, url, uri, line, nonce }
+
+/** True when "retroAsm.pixelEditor.path" is filled in. The links only show then. */
+function pixelEditorOn() { return !!String(cfg().get('pixelEditor.path') || '').trim(); }
+
+function stopPixelEditor() {
+  if (!pixel) return;
+  const p = pixel;
+  pixel = null;
+  try { fs.unwatchFile(path.join(p.dir, 'out.json')); } catch (e) { /* nothing to stop */ }
+  try { if (p.proc) p.proc.kill(); } catch (e) { /* already gone */ }
+  try { fs.rmSync(p.dir, { recursive: true, force: true }); } catch (e) { /* a temporary folder; the system clears it in time */ }
+}
+
+/** Start the pixel editor (python pixel_editor.py --link FOLDER) and wait for it to say where its page is. */
+function startPixelEditor(plan) {
+  return new Promise((resolve, reject) => {
+    const proc = require('child_process').spawn(plan.command, plan.args, { cwd: plan.cwd, windowsHide: true });
+    let said = '', done = false;
+    const finish = (err, url) => { if (done) return; done = true; clearTimeout(timer); if (err) { try { proc.kill(); } catch (e) { /* already gone */ } reject(err); } else resolve({ proc, url }); };
+    const timer = setTimeout(() => finish(new Error('The pixel editor did not say it had started within 10 seconds.')), 10000);
+    const listen = (chunk) => { said += chunk.toString(); const url = PL.startedUrl(said); if (url) finish(null, url); };
+    proc.stdout.on('data', listen);
+    proc.stderr.on('data', listen);
+    proc.on('error', (e) => finish(new Error('Could not start the pixel editor: ' + e.message)));
+    proc.on('exit', () => { finish(new Error('The pixel editor stopped straight away. ' + said.trim().split('\n').slice(-2).join(' '))); if (pixel && pixel.proc === proc) pixel.proc = null; });
+  });
+}
+
+/** Retro ASM: Edit this screen in the pixel editor. From a link (uri, line) or the cursor. */
+async function cmdEditScreenInPixelEditor(uri, line) {
+  let doc = uri ? docFor(uri) : null;
+  if (!doc) { const ed = vscode.window.activeTextEditor; if (!ed || !isOurs(ed.document)) { vscode.window.showInformationMessage('Open an assembly file with an @screen comment first.'); return false; } doc = ed.document; line = (ed.selection.active || ed.selection.start).line; }
+  const model = modelFor(doc);
+  if (!model) return false;
+  if (model.D.id !== 'tms9900') { vscode.window.showInformationMessage('The pixel editor link works with TI-99/4A bitmap screens. It does not know the ' + model.D.short + ' yet.'); return false; }
+  const all = SCR.markedScreens(model).filter(s => s.spec.kind === 'ti-bitmap');
+  if (!all.length) { vscode.window.showInformationMessage('There is no @screen ti-bitmap comment in this file.'); return false; }
+  const pick = all.filter(s => s.line <= (Number(line) || 0)).pop() || all[0];
+  const editor = PL.locateEditor(cfg().get('pixelEditor.path'));
+  if (editor.error) { vscode.window.showInformationMessage('Retro ASM: ' + editor.error); return false; }
+  const file = keyOf(doc);
+  const ctx = toolContextFor(path.isAbsolute(file) ? file : null);
+  const py = T.locateRuntime('python', ctx);
+  if (!py) { vscode.window.showWarningMessage('Retro ASM: ' + T.missingMessage(T.RUNTIMES.python, ctx)); return false; }
+  const nonce = crypto.randomBytes(6).toString('hex');
+  try {
+    if (!pixel || !pixel.proc) {
+      stopPixelEditor();
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'retroasm-pixel-'));
+      const share = PL.shareFiles(doc.getText(), path.basename(file), pick.line, nonce);
+      for (const k of Object.keys(share)) fs.writeFileSync(path.join(dir, k), share[k]);
+      const started = await startPixelEditor(PL.launchPlan(py.file, editor.script, dir));
+      pixel = { proc: started.proc, dir, url: started.url, uri: doc.uri.toString(), line: pick.line, nonce };
+      fs.watchFile(path.join(dir, 'out.json'), { interval: 400 }, (cur, prev) => { if (cur.mtimeMs && cur.mtimeMs !== prev.mtimeMs) onPixelReply(); });
+    } else {
+      try { fs.unlinkSync(path.join(pixel.dir, 'out.json')); } catch (e) { /* no earlier reply */ }
+      const share = PL.shareFiles(doc.getText(), path.basename(file), pick.line, nonce);
+      for (const k of Object.keys(share)) fs.writeFileSync(path.join(pixel.dir, k), share[k]);
+      Object.assign(pixel, { uri: doc.uri.toString(), line: pick.line, nonce });
+    }
+  } catch (e) {
+    output.appendLine('Pixel editor: ' + (e.stack || e.message));
+    vscode.window.showErrorMessage('Retro ASM: ' + e.message);
+    stopPixelEditor();
+    return false;
+  }
+  await vscode.env.openExternal(vscode.Uri.parse(pixel.url + '?link=' + nonce));
+  vscode.window.setStatusBarMessage('Retro ASM: opened the screen in the pixel editor. Press "Send to code" there when you are done.', 8000);
+  return true;
+}
+
+/** The pixel editor wrote out.json: put its tables into the file, as one step you can undo. */
+async function onPixelReply() {
+  if (!pixel) return;
+  let text;
+  try { text = fs.readFileSync(path.join(pixel.dir, 'out.json'), 'utf8'); } catch (e) { return; }
+  const parsed = PL.parseResult(text);
+  if (parsed.error) { vscode.window.showWarningMessage('Retro ASM: ' + parsed.error); return; }
+  const r = parsed.result;
+  if (r.nonce !== pixel.nonce) { vscode.window.showWarningMessage('Retro ASM: that reply came from an older pixel editor page, so I left your code alone. Use the newest pixel editor page.'); return; }
+  const doc = docFor(pixel.uri);
+  if (!doc) { vscode.window.showWarningMessage('Retro ASM: the file this screen came from has been closed, so I left it alone.'); return; }
+  if (!modelFor(doc)) return;
+  const plan = PL.planEdits(project, keyOf(doc), r, A.dataBlock);
+  if (plan.problems.length) { vscode.window.showWarningMessage('Retro ASM: ' + PL.summary(plan, r.notes)); return; }
+  if (plan.edits.length) {
+    const we = new vscode.WorkspaceEdit();
+    for (const e of plan.edits) we.replace(doc.uri, new vscode.Range(e.line, e.start, e.line, e.end), e.text);
+    if (!await vscode.workspace.applyEdit(we)) { vscode.window.showWarningMessage('Retro ASM: VS Code would not make the change, so your code is as it was.'); return; }
+    modelFor(doc);
+  }
+  vscode.window.showInformationMessage('Retro ASM: ' + PL.summary(plan, r.notes));
 }
 
 // ---------------------------------------------------------------------------
@@ -2242,6 +2347,7 @@ function activate(context) {
     vscode.commands.registerCommand('retroAsm.newSprite', cmdNewSprite),
     vscode.commands.registerCommand('retroAsm.playSound', cmdPlaySound),
     vscode.commands.registerCommand('retroAsm.showScreen', cmdShowScreen),
+    vscode.commands.registerCommand('retroAsm.editScreenInPixelEditor', cmdEditScreenInPixelEditor),
 
     vscode.workspace.onDidOpenTextDocument((doc) => { if (syncDoc(doc)) refreshEverything(); }),
     vscode.workspace.onDidChangeTextDocument((e) => {
@@ -2321,6 +2427,6 @@ function activate(context) {
   return { screenNow: () => sendScreen(), soundNow: () => sendSound(), spriteNow: () => sendSprite(), spriteMessage: (m) => onSpriteMessage(m), panelNow: () => { const f = panelTarget(); return { file: f, line: panelLine, thisLine: lineHtml(f), registers: registerNodes(f), memoryMap: mapHtml(f), project: projectNodes(f), hardware: hardwareNodes(f) }; } };
 }
 
-function deactivate() { if (spriteTimer) clearTimeout(spriteTimer); if (checkTimer) clearTimeout(checkTimer); if (panelTimer) clearTimeout(panelTimer); if (lineTimer) clearTimeout(lineTimer); }
+function deactivate() { stopPixelEditor(); if (spriteTimer) clearTimeout(spriteTimer); if (checkTimer) clearTimeout(checkTimer); if (panelTimer) clearTimeout(panelTimer); if (lineTimer) clearTimeout(lineTimer); }
 
 module.exports = { activate, deactivate };

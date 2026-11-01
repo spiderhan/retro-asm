@@ -331,6 +331,21 @@ The right sizes are 2048 bytes for each band of shapes and each band of colours,
 
 What the preview does **not** do yet: it ignores the video chip's rule that only four sprites show on one row, it draws from the addresses and tables named in the line (not from where the register values say they are), and it only draws the TI-99/4A bitmap screen.
 
+### Edit a screen in your pixel editor (TI-99/4A, optional)
+
+If you draw your screens in a pixel editor of your own, the `@screen` line can open the screen in it and take the changes back. This is switched off to start with, because it needs that editor. Switch it on by setting `retroAsm.pixelEditor.path` to the folder that holds `pixel_editor.py` (or to that file). Python 3 is needed to run it, and nothing goes on the internet.
+
+Once it is set, an **Edit in pixel editor** link appears next to **Show this screen** (and in the `@screen` tooltip). Click it and your pixel editor opens in the browser with the screen from your code: the shapes, colours, grid, sprite pictures and sprite list. Draw as you like, then press **Send to code** there. The new numbers go into the same tables in your file, written the way you wrote them, and only the numbers that changed are touched. It is one step in the editor, so **Ctrl+Z** undoes it.
+
+It sends back **tables only**, so the rest of your program stays yours. That has some rules, and the pixel editor tells you plainly when one stops a send (and then sends nothing, so your code is never half changed):
+
+- If your code keeps **one table for all three bands**, the bands must still match when you send.
+- The **sprite list** can get shorter (the rest is padded after the end marker) but can't get longer than the room your code has for it, because the start-up code copies a fixed number of bytes.
+- A sprite can only use pictures that your code already has a table for.
+- If you change **where things sit in video memory**, the sprite size or the backdrop colour, those live in your start-up code, so they are not sent. You are told.
+
+Your code is copied into a temporary folder for the pixel editor to read, and the reply comes back through the same folder. The pixel editor is started on your own computer and only listens to that computer. It is stopped when you close VS Code. If the pixel editor is running already, the link reuses it.
+
 ### Side by side with the original game
 
 Porting a game from another computer? If you have its disassembly as a [SkoolKit](https://skoolkit.ca) `.skool` file, addresses of the original written in your comments become links:
@@ -570,6 +585,7 @@ The `sprites` section lists the picture shapes for the picture editor: each has 
 | `retroAsm.pictureLinks` | The *Edit picture* links above picture data, on or off. |
 | `retroAsm.soundLinks` | The *Play sound* links above sound data, on or off. |
 | `retroAsm.screenLinks` | The *Show this screen* links above an `@screen` comment, on or off. |
+| `retroAsm.pixelEditor.path` | The folder that holds your pixel editor's `pixel_editor.py`. Empty to start with, which switches the *Edit in pixel editor* link off (see **Edit a screen in your pixel editor**). |
 | `retroAsm.checks` | Wavy underlines on or off. |
 | `retroAsm.formatCaseOnSave` | Change the letter case of instructions, registers and labels when you press Save (see **Capitals and lower case**). On to start with. |
 | `retroAsm.lineUpColumns` | Where Shift+Alt+L starts the instruction, the operands and the comment, for one chip, for example `{ "tms9900": { "comment": 30 } }`. Empty to start with, so each chip uses the layout in its chip file (see **Lining up the columns**). |
@@ -616,6 +632,7 @@ From the `retro-asm` folder:
 | `node test/sprite-test.js` | The picture editor: the example files, every computer's way of storing pixels, numbers kept in their own style, and drawing in the editor changing the code. `node test/ext-test.js` runs it too. |
 | `node test/sound-test.js` | The sound player: reading a sound list, the sound chip's pitch, volume and noise, the example file, the player page, and the links in the editor. `node test/ext-test.js` runs it too. |
 | `node test/screen-test.js` | The screen preview: reading the `@screen` line, finding and checking the tables, drawing the screen (bands, colours, sprites), the preview page, and the links in the editor. `node test/ext-test.js` runs it too. |
+| `node test/pixellink-test.js` | Editing a screen in the pixel editor: finding the editor, starting it, reading its reply, putting the new numbers into the right tables (and nothing if one can't go in), the link and tooltip, the setting being off to start with, and stopping it again. A small stand-in plays the pixel editor. Needs Python. `node test/ext-test.js` runs it too. |
 | `node test/markerhover-test.js` | The tooltips on `@sprite` and `@sound` comments: the text, where they start and end, the links, and switching them off. `node test/ext-test.js` runs it too. |
 | `node test/case-test.js` | The letter-case change: each chip's rules, what is never changed, labels, every test file giving the same warnings and no more changes on a second run, and the save, Format Document and Shift+Alt+U parts. `node test/ext-test.js` runs it too. |
 | `node test/lineup-test.js` | Lining up and the xas99 conversion: each chip's layout, what is left alone, only the spaces changing (the words, warnings and line count stay the same), a second run changing nothing, your own columns and a bad setting, and the commands. `node test/ext-test.js` runs it too. |
@@ -654,6 +671,7 @@ A short list of the big steps. The full details of every release are in `CHANGEL
 
 | Version | What it added |
 |---|---|
+| 0.25 | **Edit a screen in your pixel editor (TI-99/4A, optional):** an *Edit in pixel editor* link on the `@screen` line opens the screen in your own pixel editor, and *Send to code* there puts the changed tables back |
 | 0.24 | **Screen preview (TI-99/4A):** mark a whole bitmap screen with `@screen` and see the picture drawn from its tables, with their sizes checked |
 | 0.23 | **Sound player (TI-99/4A):** mark a sound list with `@sound` and play it, with a picture of each voice and what every byte does |
 | 0.22 | **TI-99/4A GPL:** plain-English tooltips, colours, warnings and a build with xga99 for `.gpl` files (cartridge programs in GROM) |
@@ -688,6 +706,13 @@ Ideas for later, roughly in the order we plan to do them. Nothing here is promis
 - [ ] **BBC BASIC: addresses.** Work out where the `[ ]` code lands when `P%` (or `O%`) is set to a plain number, so tooltips can show addresses, and follow `DIM` blocks where that is possible.
 - [ ] **BBC BASIC: checks.** Warn about a label used but never defined, a missing `OPT` pass, or a `]` with no `[`, as the other chips do for their own code.
 - [ ] **BBC BASIC: more of the language.** Read the BASIC around the assembly (procedures, variables) for go to definition, and read tokenised BBC BASIC files (the binary form saved by the BBC itself), not only text listings.
+
+**Whole screens (the `@screen` line)**
+- [ ] **Pixel editor link: more.** The same link for single pictures (`@sprite`), sending changes to the start-up code too (layout, sprite size, backdrop), and growing the sprite list.
+- [ ] **ZX Spectrum screens.** A Spectrum kind of `@screen` (the picture is 6144 bytes and the colours 768 bytes), with the same link, hover, warnings and preview as the TI. The pixel editor has to write the new kind first.
+- [ ] **Commodore 64 screens.** The same for the C64's bitmap screen (the picture, the screen memory and the colour memory), in the modes the pixel editor can export.
+- [ ] **BBC Micro screens.** The same for the BBC, which has many screen modes, so it comes last.
+- [ ] **TI screens: more checks and a closer picture.** Warn when two tables overlap in video memory, draw from the register values and not only the addresses on the line, and keep to the video chip's four-sprites-a-row limit.
 
 **Building and projects**
 - [ ] **Several named build targets.** A list of builds per project, with a key to switch between them, instead of one build command.
