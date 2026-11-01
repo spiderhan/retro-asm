@@ -346,6 +346,18 @@ It sends back **tables only**, so the rest of your program stays yours. That has
 
 Your code is copied into a temporary folder for the pixel editor to read, and the reply comes back through the same folder. The pixel editor is started on your own computer and only listens to that computer. It is stopped when you close VS Code. If the pixel editor is running already, the link reuses it.
 
+### Game blocks (early prototype, TI-99/4A)
+
+Build a simple game from small plain-English blocks and get an ordinary `.a99` file out of it. Each block writes a few lines of normal assembly, with a `* [note]` above them saying which block wrote them, so you can read it, change it, and learn from it.
+
+1. Run **Retro ASM: Start a game from a kit** and pick **Bat and ball**. Two files are saved in your folder: `bat-and-ball.blocks.json` (the blocks and their numbers) and `bat-and-ball.a99` (the game).
+2. Build and run the `.a99` as usual.
+3. To change the game, change numbers or blocks in the `.blocks.json` file and run **Retro ASM: Make the game file from this blocks file**. It asks before it replaces the `.a99`, because that would lose anything you typed into it.
+
+The blocks so far: set the screen colour, put a thing here, set how fast a thing moves, move with the joystick, keep moving at its speed, bounce off the walls, if two things touch, if a thing goes past the bottom, change the score, show the score, play a sound. A "thing" is a sprite. Its drawing is an `@sprite 16x16` block and a sound is an `@sound` block, so the picture editor and sound player work on them.
+
+Every block is one small file in `lib/blocks/ti99/`. It is a prototype: there is no panel for dragging blocks yet, and the kit builds with xas99, but it has not yet been seen running in an emulator (see the 0.26.0 notes in `CHANGELOG.md`).
+
 ### Side by side with the original game
 
 Porting a game from another computer? If you have its disassembly as a [SkoolKit](https://skoolkit.ca) `.skool` file, addresses of the original written in your comments become links:
@@ -671,6 +683,7 @@ A short list of the big steps. The full details of every release are in `CHANGEL
 
 | Version | What it added |
 |---|---|
+| 0.26 | **Game blocks (early prototype, TI-99/4A):** build a simple game from plain-English blocks, starting from a ready-made *Bat and ball* kit, and get an ordinary `.a99` file |
 | 0.25 | **Edit a screen in your pixel editor (TI-99/4A, optional):** an *Edit in pixel editor* link on the `@screen` line opens the screen in your own pixel editor, and *Send to code* there puts the changed tables back |
 | 0.24 | **Screen preview (TI-99/4A):** mark a whole bitmap screen with `@screen` and see the picture drawn from its tables, with their sizes checked |
 | 0.23 | **Sound player (TI-99/4A):** mark a sound list with `@sound` and play it, with a picture of each voice and what every byte does |
