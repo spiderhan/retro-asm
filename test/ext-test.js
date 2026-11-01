@@ -278,7 +278,7 @@ const at=(doc,needle,sub)=>{const lines=doc.getText().split(/\r?\n/);const l=lin
   const t=V['retroAsm.project'].getChildren();const ti=t.map(x=>V['retroAsm.project'].getTreeItem(x));
   ok('side panel: tree items build',t.length>3&&ti[0].label.startsWith('Z80')&&ti[0].iconPath&&ti.some(x=>x.collapsibleState===mock.TreeItemCollapsibleState.Expanded),t.map(x=>x.label));
   // nothing in the extension reaches the internet or an AI service
-  const src=[path.join(__dirname,'..','extension.js'),...fs.readdirSync(path.join(__dirname,'..','lib')).filter(f=>f!=='mame.js').map(f=>path.join(__dirname,'..','lib',f))].map(f=>fs.readFileSync(f,'utf8')).join('\n');
+  const src=[path.join(__dirname,'..','extension.js'),...(function walk(d){return fs.readdirSync(d,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(path.join(d,e.name)):e.name==='mame.js'?[]:[path.join(d,e.name)]);})(path.join(__dirname,'..','lib'))].map(f=>fs.readFileSync(f,'utf8')).join('\n');
   ok('no internet: no http, https, net or fetch in the code',!/require\(['"](https?|net|tls|http2|dgram)['"]\)|\bfetch\(|XMLHttpRequest|WebSocket/.test(src));
   // the one exception: lib/mame.js talks to MAME on this computer only (127.0.0.1), nowhere else
   { const m=fs.readFileSync(path.join(__dirname,'..','lib','mame.js'),'utf8');
@@ -439,6 +439,7 @@ const at=(doc,needle,sub)=>{const lines=doc.getText().split(/\r?\n/);const l=lin
  {const r=require('child_process').spawnSync(process.execPath,[path.join(__dirname,'sprite-test.js')],{encoding:'utf8'});const bad=(r.stdout||'').split('\n').filter(l=>l.startsWith('FAIL'));ok('picture editor tests (test/sprite-test.js)',r.status===0,bad.length?bad:(r.stderr||'').slice(0,500));}
  // the sound player has its own file of tests too
  {const r=require('child_process').spawnSync(process.execPath,[path.join(__dirname,'sound-test.js')],{encoding:'utf8'});const bad=(r.stdout||'').split('\n').filter(l=>l.startsWith('FAIL'));ok('sound player tests (test/sound-test.js)',r.status===0,bad.length?bad:(r.stderr||'').slice(0,500));}
+ {const r=require('child_process').spawnSync(process.execPath,[path.join(__dirname,'blocks-test.js')],{encoding:'utf8'});const bad=(r.stdout||'').split('\n').filter(l=>l.startsWith('FAIL'));ok('game blocks tests (test/blocks-test.js)',r.status===0,bad.length?bad:(r.stderr||'').slice(0,500));}
 // the screen preview has its own file of tests too
 {const r=require('child_process').spawnSync(process.execPath,[path.join(__dirname,'screen-test.js')],{encoding:'utf8'});const bad=(r.stdout||'').split('\n').filter(l=>l.startsWith('FAIL'));ok('screen preview tests (test/screen-test.js)',r.status===0,bad.length?bad:(r.stderr||'').slice(0,500));}
 // editing a screen in the pixel editor

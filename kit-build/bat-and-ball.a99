@@ -1,0 +1,298 @@
+* Bat and ball (made by Retro ASM Game Blocks; you can edit this file freely).
+* Each [bracketed note] shows which block wrote the lines under it.
+
+        DEF   START
+VDPWD   EQU   >8C00             ; Video chip: write a byte of data
+VDPWA   EQU   >8C02             ; Video chip: set the address (or a register)
+VDPST   EQU   >8802             ; Video chip: read its status
+
+START   LWPI  WS
+        LIMI  0
+        LI    R0,>01E2          ; Register 1: screen on, 16x16 sprites
+        BL    @VWREG
+        LI    R0,>0506          ; Register 5: the sprite list is at >0300
+        BL    @VWREG
+        LI    R0,>0601          ; Register 6: sprite drawings start at >0800
+        BL    @VWREG
+        LI    R0,>0C00          ; Copy the drawing of bat to video memory
+        LI    R1,BAT_PIC
+        LI    R2,32
+        BL    @VMBW
+        LI    R0,>0C20          ; Copy the drawing of ball to video memory
+        LI    R1,BALL_PIC
+        LI    R2,32
+        BL    @VMBW
+* [Set the screen colour]
+        LI    R0,>0704          ; Register 7: the screen colour
+        BL    @VWREG
+* [Put a thing here]
+        LI    R1,120
+        MOV   R1,@BAT_X
+        LI    R1,168
+        MOV   R1,@BAT_Y
+        CLR   @BAT_VX
+        CLR   @BAT_VY
+* [Put a thing here]
+        LI    R1,124
+        MOV   R1,@BALL_X
+        LI    R1,80
+        MOV   R1,@BALL_Y
+        CLR   @BALL_VX
+        CLR   @BALL_VY
+* [Set how fast a thing moves]
+        LI    R1,2
+        MOV   R1,@BALL_VX
+        LI    R1,2
+        MOV   R1,@BALL_VY
+
+* ---- once every frame (60 times a second) ----
+MAIN    MOVB  @VDPST,R0         ; Wait for the next frame
+        JLT   GO
+        JMP   MAIN
+GO
+* [Move with the joystick]
+        LI    R12,>0024         ; Look at the keyboard column that holds joystick 1
+        LI    R1,>0600
+        LDCR  R1,3
+        LI    R12,>0006
+        STCR  R1,8              ; Read the 8 switches (0 means pressed)
+        INV   R1                ; Now 1 means pressed
+        MOV   @BAT_X,R2
+        COC   @KLEFT,R1         ; Pushed left?
+        JNE   NOL1
+        AI    R2,-4
+NOL1    COC   @KRIGHT,R1        ; Pushed right?
+        JNE   NOR2
+        AI    R2,4
+NOR2    CI    R2,8              ; Keep it between the two ends
+        JGT   OKL3
+        LI    R2,8
+OKL3    CI    R2,232
+        JLT   OKH4
+        LI    R2,232
+OKH4    MOV   R2,@BAT_X
+* [Keep moving at its speed]
+        A     @BALL_VX,@BALL_X
+        A     @BALL_VY,@BALL_Y
+* [Bounce off the walls]
+        MOV   @BALL_X,R1
+        CI    R1,8              ; Past the left wall?
+        JGT   BW5
+        LI    R1,8
+        MOV   R1,@BALL_X
+        NEG   @BALL_VX
+BW5     MOV   @BALL_X,R1
+        CI    R1,240            ; Past the right wall?
+        JLT   BW6
+        LI    R1,240
+        MOV   R1,@BALL_X
+        NEG   @BALL_VX
+BW6     MOV   @BALL_Y,R1
+        CI    R1,8              ; Past the top?
+        JGT   BW7
+        LI    R1,8
+        MOV   R1,@BALL_Y
+        NEG   @BALL_VY
+BW7
+* [If two things touch]
+        MOV   @BAT_X,R2
+        AI    R2,16
+        C     R2,@BALL_X
+        JH    HIT9              ; Overlapping so far?
+        B     @NOHIT8
+HIT9    MOV   @BALL_X,R2
+        AI    R2,8
+        C     R2,@BAT_X
+        JH    HIT10
+        B     @NOHIT8
+HIT10
+        MOV   @BAT_Y,R2
+        AI    R2,4
+        C     R2,@BALL_Y
+        JH    HIT11             ; Overlapping so far?
+        B     @NOHIT8
+HIT11   MOV   @BALL_Y,R2
+        AI    R2,8
+        C     R2,@BAT_Y
+        JH    HIT12
+        B     @NOHIT8
+HIT12
+* [Set how fast a thing moves]
+        LI    R1,2
+        MOV   R1,@BALL_VX
+        LI    R1,-2
+        MOV   R1,@BALL_VY
+* [Change the score]
+        INC   @SCORE
+* [Play a sound]
+        LI    R1,BOING
+        MOV   R1,@SNDPTR
+        CLR   @SNDWT
+NOHIT8
+* [If a thing goes past the bottom]
+        MOV   @BALL_Y,R1
+        CI    R1,184            ; Lower than the line?
+        JLT   NOLOW13
+        JEQ   NOLOW13
+* [Put a thing here]
+        LI    R1,124
+        MOV   R1,@BALL_X
+        LI    R1,80
+        MOV   R1,@BALL_Y
+        CLR   @BALL_VX
+        CLR   @BALL_VY
+* [Set how fast a thing moves]
+        LI    R1,2
+        MOV   R1,@BALL_VX
+        LI    R1,2
+        MOV   R1,@BALL_VY
+* [Change the score]
+        LI    R1,-1
+        A     R1,@SCORE
+        JGT   SCOK14
+        JEQ   SCOK14
+        CLR   @SCORE            ; No negative scores
+SCOK14
+NOLOW13
+* [Show the score]
+        MOV   @SCORE,R0
+        LI    R1,1              ; Screen position = row x 32 + column
+        BL    @SHOWNUM
+* [Show everything on the screen]
+        CLR   R0                ; Sprite list starts at >0300
+        MOVB  R0,@VDPWA
+        LI    R0,>4300
+        MOVB  R0,@VDPWA
+        MOV   @BAT_Y,R1         ; bat
+        SWPB  R1
+        MOVB  R1,@VDPWD
+        MOV   @BAT_X,R1
+        SWPB  R1
+        MOVB  R1,@VDPWD
+        LI    R1,>8000          ; Which drawing
+        MOVB  R1,@VDPWD
+        LI    R1,>0F00          ; Colour
+        MOVB  R1,@VDPWD
+        MOV   @BALL_Y,R1        ; ball
+        SWPB  R1
+        MOVB  R1,@VDPWD
+        MOV   @BALL_X,R1
+        SWPB  R1
+        MOVB  R1,@VDPWD
+        LI    R1,>8400          ; Which drawing
+        MOVB  R1,@VDPWD
+        LI    R1,>0A00          ; Colour
+        MOVB  R1,@VDPWD
+        LI    R1,>D000          ; End of the sprite list
+        MOVB  R1,@VDPWD
+        BL    @SNDTICK          ; Keep any sound going
+        B     @MAIN
+
+* ---- shared routines ----
+* VWREG: set a video register. R0 holds the register number (left byte) and value (right byte).
+VWREG   ORI   R0,>8000
+        SWPB  R0
+        MOVB  R0,@VDPWA
+        SWPB  R0
+        MOVB  R0,@VDPWA
+        B     *R11
+* VMBW: copy R2 bytes from R1 to video memory address R0.
+VMBW    ORI   R0,>4000
+        SWPB  R0
+        MOVB  R0,@VDPWA
+        SWPB  R0
+        MOVB  R0,@VDPWA
+VMBW1   MOVB  *R1+,@VDPWD
+        DEC   R2
+        JNE   VMBW1
+        B     *R11
+
+* The joystick switches: which bit means left, and which means right.
+KLEFT   DATA  >0200
+KRIGHT  DATA  >0400
+
+* SNDTICK: called once a frame. Plays the next step of the current sound list, if one is playing.
+SNDTICK MOV   @SNDWT,@SNDWT     ; Still waiting?
+        JEQ   SND1
+        DEC   @SNDWT
+        B     *R11
+SND1    MOV   @SNDPTR,R0        ; Where are we in the list? (0 = nothing playing)
+        JEQ   SNDEND
+        MOVB  *R0+,R2           ; How many bytes for the sound chip
+        JEQ   SNDOFF            ; A count of 0 ends the list
+        SRL   R2,8
+SND2    MOVB  *R0+,@>8400       ; Send a byte to the sound chip
+        DEC   R2
+        JNE   SND2
+        MOVB  *R0+,R2           ; How long to wait
+        SRL   R2,8
+        MOV   R2,@SNDWT
+        MOV   R0,@SNDPTR
+SNDEND  B     *R11
+SNDOFF  CLR   @SNDPTR
+        B     *R11
+
+* SHOWNUM: R0 = the number (0-999), R1 = screen position. Writes three digits.
+SHOWNUM MOV   R11,R9
+        MOV   R1,R4             ; Keep the screen position
+        CLR   R2
+        MOV   R0,R3             ; R2:R3 is the number to divide
+        LI    R5,100
+        DIV   R5,R2             ; R2 = hundreds, R3 = the rest
+        MOV   R2,R6
+        CLR   R2
+        LI    R5,10
+        DIV   R5,R2             ; R2 = tens, R3 = ones
+        MOV   R2,R7
+        MOV   R3,R8
+        MOV   R4,R0
+        ORI   R0,>4000
+        SWPB  R0
+        MOVB  R0,@VDPWA
+        SWPB  R0
+        MOVB  R0,@VDPWA
+        AI    R6,>30            ; Digit characters start at 48
+        SWPB  R6
+        MOVB  R6,@VDPWD
+        AI    R7,>30
+        SWPB  R7
+        MOVB  R7,@VDPWD
+        AI    R8,>30
+        SWPB  R8
+        MOVB  R8,@VDPWD
+        B     *R9
+
+* ---- numbers the game keeps (all start as shown) ----
+WS      BSS   32                ; Room for R0-R15
+BAT_X   DATA  120
+BAT_Y   DATA  168
+BAT_VX  DATA  0
+BAT_VY  DATA  0
+BALL_X  DATA  124
+BALL_Y  DATA  80
+BALL_VX DATA  0
+BALL_VY DATA  0
+SCORE   DATA  0
+SNDPTR  DATA  0
+SNDWT   DATA  0
+
+* A 16x16 drawing is four 8x8 blocks: top-left, bottom-left, top-right, bottom-right.
+* @sprite 16x16
+BAT_PIC BYTE >FF,>FF,>FF,>FF,>00,>00,>00,>00
+       BYTE >00,>00,>00,>00,>00,>00,>00,>00
+       BYTE >FF,>FF,>FF,>FF,>00,>00,>00,>00
+       BYTE >00,>00,>00,>00,>00,>00,>00,>00
+
+* @sprite 16x16
+BALL_PIC BYTE >3C,>7E,>FF,>FF,>FF,>FF,>7E,>3C
+       BYTE >00,>00,>00,>00,>00,>00,>00,>00
+       BYTE >00,>00,>00,>00,>00,>00,>00,>00
+       BYTE >00,>00,>00,>00,>00,>00,>00,>00
+
+* @sound
+BOING  BYTE 3,>8E,>0F,>90,4
+       BYTE 3,>87,>0B,>90,4
+       BYTE 1,>9F,1
+       BYTE 0
+       EVEN
+        END   START

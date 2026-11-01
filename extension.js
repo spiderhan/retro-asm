@@ -21,6 +21,7 @@ const PH = require('./lib/panel-html');
 const SPR = require('./lib/sprites');
 const SH = require('./lib/sprite-html');
 const SND = require('./lib/sound');
+const GB = require('./lib/blocks');
 const SNDH = require('./lib/sound-html');
 const SCR = require('./lib/screen');
 const SCRH = require('./lib/screen-html');
@@ -968,6 +969,51 @@ async function cmdNewSprite() {
   modelFor(doc);
   openSprite(doc, line + 1, name);
   return true;
+}
+
+// ---- Game Blocks (prototype): start a game from a ready-made kit, or remake the assembly from a blocks file ----
+async function cmdNewGameFromKit() {
+  const folder = vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0];
+  if (!folder) { vscode.window.showInformationMessage('Open a folder first. The game files are saved in it.'); return false; }
+  const kits = GB.listKits();
+  if (!kits.length) { vscode.window.showWarningMessage('No game kits came with this version.'); return false; }
+  const pick = await vscode.window.showQuickPick(kits.map(k => ({ label: k.title, description: k.machine === 'ti99' ? 'TI-99/4A' : k.machine, detail: k.about, kit: k })), { placeHolder: 'Pick a kit to start from. It is only a starting point: you can change anything.' });
+  if (!pick) return false;
+  const exists = async (u) => { try { await vscode.workspace.fs.stat(u); return true; } catch (e) { return false; } };
+  let base = pick.kit.id, n = 1;
+  while (await exists(vscode.Uri.joinPath(folder.uri, (n > 1 ? `${base}-${n}` : base) + '.blocks.json')) || await exists(vscode.Uri.joinPath(folder.uri, (n > 1 ? `${base}-${n}` : base) + '.a99'))) n++;
+  const name = n > 1 ? `${base}-${n}` : base;
+  const text = require('fs').readFileSync(pick.kit.file, 'utf8');
+  const jsonUri = vscode.Uri.joinPath(folder.uri, name + '.blocks.json');
+  await vscode.workspace.fs.writeFile(jsonUri, Buffer.from(text, 'utf8'));
+  return writeGameFile(jsonUri, true);
+}
+
+async function writeGameFile(jsonUri, firstTime) {
+  let project;
+  try { project = JSON.parse(Buffer.from(await vscode.workspace.fs.readFile(jsonUri)).toString('utf8')); }
+  catch (e) { vscode.window.showWarningMessage('That blocks file could not be read: ' + e.message); return false; }
+  const blocks = GB.loadBlocks(project.machine || 'ti99');
+  const r = GB.generate(project, blocks);
+  if (r.problems.length) { vscode.window.showWarningMessage('The game could not be made: ' + r.problems[0] + (r.problems.length > 1 ? ` (and ${r.problems.length - 1} more)` : '')); return false; }
+  const asmUri = jsonUri.with({ path: jsonUri.path.replace(/\.blocks\.json$/i, '') + '.a99' });
+  let there = true;
+  try { await vscode.workspace.fs.stat(asmUri); } catch (e) { there = false; }
+  if (there && !firstTime) {
+    const ans = await vscode.window.showWarningMessage('The game file already exists. Making it again replaces it, including any changes you typed into it.', { modal: true }, 'Replace it');
+    if (ans !== 'Replace it') return false;
+  }
+  await vscode.workspace.fs.writeFile(asmUri, Buffer.from(r.asm, 'utf8'));
+  await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(asmUri), { preview: false });
+  vscode.window.showInformationMessage(`Made ${asmUri.path.split('/').pop()}. Build it and run it. To change the game, edit the numbers in the .blocks.json file and make it again.`);
+  return true;
+}
+
+async function cmdGameFromBlocks() {
+  const ed = vscode.window.activeTextEditor;
+  if (!ed || !/\.blocks\.json$/i.test(ed.document.fileName)) { vscode.window.showInformationMessage('Open a .blocks.json file first.'); return false; }
+  await ed.document.save();
+  return writeGameFile(ed.document.uri, false);
 }
 
 function openSprite(doc, line, label) {
@@ -2345,6 +2391,8 @@ function activate(context) {
     vscode.commands.registerCommand('retroAsm.openOriginal', cmdOpenOriginal),
     vscode.commands.registerCommand('retroAsm.editSprite', cmdEditSprite),
     vscode.commands.registerCommand('retroAsm.newSprite', cmdNewSprite),
+    vscode.commands.registerCommand('retroAsm.newGameFromKit', cmdNewGameFromKit),
+    vscode.commands.registerCommand('retroAsm.gameFromBlocks', cmdGameFromBlocks),
     vscode.commands.registerCommand('retroAsm.playSound', cmdPlaySound),
     vscode.commands.registerCommand('retroAsm.showScreen', cmdShowScreen),
     vscode.commands.registerCommand('retroAsm.editScreenInPixelEditor', cmdEditScreenInPixelEditor),
