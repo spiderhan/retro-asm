@@ -1005,7 +1005,7 @@ async function writeGameFile(jsonUri, firstTime) {
   }
   await vscode.workspace.fs.writeFile(asmUri, Buffer.from(r.asm, 'utf8'));
   await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(asmUri), { preview: false });
-  vscode.window.showInformationMessage(`Made ${asmUri.path.split('/').pop()}. Build it and run it. To change the game, edit the numbers in the .blocks.json file and make it again.`);
+  vscode.window.showInformationMessage(`Made ${asmUri.path.split('/').pop()}. Use "Run in MAME" to try it. To change the game, edit the numbers in the .blocks.json file and make it again.`);
   return true;
 }
 
@@ -1859,15 +1859,19 @@ async function debugLaunchMame(info) {
   return MAME.startMame({ mamePath: found.file, rompath, blocks: info.blocks, entry: info.startAt, folder: info.folder, port: MAME.DEFAULT_PORT + (debugLaunches++ % 50) });
 }
 
-async function startDebugging() {
+async function startDebugging(opts) {
+  const stop = !(opts && opts.stopOnEntry === false);      // a menu click can hand over other things: only an explicit false means "don't stop"
   const ed = vscode.window.activeTextEditor;
   if (!ed || !isOurs(ed.document) || ed.document.uri.scheme !== 'file') { vscode.window.showInformationMessage('Open (and save) a TI-99/4A assembly file first.'); return; }
   const folder = vscode.workspace.getWorkspaceFolder(ed.document.uri);
   // a second start while one is open would leave two MAME windows: close the first
   const open = vscode.debug.activeDebugSession;
   if (open && open.type === DEBUG_TYPE) { await vscode.debug.stopDebugging(open); await new Promise(r => setTimeout(r, 1500)); }
-  return vscode.debug.startDebugging(folder, { type: DEBUG_TYPE, request: 'launch', name: 'Debug TI-99/4A program in MAME', program: keyOf(ed.document), stopOnEntry: true });
+  return vscode.debug.startDebugging(folder, { type: DEBUG_TYPE, request: 'launch', name: 'Debug TI-99/4A program in MAME', program: keyOf(ed.document), stopOnEntry: stop });
 }
+
+/** Start the program in MAME and let it run (no stop at the first instruction). */
+function runInMame() { return startDebugging({ stopOnEntry: false }); }
 
 const debugConfigProvider = {
   resolveDebugConfiguration(folder, config) {
@@ -2348,7 +2352,8 @@ function activate(context) {
     vscode.commands.registerCommand('retroAsm.build', () => cmdBuild(false)),
     vscode.commands.registerCommand('retroAsm.buildAndRun', () => cmdBuild(true)),
     vscode.commands.registerCommand('retroAsm.checkTools', cmdCheckTools),
-    vscode.commands.registerCommand('retroAsm.debug', startDebugging),
+    vscode.commands.registerCommand('retroAsm.debug', () => startDebugging()),
+    vscode.commands.registerCommand('retroAsm.runInMame', runInMame),
     vscode.debug.registerDebugConfigurationProvider(DEBUG_TYPE, debugConfigProvider),
     vscode.debug.registerDebugAdapterDescriptorFactory(DEBUG_TYPE, debugAdapterFactory),
     vscode.commands.registerCommand('retroAsm.toggleAddresses', cmdToggleAddresses),

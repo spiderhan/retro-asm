@@ -187,6 +187,8 @@ It all comes from the chip files (see **Adding a chip of your own**), and it is 
 
 ### Step through a program (TI-99/4A)
 
+**Just run it:** **Retro ASM: Run in MAME (TI-99/4A)** does the same as Debug, but lets the program run straight away, with nothing to type in the emulator.
+
 This stops your program on a line you choose and lets you step through it one instruction at a time, on a **real emulated TI-99/4A** (MAME), watching what the computer really does. It is new and only for the TI-99/4A so far.
 
 **What you need once:** MAME (from mamedev.org, unpacked into its own folder, for example inside your tools folder) and the TI-99/4A system ROMs as `ti99_4a.zip` in a folder called `roms` beside `mame.exe`. **Set up tools** now lists MAME and tells you if it isn't found. If your ROMs live somewhere else, set `retroAsm.debug.romFolder`.
@@ -350,13 +352,13 @@ Your code is copied into a temporary folder for the pixel editor to read, and th
 
 Build a simple game from small plain-English blocks and get an ordinary `.a99` file out of it. Each block writes a few lines of normal assembly, with a `* [note]` above them saying which block wrote them, so you can read it, change it, and learn from it.
 
-1. Run **Retro ASM: Start a game from a kit** and pick **Bat and ball**. Two files are saved in your folder: `bat-and-ball.blocks.json` (the blocks and their numbers) and `bat-and-ball.a99` (the game).
-2. Build and run the `.a99` as usual.
+1. Run **Retro ASM: Start a game from a kit** and pick **Bat and ball** (just a bat and a ball) or **Bat, ball and bricks** (the same, plus a wall to knock down). Two files are saved in your folder: for example `bricks.blocks.json` (the blocks and their numbers) and `bricks.a99` (the game).
+2. Run **Retro ASM: Run in MAME (TI-99/4A)**. MAME opens and the game starts by itself (it needs MAME and the TI's system ROMs, as for debugging). With Classic99, F5 builds and opens the emulator, and you load the program from its menu (Editor/Assembler, option 3).
 3. To change the game, change numbers or blocks in the `.blocks.json` file and run **Retro ASM: Make the game file from this blocks file**. It asks before it replaces the `.a99`, because that would lose anything you typed into it.
 
-The blocks so far: set the screen colour, put a thing here, set how fast a thing moves, move with the joystick, keep moving at its speed, bounce off the walls, if two things touch, if a thing goes past the bottom, change the score, show the score, play a sound. A "thing" is a sprite. Its drawing is an `@sprite 16x16` block and a sound is an `@sound` block, so the picture editor and sound player work on them.
+The blocks so far: set the screen colour, put a thing here, set how fast a thing moves, move with the joystick, keep moving at its speed, bounce off the walls, if two things touch, if a thing goes past the bottom, change the score, show the score, play a sound. For bricks: build a wall of bricks, if a thing hits a brick, if all the bricks are gone. Bricks are brick-shaped screen tiles, not sprites, so a wall can have as many as you like (sprites are limited to four in a row). Each row has its own colour, or you can pick one colour for the whole wall. The ball bounces up or down off a brick, not sideways: a deliberate simplification for now. A "thing" is a sprite. Its drawing is an `@sprite 16x16` block and a sound is an `@sound` block, so the picture editor and sound player work on them.
 
-Every block is one small file in `lib/blocks/ti99/`. It is a prototype: there is no panel for dragging blocks yet, and the kit builds with xas99, but it has not yet been seen running in an emulator (see the 0.26.0 notes in `CHANGELOG.md`).
+Every block is one small file in `lib/blocks/ti99/`. It is a prototype: there is no panel for dragging blocks yet, and the kit builds with xas99, and it has been seen running in Classic99. Use **Retro ASM: Run in MAME (TI-99/4A)** to start it with nothing to type (see `CHANGELOG.md`).
 
 ### Side by side with the original game
 
@@ -684,6 +686,8 @@ A short list of the big steps. The full details of every release are in `CHANGEL
 | Version | What it added |
 |---|---|
 | 0.26 | **Game blocks (early prototype, TI-99/4A):** build a simple game from plain-English blocks, starting from a ready-made *Bat and ball* kit, and get an ordinary `.a99` file |
+| 0.27 | **Bricks (game blocks):** a wall of bricks drawn as screen tiles, and blocks for hitting them, counting them and building a new wall; new kit *Bat, ball and bricks* |
+| 0.26.2 | The made game clears the screen when it starts, so the console's title screen no longer shows behind it |
 | 0.25 | **Edit a screen in your pixel editor (TI-99/4A, optional):** an *Edit in pixel editor* link on the `@screen` line opens the screen in your own pixel editor, and *Send to code* there puts the changed tables back |
 | 0.24 | **Screen preview (TI-99/4A):** mark a whole bitmap screen with `@screen` and see the picture drawn from its tables, with their sizes checked |
 | 0.23 | **Sound player (TI-99/4A):** mark a sound list with `@sound` and play it, with a picture of each voice and what every byte does |

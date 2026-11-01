@@ -84,6 +84,10 @@ const at=(doc,needle,sub)=>{const lines=doc.getText().split(/\r?\n/);const l=lin
    // Retro ASM: Insert starter code
    const lines=game.getText().split(/\r?\n/);const inserted=[];
    const fake=(lineText)=>{const doc=Object.assign({},game,{lineAt:(i)=>({text:i===3?lineText:lines[i]})});return {document:doc,selection:{start:new Position(3,0),end:new Position(3,0),isEmpty:true},insertSnippet:async(sn,where)=>{inserted.push({sn,where});return true;}};};
+   {mock.window.activeTextEditor=fake('');mock.__.debugStarted=null;await C['retroAsm.runInMame']();const s1=mock.__.debugStarted;
+    mock.__.debugStarted=null;await C['retroAsm.debug']();const s2=mock.__.debugStarted;
+    ok('Run in MAME starts MAME without stopping at the first line',s1&&s1.stopOnEntry===false&&s1.request==='launch',s1);
+    ok('Debug in MAME still stops at the first line',s2&&s2.stopOnEntry===true,s2);}
    mock.window.activeTextEditor=fake('');let r1=await C['retroAsm.insertSnippet']();
    ok('insert starter code on a blank line',r1===true&&inserted[0].sn.value.includes('MOVB R1,@>8C00')&&inserted[0].where.start.line===3&&inserted[0].where.start.character===0,inserted[0]);
    mock.window.activeTextEditor=fake('       CLR  R0');await C['retroAsm.insertSnippet']();

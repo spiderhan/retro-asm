@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.27.1
+
+- **New: bricks for the game blocks (TI-99/4A).** Three new blocks: **Build a wall of bricks** (rows, how far down, and an optional colour), **If a thing hits a brick** (rubs the whole brick out, bounces the thing, then runs the blocks inside, for the score and a sound) and **If all the bricks are gone** (put a new wall inside it to start again). Bricks are screen tiles, not sprites, so a wall can be as big as the screen. The game keeps the number of bricks left in a number called `BRICKS`.
+- **Brick-shaped, in colour.** Each brick is two tiles wide with a thin gap around it, and every other row is shifted by half a brick, like a real wall. Each row has its own colour (set `colour` to a number from 2 to 15 to use one colour for the whole wall).
+- **New kit: Bat, ball and bricks.** The bat and ball kit plus a six-row wall, a point and a sound for each brick, and a new wall when the last one goes.
+- **Changed: the sprite drawings now live at video address `>1000`** (they were at `>0C00`) to leave room for the brick drawings. Register 6 is now `>0602`. Games made with 0.26 are not affected; only games made by the blocks from now on.
+- **Known simplification:** the ball only turns up or down when it hits a brick, never sideways, and only the tile under its middle is checked.
+- **Shared routines:** the made game only includes the tile routines (write, read, draw bricks) when a block asks for them, so the bat and ball kit has no bricks code.
+- **Tested:** both kits make code with no problems, 0 warnings from the extension's own checks, no repeated labels; both build with xas99 with no errors and the debugger's loader accepts both; every row has its own colour; one chosen colour works; the brick count is right (93 for six rows); wrong settings (0 rows, a wall off the bottom) are explained in plain English.
+- **Played:** the brick-shaped, multi-colour wall has been played in an emulator by hand and looks right. Real VS Code's own test suite (`npm run test:vscode`) was not run.
+
+## 0.26.2
+
+- **Fix: the made game now clears the screen when it starts.** Seen in MAME: the game ran, but the TI's title screen ("TEXAS INSTRUMENTS HOME COMPUTER", the coloured bars) was still showing behind it. The game now writes spaces over the whole screen and sets the colour table, so only the game shows, and **Set the screen colour** colours the whole screen.
+- **Tested:** the new check (every kit clears the screen) and the build with xas99 (no errors; the debugger's loader accepts it).
+- **Not tested:** the cleaned-up screen has not been seen in real MAME yet.
+
+## 0.26.1
+
+- **New: Retro ASM: Run in MAME (TI-99/4A).** Starts your program in MAME and lets it run, with nothing to type in the emulator: MAME opens, your program is loaded and it starts by itself. It is the same loader as **Debug in MAME**, just without stopping on the first line and without needing a breakpoint. **Debug in MAME** still stops at the first line, as before.
+- **The made game now has `AORG >A000`.** The loader needs a fixed address in the TI's extra memory, so a program with no `AORG` can't be loaded this way. The line is written near the top of every game the blocks make, with a note saying why. Classic99's Editor/Assembler option 3 loads it just the same.
+- **What you need:** the same as for debugging: MAME and the TI's system ROMs (see **Step through a program**). Classic99's F5 is unchanged: it still opens empty, and you load the program from its own menu, because Classic99's only start-up switch is for cartridges.
+- **Tested:** the new checks pass: Run in MAME asks for a start with "don't stop" and Debug in MAME still asks to stop (in the stand-in for VS Code); the made game builds with xas99 with no errors; the debugger's loader accepts it (every piece inside the extra memory, starting at `>A000`); it starts where `START` is. The main run (278 checks, with the build step included) and the debugger checks pass.
+- **Not tested:** **it has not been run in real MAME yet**, so nobody has seen the made game start this way. The command has only run in the stand-in for VS Code, not in real VS Code (`npm run test:vscode` was not run). The 0.26.0 `.vsix` is left alone.
+
 ## 0.26.0
 
 - **New (early prototype): Game Blocks for the TI-99/4A.** Build a simple game from small plain-English blocks ("Move with the joystick", "Bounce off the walls", "If two things touch", "Change the score", "Play a sound") and get an ordinary `.a99` file you can read, build and change by hand. Nothing is hidden: each block writes a few lines of normal assembly, with a `* [note]` above them saying which block wrote them.
