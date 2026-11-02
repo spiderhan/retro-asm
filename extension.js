@@ -24,6 +24,7 @@ const SND = require('./lib/sound');
 const GB = require('./lib/blocks');
 const GE = require('./lib/blocks-edit');
 const GH = require('./lib/blocks-html');
+const GU = require('./lib/blocks-upgrade');
 const SNDH = require('./lib/sound-html');
 const SCR = require('./lib/screen');
 const SCRH = require('./lib/screen-html');
@@ -983,10 +984,16 @@ async function cmdNewGameFromKit() {
   if (!pick) return false;
   const exists = async (u) => { try { await vscode.workspace.fs.stat(u); return true; } catch (e) { return false; } };
   let base = pick.kit.id, n = 1;
-  while (await exists(vscode.Uri.joinPath(folder.uri, (n > 1 ? `${base}-${n}` : base) + '.blocks.json')) || await exists(vscode.Uri.joinPath(folder.uri, (n > 1 ? `${base}-${n}` : base) + '.a99'))) n++;
+  while (await exists(vscode.Uri.joinPath(folder.uri, (n > 1 ? `${base}-${n}` : base) + '.blocks.json')) || await exists(vscode.Uri.joinPath(folder.uri, (n > 1 ? `${base}-${n}` : base) + '.a99')) || await exists(vscode.Uri.joinPath(folder.uri, (n > 1 ? `${base}-${n}` : base) + '-pictures.a99'))) n++;
   const name = n > 1 ? `${base}-${n}` : base;
-  const text = require('fs').readFileSync(pick.kit.file, 'utf8');
+  let text = require('fs').readFileSync(pick.kit.file, 'utf8');
   const jsonUri = vscode.Uri.joinPath(folder.uri, name + '.blocks.json');
+  // the pictures and sounds go in a file of their own, so making the game again never touches them
+  const moved = GU.moveDataToFile(JSON.parse(text), name + '-pictures.a99');
+  if (moved) {
+    text = JSON.stringify(moved.project, null, 2) + '\n';
+    await vscode.workspace.fs.writeFile(vscode.Uri.joinPath(folder.uri, name + '-pictures.a99'), Buffer.from(moved.text, 'utf8'));
+  }
   await vscode.workspace.fs.writeFile(jsonUri, Buffer.from(text, 'utf8'));
   const made = await writeGameFile(jsonUri, true);
   if (made) openBlocksPanel(jsonUri);
@@ -998,9 +1005,11 @@ async function writeGameFile(jsonUri, firstTime) {
   try { project = JSON.parse(Buffer.from(await vscode.workspace.fs.readFile(jsonUri)).toString('utf8')); }
   catch (e) { vscode.window.showWarningMessage('That blocks file could not be read: ' + e.message); return false; }
   const blocks = GB.loadBlocks(project.machine || 'ti99');
-  const r = GB.generate(project, blocks);
+  const pics = readPictureLines(jsonUri, project);
+  const r = GB.generate(project, blocks, { dataLines: pics.lines });
+  if (pics.problem) r.problems.unshift(pics.problem);
   if (r.problems.length) { vscode.window.showWarningMessage('The game could not be made: ' + r.problems[0] + (r.problems.length > 1 ? ` (and ${r.problems.length - 1} more)` : '')); return false; }
-  const asmUri = jsonUri.with({ path: jsonUri.path.replace(/\.blocks\.json$/i, '') + '.a99' });
+  const asmUri = vscode.Uri.file(jsonUri.fsPath.replace(/\.blocks\.json$/i, '') + '.a99');
   let there = true;
   try { await vscode.workspace.fs.stat(asmUri); } catch (e) { there = false; }
   if (there && !firstTime) {
@@ -1029,16 +1038,187 @@ function blocksText(uri) {
   return d ? d.getText() : require('fs').readFileSync(uri.fsPath, 'utf8');
 }
 
+/** The pictures file of a game, if it has one: where it is, and its lines (from the open editor if there is one). */
+function picturesPath(jsonUri, project) {
+  if (!project.dataFile) return null;
+  if (!/^[A-Za-z0-9_][A-Za-z0-9_ .-]*$/.test(project.dataFile)) return null;
+  return path.join(path.dirname(jsonUri.fsPath), project.dataFile);
+}
+function readPictureLines(jsonUri, project) {
+  if (!project.dataFile) return { lines: [] };
+  const fp = picturesPath(jsonUri, project);
+  if (!fp) return { lines: [], problem: `The pictures file name "${project.dataFile}" is not allowed: use a plain file name that sits beside the blocks file.` };
+  const key = vscode.Uri.file(fp).toString();
+  const d = vscode.workspace.textDocuments.find(x => x.uri.toString() === key);
+  try { return { lines: (d ? d.getText() : require('fs').readFileSync(fp, 'utf8')).split(/\r?\n/) }; }
+  catch (e) { return { lines: [], problem: `The pictures file ${project.dataFile} can't be found beside the blocks file. Put it back, or its pictures and sounds can't be used.` }; }
+}
+
 function sendBlocks(status) {
   if (!blocksPanel) return;
   const { panel, uri } = blocksPanel;
   let project;
   try { project = JSON.parse(blocksText(uri)); }
   catch (e) { panel.webview.postMessage({ type: 'state', error: 'The blocks file can’t be read yet (' + e.message + '). Fix it in the text editor and this page will come back.' }); return; }
+  // an older blocks file is brought up to date (the brick blocks became tile blocks)
+  const up = GU.upgrade(project);
+  if (up.changed) {
+    project = up.project;
+    status = (status ? status + ' ' : '') + up.notes.join(' ');
+    saveBlocksProject(project).catch(() => {});
+  }
   const blocks = GB.loadBlocks(project.machine || 'ti99');
-  const r = GB.generate(project, blocks);
+  const pics = readPictureLines(uri, project);
+  const r = GB.generate(project, blocks, { dataLines: pics.lines });
+  if (pics.problem) r.problems.unshift(pics.problem);
+  const data = GE.dataOf(project, pics.lines);
+  const pictureList = GE.pictures(data).map(p => Object.assign({}, p, { shape: GE.tileShape(p) }));
   panel.title = 'Game blocks: ' + (project.title || path.basename(uri.fsPath));
-  panel.webview.postMessage({ type: 'state', project, catalogue: GE.catalogue(blocks), problems: r.problems, asm: r.problems.length ? '' : r.asm, fileName: path.basename(uri.fsPath), status: status || '' });
+  panel.webview.postMessage({ type: 'state', project, catalogue: GE.catalogue(blocks), palette: blocks._palette || [], problems: r.problems, asm: r.problems.length ? '' : r.asm, paths: r.problems.length ? [] : r.paths, fileName: path.basename(uri.fsPath), status: status || '', pictures: pictureList, sounds: GE.soundLabels(data), dataFile: project.dataFile || '' });
+}
+
+/** The pictures file of the open game. If the game still keeps its pictures inside the blocks file, offer to move them out now. */
+async function ensurePicturesFile() {
+  let game;
+  try { game = JSON.parse(blocksText(blocksPanel.uri)); } catch (e) { return null; }
+  let fp = picturesPath(blocksPanel.uri, game);
+  if (fp) return { fp, game };
+  const base = path.basename(blocksPanel.uri.fsPath);
+  const pick = await vscode.window.showInformationMessage(`${base} keeps its pictures inside the blocks file, where they can't be drawn. Move them into their own file now? (The game stays the same.)`, 'Move them now');
+  if (pick !== 'Move them now') return null;
+  if (!await blocksMoveData()) return null;
+  try { game = JSON.parse(blocksText(blocksPanel.uri)); } catch (e) { return null; }
+  fp = picturesPath(blocksPanel.uri, game);
+  return fp ? { fp, game } : null;
+}
+
+/** Panel: open a picture in the picture editor (it lives in the game's pictures file). */
+async function blocksEditPicture(label) {
+  let project;
+  try { project = JSON.parse(blocksText(blocksPanel.uri)); } catch (e) { return false; }
+  const got = await ensurePicturesFile(); if (!got) return false;
+  const fp = got.fp; project = got.game;
+  let doc;
+  try { doc = await vscode.workspace.openTextDocument(vscode.Uri.file(fp)); } catch (e) { vscode.window.showWarningMessage('The pictures file can’t be opened: ' + e.message); return false; }
+  const lines = doc.getText().split(/\r?\n/);
+  const at = lines.findIndex(l => new RegExp('^' + String(label).replace(/[^A-Za-z0-9_]/g, '') + '(\\s|$)').test(l));
+  if (at < 0) { vscode.window.showWarningMessage(`${label} isn't in the pictures file.`); return false; }
+  modelFor(doc);
+  return cmdEditSprite(doc.uri, at);
+}
+
+/** Panel: a new, empty picture added to the end of the pictures file, then opened. */
+async function blocksNewPicture() {
+  let game;
+  try { game = JSON.parse(blocksText(blocksPanel.uri)); } catch (e) { return false; }
+  const got = await ensurePicturesFile(); if (!got) return false;
+  const fp = got.fp; game = got.game;
+  const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(fp));
+  const model = modelFor(doc);
+  if (!model) return false;
+  const D = model.D, file = keyOf(doc);
+  let spec = await pickShape(D, 0);
+  if (!spec) return false;
+  let shape = SPR.shapeFor(D, spec);
+  if (shape.error) { vscode.window.showWarningMessage(shape.error); return false; }
+  // a picture bigger than 8x8 is stored piece by piece ("cells") so it can be used as a tile
+  if ((shape.width > 8 || shape.height > 8) && shape.order !== 'cells') { spec = `${shape.width}x${shape.height} cells`; shape = SPR.shapeFor(D, spec); if (shape.error) { vscode.window.showWarningMessage(shape.error); return false; } }
+  const name = await vscode.window.showInputBox({ prompt: 'A name for the picture (letters, digits and _)', value: freeSpriteName(D, file),
+    validateInput: (v) => !/^[A-Za-z_][A-Za-z0-9_]*$/.test(v) ? 'Letters, digits and _ only, starting with a letter' : project.findDefs(file, v).length ? `${v} is already used` : null });
+  if (!name) return false;
+  const lines = SPR.newSpriteLines(D, name, shape, 1);
+  const end = doc.lineCount;
+  const we = new vscode.WorkspaceEdit();
+  we.insert(doc.uri, new vscode.Position(end, 0), (doc.lineAt(end - 1).text.trim() === '' ? '' : '\n') + '\n' + lines.join('\n') + '\n');
+  if (!await vscode.workspace.applyEdit(we)) return false;
+  await doc.save();
+  modelFor(doc);
+  const at = doc.getText().split(/\r?\n/).findIndex(l => new RegExp('^' + name + '(\\s|$)').test(l));
+  if (at >= 0) await cmdEditSprite(doc.uri, at);
+  sendBlocks();
+  return true;
+}
+
+/** Panel: copy a tile: its picture is copied under a new name, and a new tile uses the copy. Then the copy is opened to draw. */
+async function blocksCopyTile(tileName) {
+  let game;
+  try { game = JSON.parse(blocksText(blocksPanel.uri)); } catch (e) { return false; }
+  const tile = game.tiles && game.tiles[tileName];
+  if (!tile || !tile.art) return false;
+  const got = await ensurePicturesFile(); if (!got) return false;
+  const fp = got.fp; game = got.game;
+  let doc;
+  try { doc = await vscode.workspace.openTextDocument(vscode.Uri.file(fp)); } catch (e) { vscode.window.showWarningMessage('The pictures file can’t be opened: ' + e.message); return false; }
+  const free = (n) => !(game.tiles && game.tiles[n]) && !doc.getText().split(/\r?\n/).some(l => new RegExp('^' + n.toUpperCase() + '_PIC(\\s|$)', 'i').test(l));
+  let n = 2; while (!free(tileName + n)) n++;
+  const name = await vscode.window.showInputBox({ prompt: `A name for the copy of "${tileName}" (a new tile and a new picture are made)`, value: tileName + n,
+    validateInput: (v) => !/^[A-Za-z][A-Za-z0-9_]*$/.test(v) ? 'Letters, digits and _ only, starting with a letter' : !free(v) ? `${v} is already used` : null });
+  if (!name) return false;
+  const label = name.toUpperCase() + '_PIC';
+  const all = doc.getText().split(/\r?\n/);
+  const c = GE.copyPictureLines(all, tile.art, label);
+  if (c.error) { vscode.window.showWarningMessage(c.error); return false; }
+  const end = doc.lineCount;
+  const we = new vscode.WorkspaceEdit();
+  we.insert(doc.uri, new vscode.Position(end, 0), (doc.lineAt(end - 1).text.trim() === '' ? '' : '\n') + '\n' + c.lines.join('\n') + '\n');
+  if (!await vscode.workspace.applyEdit(we)) return false;
+  await doc.save();
+  game.tiles[name] = { art: label };
+  await saveBlocksProject(game);
+  modelFor(doc);
+  sendBlocks(`Copied ${tile.art} to ${label} and made the tile "${name}". Draw the copy in the picture editor.`);
+  await blocksEditPicture(label);
+  return true;
+}
+
+/** Panel: a picture that is too big to be a tile because it isn't stored piece by piece: convert it (the drawing stays the same). */
+async function blocksFixPicture(label) {
+  let game;
+  try { game = JSON.parse(blocksText(blocksPanel.uri)); } catch (e) { return false; }
+  const fp = picturesPath(blocksPanel.uri, game);
+  if (!fp) return false;
+  let doc;
+  try { doc = await vscode.workspace.openTextDocument(vscode.Uri.file(fp)); } catch (e) { vscode.window.showWarningMessage('The pictures file can’t be opened: ' + e.message); return false; }
+  const model = modelFor(doc);
+  if (!model) return false;
+  const file = keyOf(doc);
+  const at = doc.getText().split(/\r?\n/).findIndex(l => new RegExp('^' + String(label).replace(/[^A-Za-z0-9_]/g, '') + '(\\s|$)').test(l));
+  const blk = at < 0 ? null : A.dataBlock(project, file, at);
+  const mark = blk && SPR.markerFor(model, blk.labelLine, blk.firstLine);
+  if (!blk || !mark) { vscode.window.showWarningMessage(`${label} can't be changed here: it needs a "* @sprite" line above it.`); return false; }
+  const size = /(\d+)\s*x\s*(\d+)/i.exec(mark.spec);
+  if (!size) { vscode.window.showWarningMessage(`${label} has no size on its "@sprite" line.`); return false; }
+  const spec = `${size[1]}x${size[2]} cells`;
+  const pic = SPR.pictureOf(project, file, blk, mark.spec);
+  const shape = SPR.shapeFor(model.D, spec);
+  if (pic.error || shape.error) { vscode.window.showWarningMessage(pic.error || shape.error); return false; }
+  const bytes = blk.bytes.slice();
+  pic.frames.forEach((px, f) => SPR.encode(px, shape).forEach((b, i) => { bytes[f * shape.stride + i] = b; }));
+  const we = new vscode.WorkspaceEdit();
+  for (const e of SPR.editsFor(project, file, blk, bytes)) we.replace(doc.uri, new vscode.Range(e.line, e.start, e.line, e.end), e.text);
+  const mt = doc.lineAt(mark.line).text;
+  we.replace(doc.uri, new vscode.Range(mark.line, 0, mark.line, mt.length), mt.replace(/(@sprite\s+)\d+\s*x\s*\d+(\s+(?:rows|columns|cells))?/i, '$1' + spec));
+  if (!await vscode.workspace.applyEdit(we)) return false;
+  await doc.save();
+  modelFor(doc);
+  sendBlocks(`${label} is now stored piece by piece, so it can be a tile. The drawing is the same.`);
+  return true;
+}
+
+/** Panel: take the pictures and sounds out of the blocks file into a file of their own. */
+async function blocksMoveData() {
+  let project;
+  try { project = JSON.parse(blocksText(blocksPanel.uri)); } catch (e) { return false; }
+  const base = path.basename(blocksPanel.uri.fsPath).replace(/\.blocks\.json$/i, '');
+  const fileName = base + '-pictures.a99';
+  const target = path.join(path.dirname(blocksPanel.uri.fsPath), fileName);
+  if (require('fs').existsSync(target)) { vscode.window.showWarningMessage(`${fileName} is already there. Move or rename it first.`); return false; }
+  const moved = GU.moveDataToFile(project, fileName);
+  if (!moved) return false;
+  require('fs').writeFileSync(target, moved.text, 'utf8');
+  await saveBlocksProject(moved.project);
+  sendBlocks(`The pictures and sounds now live in ${fileName}. Making the game never changes that file.`);
+  return true;
 }
 
 /** Write the project back to the .blocks.json (in the open editor if there is one, so nothing goes out of step). */
@@ -1062,6 +1242,18 @@ async function onBlocksMessage(m) {
   else if (m.type === 'change' && m.project && typeof m.project === 'object') {
     try { await saveBlocksProject(m.project); } catch (e) { vscode.window.showWarningMessage('The blocks file could not be saved: ' + e.message); return; }
     sendBlocks();
+  } else if (m.type === 'editPicture' && typeof m.label === 'string') await blocksEditPicture(m.label);
+  else if (m.type === 'newPicture') await blocksNewPicture();
+  else if (m.type === 'copyTile' && typeof m.tile === 'string') await blocksCopyTile(m.tile);
+  else if (m.type === 'fixPicture' && typeof m.label === 'string') await blocksFixPicture(m.label);
+  else if (m.type === 'moveData') await blocksMoveData();
+  else if (m.type === 'run') {
+    // make the game from the blocks, then run exactly that file (not whichever file was clicked in last)
+    const ok = await writeGameFile(blocksPanel.uri, false);
+    if (ok) {
+      sendBlocks('The game file was made. Starting MAME...');
+      await startDebugging({ stopOnEntry: false, program: path.join(path.dirname(blocksPanel.uri.fsPath), path.basename(blocksPanel.uri.fsPath).replace(/\.blocks\.json$/i, '') + '.a99') });
+    }
   } else if (m.type === 'make') {
     const ok = await writeGameFile(blocksPanel.uri, false);
     if (ok) sendBlocks('The game file was made: ' + path.basename(blocksPanel.uri.fsPath).replace(/\.blocks\.json$/i, '') + '.a99');
@@ -1944,13 +2136,14 @@ async function debugLaunchMame(info) {
 
 async function startDebugging(opts) {
   const stop = !(opts && opts.stopOnEntry === false);      // a menu click can hand over other things: only an explicit false means "don't stop"
+  const given = opts && typeof opts.program === 'string' ? opts.program : null;       // the blocks panel says which file
   const ed = vscode.window.activeTextEditor;
-  if (!ed || !isOurs(ed.document) || ed.document.uri.scheme !== 'file') { vscode.window.showInformationMessage('Open (and save) a TI-99/4A assembly file first.'); return; }
-  const folder = vscode.workspace.getWorkspaceFolder(ed.document.uri);
+  if (!given && (!ed || !isOurs(ed.document) || ed.document.uri.scheme !== 'file')) { vscode.window.showInformationMessage('Open (and save) a TI-99/4A assembly file first.'); return; }
+  const folder = vscode.workspace.getWorkspaceFolder(given ? vscode.Uri.file(given) : ed.document.uri);
   // a second start while one is open would leave two MAME windows: close the first
   const open = vscode.debug.activeDebugSession;
   if (open && open.type === DEBUG_TYPE) { await vscode.debug.stopDebugging(open); await new Promise(r => setTimeout(r, 1500)); }
-  return vscode.debug.startDebugging(folder, { type: DEBUG_TYPE, request: 'launch', name: 'Debug TI-99/4A program in MAME', program: keyOf(ed.document), stopOnEntry: stop });
+  return vscode.debug.startDebugging(folder, { type: DEBUG_TYPE, request: 'launch', name: 'Debug TI-99/4A program in MAME', program: given || keyOf(ed.document), stopOnEntry: stop });
 }
 
 /** Start the program in MAME and let it run (no stop at the first instruction). */
@@ -2482,7 +2675,12 @@ function activate(context) {
     vscode.commands.registerCommand('retroAsm.newGameFromKit', cmdNewGameFromKit),
     vscode.commands.registerCommand('retroAsm.openBlocksPanel', cmdOpenBlocksPanel),
     vscode.workspace.onDidChangeTextDocument((e) => {
-      if (!blocksPanel || e.document.uri.toString() !== blocksPanel.uri.toString()) return;
+      if (!blocksPanel) return;
+      if (e.document.uri.toString() !== blocksPanel.uri.toString()) {
+        // the pictures file changed (a picture was drawn): the tile sizes and the code may change too
+        if (/-pictures\.a99$/i.test(e.document.fileName) && path.dirname(e.document.uri.fsPath) === path.dirname(blocksPanel.uri.fsPath)) sendBlocks();
+        return;
+      }
       if (e.document.getText() === blocksPanel.lastText) return;   // our own save coming back
       sendBlocks();
     }),

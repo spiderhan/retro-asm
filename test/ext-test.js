@@ -101,9 +101,42 @@ const at=(doc,needle,sub)=>{const lines=doc.getText().split(/\r?\n/);const l=lin
     pn.send({type:'ready'});
     const st=pn.sent.filter(m=>m.type==='state').pop();
     ok('the page is sent the game, the blocks and no problems',st&&st.project.title==='Bat, ball and bricks'&&st.catalogue.length>=14&&st.problems.length===0&&/END\s+START/.test(st.asm),st&&Object.keys(st));
+    ok('the page is sent the colours and where each line came from',st.palette.length===16&&st.paths.length===st.asm.split('\n').length-1,[st.palette.length,st.paths.length]);
     const proj=JSON.parse(JSON.stringify(st.project));proj.every_frame.pop();
     await pn.send({type:'change',project:proj});
     ok('a change from the page is saved to the blocks file',JSON.parse(fs.readFileSync(f,'utf8')).every_frame.length===proj.every_frame.length);
+    { // an older file with the brick blocks is brought up to date, and the pictures can move to their own file
+      const old=JSON.parse(fs.readFileSync(pth.join(__dirname,'../kits/bricks.blocks.json'),'utf8'));
+      const oldWall=old.start.find(b=>b.block==='tile-fill');Object.keys(oldWall).forEach(k=>delete oldWall[k]);Object.assign(oldWall,{block:'brick-wall',rows:6,top:3});
+      const oh=old.every_frame.find(b=>b.block==='tile-hit');Object.keys(oh).forEach(k=>delete oh[k]);Object.assign(oh,{block:'if-hits-brick',thing:'ball',do:[]});
+      delete old.tiles;
+      fs.writeFileSync(f,JSON.stringify(old,null,2));
+      pn.send({type:'ready'});await new Promise(r=>setTimeout(r,50));
+      const su=pn.sent.filter(m=>m.type==='state').pop();
+      ok('an older file with brick blocks opens as tile blocks, with no problems',su.project.start.some(b=>b.block==='tile-fill')&&!su.project.start.some(b=>b.block==='brick-wall')&&su.problems.length===0&&/tile blocks/.test(su.status),[su.problems,su.status]);
+      ok('the older file was saved in the new form',/tile-fill/.test(fs.readFileSync(f,'utf8'))&&!/brick-wall/.test(fs.readFileSync(f,'utf8')));
+      ok('the page is sent the pictures with their tile shape',su.pictures.some(x=>x.label==='BRICK_PIC'&&x.shape.across===2&&x.shape.down===1)&&su.sounds.includes('BOING')&&su.dataFile==='',su.pictures);
+      {const was=mock.window.showInformationMessage;let asked='';mock.window.showInformationMessage=(m)=>{asked=m;return 'Move them now';};
+       try{await pn.send({type:'copyTile',tile:'brick'});}catch(e){/* the stand-in can't open the file for drawing: only the move is checked */}
+       mock.window.showInformationMessage=was;
+       ok('Copy on a game that keeps its pictures inside offers to move them out, and does',/keeps its pictures inside/.test(asked)&&fs.existsSync(pth.join(dir,'g-pictures.a99'))&&JSON.parse(fs.readFileSync(f,'utf8')).dataFile==='g-pictures.a99',asked);
+       fs.unlinkSync(pth.join(dir,'g-pictures.a99'));const back=JSON.parse(fs.readFileSync(f,'utf8'));const mv0=require('../lib/blocks-upgrade');fs.writeFileSync(f,JSON.stringify(Object.assign(back,{dataFile:undefined,data:old.data}),null,2));}
+      await pn.send({type:'moveData'});
+      const sm=pn.sent.filter(m=>m.type==='state').pop();
+      const pf=pth.join(dir,'g-pictures.a99');
+      mock.workspace.fs={stat:async(u)=>{if(!fs.existsSync(u.fsPath))throw new Error('none');return {};},writeFile:async(u,b)=>fs.writeFileSync(u.fsPath,Buffer.from(b)),readFile:async(u)=>fs.readFileSync(u.fsPath)};
+      mock.__.debugStarted=null;await pn.send({type:'run'});
+      ok('"Make and run" starts MAME on the game made from the blocks, not on whichever file was clicked',mock.__.debugStarted&&mock.__.debugStarted.program===pth.join(dir,'g.a99')&&mock.__.debugStarted.stopOnEntry===false&&fs.existsSync(pth.join(dir,'g.a99')),mock.__.debugStarted);
+      ok('the pictures and sounds move to a file of their own',fs.existsSync(pf)&&/BRICK_PIC/.test(fs.readFileSync(pf,'utf8'))&&/BOING/.test(fs.readFileSync(pf,'utf8')),fs.existsSync(pf));
+      const saved=JSON.parse(fs.readFileSync(f,'utf8'));
+      ok('the blocks file now points to it and no longer holds the data',saved.dataFile==='g-pictures.a99'&&!saved.data);
+      ok('the game still makes with no problems, and includes the file',sm.problems.length===0&&/COPY\s+"g-pictures\.a99"/.test(sm.asm)&&sm.pictures.some(x=>x.label==='BAT_PIC')&&sm.sounds.includes('BOING')&&sm.dataFile==='g-pictures.a99',[sm.problems,sm.dataFile]);
+      fs.unlinkSync(pf);pn.send({type:'ready'});
+      ok('a missing pictures file is explained',pn.sent.filter(m=>m.type==='state').pop().problems.some(x=>/pictures file/.test(x)));
+      const bad=JSON.parse(fs.readFileSync(f,'utf8'));bad.dataFile='../x.a99';fs.writeFileSync(f,JSON.stringify(bad));pn.send({type:'ready'});
+      ok('a pictures file name that climbs out of the folder is refused',pn.sent.filter(m=>m.type==='state').pop().problems.some(x=>/not allowed/.test(x)));
+      fs.writeFileSync(f,JSON.stringify(proj,null,2));
+    }
     pn.send({type:'change',project:'junk'});pn.send({type:'nonsense'});pn.send(null);
     ok('junk messages are ignored',JSON.parse(fs.readFileSync(f,'utf8')).every_frame.length===proj.every_frame.length);
     fs.writeFileSync(f,'{ not json');pn.send({type:'ready'});

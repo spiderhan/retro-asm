@@ -26,9 +26,14 @@
       "colour": 4
     },
     {
-      "block": "brick-wall",
+      "block": "tile-fill",
+      "tile": "brick",
       "rows": 6,
-      "top": 3
+      "top": 3,
+      "left": 1,
+      "across": 0,
+      "colour": 0,
+      "stagger": "yes"
     },
     {
       "block": "place",
@@ -69,29 +74,12 @@
       "top": 8
     },
     {
-      "block": "if-touching",
-      "a": "ball",
-      "b": "bat",
-      "do": [
-        {
-          "block": "set-speed",
-          "thing": "ball",
-          "across": 2,
-          "down": -2
-        },
-        {
-          "block": "add-to-score",
-          "by": 1
-        },
-        {
-          "block": "play-sound",
-          "sound": "BOING"
-        }
-      ]
-    },
-    {
-      "block": "if-hits-brick",
+      "block": "when-things-hit",
       "thing": "ball",
+      "other": "bat",
+      "then": "bounce",
+      "way": "up",
+      "angle": "where",
       "do": [
         {
           "block": "add-to-score",
@@ -104,12 +92,34 @@
       ]
     },
     {
-      "block": "if-no-bricks",
+      "block": "tile-hit",
+      "thing": "ball",
+      "tile": "brick",
+      "bounce": "auto",
       "do": [
         {
-          "block": "brick-wall",
+          "block": "add-to-score",
+          "by": 1
+        },
+        {
+          "block": "play-sound",
+          "sound": "BOING"
+        }
+      ]
+    },
+    {
+      "block": "if-no-tiles",
+      "tile": "brick",
+      "do": [
+        {
+          "block": "tile-fill",
+          "tile": "brick",
           "rows": 6,
-          "top": 3
+          "top": 3,
+          "left": 1,
+          "across": 0,
+          "colour": 0,
+          "stagger": "yes"
         },
         {
           "block": "place",
@@ -174,6 +184,16 @@
     "       BYTE 3,>87,>0B,>90,4",
     "       BYTE 1,>9F,1",
     "       BYTE 0",
-    "       EVEN"
-  ]
+    "       EVEN",
+    "",
+    "* A brick is one picture, two 8x8 pieces wide. Redraw it (or point the tile at another picture) to make something else.",
+    "* @sprite 16x8 cells",
+    "BRICK_PIC BYTE >FF,>FF,>FF,>FF,>FF,>FF,>FF,>00",
+    "       BYTE >FE,>FE,>FE,>FE,>FE,>FE,>FE,>00"
+  ],
+  "tiles": {
+    "brick": {
+      "art": "BRICK_PIC"
+    }
+  }
 }

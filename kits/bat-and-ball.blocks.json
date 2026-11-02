@@ -1,32 +1,114 @@
 {
   "title": "Bat and ball",
-  "about": "A bat you slide left and right with the joystick, and a ball that bounces off the walls and the bat. You score a point each time the bat hits the ball. A starting point: change anything you like.",
+  "about": "A bat you slide left and right with the joystick, and a ball that bounces off the walls and the bat (the edges of the bat send it off sideways). You score a point each time the bat hits the ball. A starting point: change anything you like.",
   "machine": "ti99",
   "things": {
-    "bat":  { "art": "BAT_PIC",  "x": 120, "y": 168, "w": 16, "h": 4, "color": 15 },
-    "ball": { "art": "BALL_PIC", "x": 124, "y": 80,  "w": 8,  "h": 8, "color": 10 }
+    "bat": {
+      "art": "BAT_PIC",
+      "x": 120,
+      "y": 168,
+      "w": 16,
+      "h": 4,
+      "color": 15
+    },
+    "ball": {
+      "art": "BALL_PIC",
+      "x": 124,
+      "y": 80,
+      "w": 8,
+      "h": 8,
+      "color": 10
+    }
   },
   "start": [
-    { "block": "screen-colour", "colour": 4 },
-    { "block": "place", "thing": "bat", "x": 120, "y": 168 },
-    { "block": "place", "thing": "ball", "x": 124, "y": 80 },
-    { "block": "set-speed", "thing": "ball", "across": 2, "down": 2 }
+    {
+      "block": "screen-colour",
+      "colour": 4
+    },
+    {
+      "block": "place",
+      "thing": "bat",
+      "x": 120,
+      "y": 168
+    },
+    {
+      "block": "place",
+      "thing": "ball",
+      "x": 124,
+      "y": 80
+    },
+    {
+      "block": "set-speed",
+      "thing": "ball",
+      "across": 2,
+      "down": 2
+    }
   ],
   "every_frame": [
-    { "block": "move-with-joystick", "thing": "bat", "speed": 4, "leftEnd": 8, "rightEnd": 232 },
-    { "block": "move-by-speed", "thing": "ball" },
-    { "block": "bounce-off-walls", "thing": "ball", "left": 8, "right": 240, "top": 8 },
-    { "block": "if-touching", "a": "ball", "b": "bat", "do": [
-      { "block": "set-speed", "thing": "ball", "across": 2, "down": -2 },
-      { "block": "add-to-score", "by": 1 },
-      { "block": "play-sound", "sound": "BOING" }
-    ] },
-    { "block": "if-below", "thing": "ball", "line": 184, "do": [
-      { "block": "place", "thing": "ball", "x": 124, "y": 80 },
-      { "block": "set-speed", "thing": "ball", "across": 2, "down": 2 },
-      { "block": "add-to-score", "by": -1 }
-    ] },
-    { "block": "show-score", "column": 1, "row": 0 }
+    {
+      "block": "move-with-joystick",
+      "thing": "bat",
+      "speed": 4,
+      "leftEnd": 8,
+      "rightEnd": 232
+    },
+    {
+      "block": "move-by-speed",
+      "thing": "ball"
+    },
+    {
+      "block": "bounce-off-walls",
+      "thing": "ball",
+      "left": 8,
+      "right": 240,
+      "top": 8
+    },
+    {
+      "block": "when-things-hit",
+      "thing": "ball",
+      "other": "bat",
+      "then": "bounce",
+      "way": "up",
+      "angle": "where",
+      "do": [
+        {
+          "block": "add-to-score",
+          "by": 1
+        },
+        {
+          "block": "play-sound",
+          "sound": "BOING"
+        }
+      ]
+    },
+    {
+      "block": "if-below",
+      "thing": "ball",
+      "line": 184,
+      "do": [
+        {
+          "block": "place",
+          "thing": "ball",
+          "x": 124,
+          "y": 80
+        },
+        {
+          "block": "set-speed",
+          "thing": "ball",
+          "across": 2,
+          "down": 2
+        },
+        {
+          "block": "add-to-score",
+          "by": -1
+        }
+      ]
+    },
+    {
+      "block": "show-score",
+      "column": 1,
+      "row": 0
+    }
   ],
   "data": [
     "",
@@ -48,6 +130,16 @@
     "       BYTE 3,>87,>0B,>90,4",
     "       BYTE 1,>9F,1",
     "       BYTE 0",
-    "       EVEN"
-  ]
+    "       EVEN",
+    "",
+    "* A brick is one picture, two 8x8 pieces wide. Redraw it (or point the tile at another picture) to make something else.",
+    "* @sprite 16x8 cells",
+    "BRICK_PIC BYTE >FF,>FF,>FF,>FF,>FF,>FF,>FF,>00",
+    "       BYTE >FE,>FE,>FE,>FE,>FE,>FE,>FE,>00"
+  ],
+  "tiles": {
+    "brick": {
+      "art": "BRICK_PIC"
+    }
+  }
 }
