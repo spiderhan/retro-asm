@@ -1,5 +1,101 @@
 # Changelog
 
+## 0.30.3
+
+- **Copy, Edit picture and New picture on an older game no longer just give an error.** If the open game still keeps its pictures inside the blocks file (made before 0.30), they now ask "Move them now?" and, on yes, move the pictures and sounds into their own file and carry on.
+- **Tested:** the test suites, and that Copy on an older game offers the move and does it (with a stand-in VS Code; the drawing step after it was not run).
+- **Not tested:** real VS Code.
+
+## 0.30.2
+
+- **New button in the blocks panel: "Make and run in MAME".** It makes the game file from the blocks and then starts exactly that file. Before, **Run in MAME** ran whichever assembly file you had last clicked in. With the picture editor open that can be the pictures file or an older `bricks` file, so you could run a game that doesn't have your changes. **Make the game file** is still there.
+- **Tested:** the test suites, and that the new button makes the game file and starts MAME on that file, not on another one (with a stand-in VS Code).
+- **Not tested:** not run in real VS Code or MAME.
+
+## 0.30.1
+
+- **Every row of the wall can now be broken.** A tile only bounced the ball up or down, even when it hit from the side. Once the ball was in a hole it hit the side of the next brick and bounced straight back out, so only the first two rows ever broke. The new default is **"Bounce off it, the way it came in"**: from above or below it turns the up-and-down speed, from the side it turns the sideways speed, at a corner it turns both. The other choices are still there. The bricks kit and old brick blocks use the new one.
+- **FCTN + = (Alt + = in MAME) now quits.** The made game never ran the console's own key check, so QUIT did nothing. Every made game now looks for FCTN and = held together and goes back to the title screen.
+- **No more "bigger than 8x8" error for a brick-shaped picture.** A picture one piece wide, or one piece tall (like a 16x8 brick), is already stored the way a tile needs, so it doesn't need `cells` marked. **New picture** in the panel now marks bigger pictures `cells` by itself. For a picture that really is stored row by row, the Tiles table shows **Fix it**, which rewrites its bytes piece by piece without changing the drawing.
+- **Copy button on every tile.** **Copy** makes a copy of the tile's picture under a new name (`NAME_PIC`), makes a new tile that uses it, and opens it in the picture editor, so a new one is easy to start from an old one.
+- **Tested:** the test suites, a new check that a hit on any piece of any of the six rows rubs it out, each way of bouncing, the quit code (it is there, and xas99 accepts it), copying a picture's lines, the rows-to-pieces conversion keeping the same drawing, and the real panel page in a browser (the Copy and Fix it buttons send the right messages).
+- **Not tested:** the quit key and the new bounce have not been tried in MAME, and I can't see the game. **Copy** and **Fix it** were not run in real VS Code (only the parts that do the work were tested, not the opening of files and the editing of them). The real-game check on your own game was not run.
+
+## 0.30.0
+
+- **Tiles instead of bricks.** The three brick blocks were too specific: change the picture and it would not be a brick any more. They are now three general blocks, **Fill an area with tiles**, **If a thing hits a tile** and **If all the tiles are gone**. A *tile* is any picture you draw, in 8x8 pieces: a brick is 16x8, an alien 16x16, a crate 8x8. When a thing hits a tile, the whole tile is rubbed out (every piece of it), and the thing can bounce up or down, bounce left or right, go straight back, or pass through. A wall can have rows in one colour or each in its own, and every other row can be shifted by half a tile.
+- **Pictures and sounds in their own file.** A new game now saves three files: `name.blocks.json`, `name.a99` and `name-pictures.a99`. The game includes the pictures file with `COPY`, and making the game again never touches it, so your drawings are safe. Open it in the picture editor and sound player as usual.
+- **The panel has a Tiles table:** each tile's picture, its size in pieces (or why it can't be a tile), **Edit picture**, **Add a tile**, **New picture** and ×. Block settings that choose a tile are drop-downs. The sound list also reads the pictures file.
+- **Older files keep working.** A `.blocks.json` made with the brick blocks turns into tile blocks when it is opened or made (a brick is a tile using a picture called `BRICK_PIC`, which is added if it is missing) and the panel saves the result. A file with its pictures inside offers **Move pictures and sounds to their own file**.
+- **Kits** both carry `BRICK_PIC` and a `brick` tile, so any tile block can be dragged in.
+- **Guards:** a tile picture bigger than 8x8 must be marked `cells`; odd sizes are explained; a shifted wall that would run off the screen edge is explained; a pictures file name that climbs out of the folder is refused; a missing pictures file is explained.
+- **Tested:** the game-blocks, extension and library test suites, real xas99 builds including one with the pictures file (and the debugger loader check), the tile-hit code run on the stand-in processor with a pretend screen (left/right half of a brick, every piece of a 16x16 tile, a letter left alone, off-screen, every bounce), the old-file upgrade and the move to a pictures file, and the real panel page in a browser (Tiles table, tile drop-downs, the four buttons' messages).
+- **Not tested:** the real-game check (`test/real-check.js`, the 0-warnings check on your own game) was not run, because that folder is not reachable from here. Nothing here has been run in MAME or Classic99 or in real VS Code's own test suite; the **Edit picture** / **New picture** buttons were tested against a stand-in VS Code, not the real one. How a 16x16 tile looks on screen has not been seen.
+
+## 0.29.0
+
+- **New block: "When one thing hits another".** Say what happens when two things touch, with a drop-down for each choice:
+  - **What happens:** it bounces off it, it is destroyed, the other one is destroyed, it stops, or nothing (just run the blocks inside).
+  - **Which way after a bounce:** up, down, left, right, or straight back the way it came.
+  - **At what angle:** keep the angle it had, steep (mostly up and down), diagonal, flat (mostly sideways), or **depends where it hit**: the middle of the bat sends the ball straight up and the edges send it off sideways, up to 3 dots a frame either way.
+  - After a bounce the thing is also stepped out of the other one, so it can't be "hit" again on the next frame. The blocks you put inside (score, sound) run after the hit.
+  - "Destroyed" parks the thing below the bottom of the screen and stops it moving, and the game still has it (so "Put a thing here" brings it back).
+- **Both kits use it:** the ball now flies off the bat at an angle that depends on where it hits. The old **If two things touch** block is still there for anything custom.
+- **Drop-down settings in the panel.** A new kind of setting: a short list of plain-English choices. Settings that only matter for one choice (the way and the angle only matter when it bounces) are hidden otherwise. A new block takes two different things to start with, so the same thing isn't both.
+- **A stand-in processor in the tests.** `test/tms-mini.js` runs the few instructions the blocks write, so the tests can check what a block does with real numbers. 25 new checks do this for the new block: hitting the middle and each edge of the bat, steep/flat/diagonal, every way, destroy, stop, nothing, missing the bat, and what each wrong setting says.
+- **Tested:** all of the above, the main run, 3,000 random arrangements, and the real page in a browser (the drop-downs, the plain-English choices, hiding and showing the bounce settings, a new block from the list).
+- **Not tested:** the new bounce has not been played in an emulator, so how it *feels* (the speeds, the angles) is unchecked. Real VS Code's own test suite was not run.
+
+## 0.28.3
+
+- **Fixed: "Play a sound" added from the blocks list made a game that would not build.** The sound box showed "BOING" but the block had saved an empty sound name, so the game contained `LI R1,` with nothing after it and the assembler reported a "Syntax Error" for each such block. A new "Play a sound" block now saves the first sound in your file straight away, and a block with no sound chosen shows "(choose a sound)" instead of a sound it hasn't saved.
+- **A setting left empty is explained, not turned into broken code.** If a block has an empty number, thing or sound, or names a sound that isn't in the file, the panel (and **Make the game file**) says so in plain words, for example `"Play a sound" needs a sound chosen.` or `There is no sound called "NOPE". The sounds are: BOING.` Settings a block leaves out on purpose (they have a default) are fine.
+- **New tests:** one new block of every kind, straight from the list, must make a valid game for every kit (this would have caught the sound fault); empty sounds, empty numbers and empty things are explained; and the real page in a browser: an empty sound block says "(choose a sound)", and a new one saves "BOING".
+
+## 0.28.2
+
+- **Colours are real colours.** Every colour setting in the blocks panel is now a colour box showing the colour and its name (for example "Light red"). Click it for a grid of the TI-99/4A's 16 colours. This covers the screen colour, the brick colour (with a choice of "A different colour for each row") and each thing's colour. Choices a block can't use (for example "See-through" for the screen) are left out. The colours live in one file for the machine (`lib/blocks/ti99/_palette.js`), so another computer can bring its own.
+- **Shorter blocks.** A block is now one line: its name, its settings, then the buttons. You can drag a block by its name; the whole block follows the mouse.
+- **A Code tab.** The assembly has its own tab, with the same layout as your editor. Each block has a **{ }** button that jumps to the lines it wrote and lights them up; clicking any line takes you back to the block that wrote it. Behind this, the game maker now says where in the blocks file each line came from (`paths`, next to the existing `map`).
+- **Fixed: "If a thing goes past the bottom" could make a game that would not build.** It used a short jump to skip the blocks inside it, and a short jump only reaches about 127 instructions. With a long list inside (easy to make in the panel), the assembler stopped with "2 errors" (one for each of its two jumps). It now uses a far jump like the other *if* blocks, so the list inside can be any length. Found by building random arrangements of blocks.
+- **New test:** 400 random arrangements of blocks (added, moved, put inside each other) must all make a game with no warnings, and a game with a very long list inside an *if* is built with xas99 too.
+- **Tested:** the colours (16 named colours in order, each with a real colour to draw; colour settings are pickers; limits are kept; defaults), the link from every line of code to the block that wrote it (including blocks inside an *if*), the extension sending the colours and links; and the real page in a headless browser: the colour grid opens with the right number of choices, real colours, picking sends the number, Escape closes it, a thing's colour, the Code tab, lighting up a block's lines, clicking a line to find its block, plus all the earlier drag and drop checks.
+- **Not tested:** the panel has not been opened inside real VS Code by hand (theme colours, the feel of dragging). `npm run test:vscode` was not run.
+
+## 0.28.0
+
+- **New: the blocks panel (drag and drop).** Run **Retro ASM: Open the blocks panel** (or use the button at the top right of a `.blocks.json` file; it also opens by itself after you start a game from a kit). Every block is listed on the left by what it does; the game's two lists (*When the game starts*, *Every frame*) are in the middle. Drag a block into a list, drag blocks to reorder them or into an *if* block, or click a block to add it to the list you last clicked in. Numbers, things and sounds are set in small boxes on each block, with ▲ ▼ × buttons for move and delete (so it works without dragging too). **Make the game file** writes the `.a99`, and the assembly is shown at the bottom of the panel.
+- **It edits your file, not a copy.** Each change is saved straight into the `.blocks.json`, in the open editor if there is one, so the panel and the text never disagree. Edit the text and the panel follows. If the file can't be read (for instance a typo), the panel says so and comes back when it is fixed. The blocks file is written back with two-space indents.
+- **Plain-English rules:** a block that only works at the start can't be dropped in the every-frame list, a block can't be dropped inside itself, numbers are kept inside their limits, and if the blocks can't make a game the panel says why.
+- **Not yet:** the panel can't add new things or drawings; the things' positions and colours can be changed. There is no undo in the panel (use the text editor's undo on the `.blocks.json`).
+- **Tested:** the editing rules (insert, remove, move up/down/into an *if*/out of one, refusing a block into itself or in the wrong list, number limits, every kit still makes a game after moves); the extension side (the command, the page being sent the game, a change being saved to the file, junk messages ignored, a broken file explained); the real page in a headless browser: it draws with no page errors, dragging a block from the list, reordering, dragging into an *if*, a refused drop, editing numbers and things, the buttons, and clicking to add. The browser run found a real fault (the page's security rules blocked the coloured stripes on blocks), which is fixed.
+- **Not tested:** the panel has not been opened inside real VS Code by hand, so its colours with your theme and the feel of dragging in the real panel are unchecked. `npm run test:vscode` was not run.
+
+## 0.27.1
+
+- **New: bricks for the game blocks (TI-99/4A).** Three new blocks: **Build a wall of bricks** (rows, how far down, and an optional colour), **If a thing hits a brick** (rubs the whole brick out, bounces the thing, then runs the blocks inside, for the score and a sound) and **If all the bricks are gone** (put a new wall inside it to start again). Bricks are screen tiles, not sprites, so a wall can be as big as the screen. The game keeps the number of bricks left in a number called `BRICKS`.
+- **Brick-shaped, in colour.** Each brick is two tiles wide with a thin gap around it, and every other row is shifted by half a brick, like a real wall. Each row has its own colour (set `colour` to a number from 2 to 15 to use one colour for the whole wall).
+- **New kit: Bat, ball and bricks.** The bat and ball kit plus a six-row wall, a point and a sound for each brick, and a new wall when the last one goes.
+- **Changed: the sprite drawings now live at video address `>1000`** (they were at `>0C00`) to leave room for the brick drawings. Register 6 is now `>0602`. Games made with 0.26 are not affected; only games made by the blocks from now on.
+- **Known simplification:** the ball only turns up or down when it hits a brick, never sideways, and only the tile under its middle is checked.
+- **Shared routines:** the made game only includes the tile routines (write, read, draw bricks) when a block asks for them, so the bat and ball kit has no bricks code.
+- **Tested:** both kits make code with no problems, 0 warnings from the extension's own checks, no repeated labels; both build with xas99 with no errors and the debugger's loader accepts both; every row has its own colour; one chosen colour works; the brick count is right (93 for six rows); wrong settings (0 rows, a wall off the bottom) are explained in plain English.
+- **Played:** the brick-shaped, multi-colour wall has been played in an emulator by hand and looks right. Real VS Code's own test suite (`npm run test:vscode`) was not run.
+
+## 0.26.2
+
+- **Fix: the made game now clears the screen when it starts.** Seen in MAME: the game ran, but the TI's title screen ("TEXAS INSTRUMENTS HOME COMPUTER", the coloured bars) was still showing behind it. The game now writes spaces over the whole screen and sets the colour table, so only the game shows, and **Set the screen colour** colours the whole screen.
+- **Tested:** the new check (every kit clears the screen) and the build with xas99 (no errors; the debugger's loader accepts it).
+- **Not tested:** the cleaned-up screen has not been seen in real MAME yet.
+
+## 0.26.1
+
+- **New: Retro ASM: Run in MAME (TI-99/4A).** Starts your program in MAME and lets it run, with nothing to type in the emulator: MAME opens, your program is loaded and it starts by itself. It is the same loader as **Debug in MAME**, just without stopping on the first line and without needing a breakpoint. **Debug in MAME** still stops at the first line, as before.
+- **The made game now has `AORG >A000`.** The loader needs a fixed address in the TI's extra memory, so a program with no `AORG` can't be loaded this way. The line is written near the top of every game the blocks make, with a note saying why. Classic99's Editor/Assembler option 3 loads it just the same.
+- **What you need:** the same as for debugging: MAME and the TI's system ROMs (see **Step through a program**). Classic99's F5 is unchanged: it still opens empty, and you load the program from its own menu, because Classic99's only start-up switch is for cartridges.
+- **Tested:** the new checks pass: Run in MAME asks for a start with "don't stop" and Debug in MAME still asks to stop (in the stand-in for VS Code); the made game builds with xas99 with no errors; the debugger's loader accepts it (every piece inside the extra memory, starting at `>A000`); it starts where `START` is. The main run (278 checks, with the build step included) and the debugger checks pass.
+- **Not tested:** **it has not been run in real MAME yet**, so nobody has seen the made game start this way. The command has only run in the stand-in for VS Code, not in real VS Code (`npm run test:vscode` was not run). The 0.26.0 `.vsix` is left alone.
+
 ## 0.26.0
 
 - **New (early prototype): Game Blocks for the TI-99/4A.** Build a simple game from small plain-English blocks ("Move with the joystick", "Bounce off the walls", "If two things touch", "Change the score", "Play a sound") and get an ordinary `.a99` file you can read, build and change by hand. Nothing is hidden: each block writes a few lines of normal assembly, with a `* [note]` above them saying which block wrote them.

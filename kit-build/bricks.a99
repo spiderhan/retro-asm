@@ -1,0 +1,605 @@
+* Bat, ball and bricks (made by Retro ASM Game Blocks; you can edit this file freely).
+* Each [bracketed note] shows which block wrote the lines under it.
+
+        DEF   START
+        AORG  >A000             ; Fixed place in the extra memory, so "Run in MAME" can load it
+VDPWD   EQU   >8C00             ; Video chip: write a byte of data
+VDPWA   EQU   >8C02             ; Video chip: set the address (or a register)
+VDPST   EQU   >8802             ; Video chip: read its status
+
+START   LWPI  WS
+        LIMI  0
+        LI    R0,>01E2          ; Register 1: screen on, 16x16 sprites
+        BL    @VWREG
+        LI    R0,>0506          ; Register 5: the sprite list is at >0300
+        BL    @VWREG
+        LI    R0,>0602          ; Register 6: sprite drawings start at >1000 (the tile drawings use >0800 to >0FFF)
+        BL    @VWREG
+        LI    R0,>030E          ; Register 3: the colour table is at >0380
+        BL    @VWREG
+        CLR   R0                ; Clear the screen: 768 spaces from the top
+        MOVB  R0,@VDPWA
+        LI    R0,>4000
+        MOVB  R0,@VDPWA
+        LI    R1,>2000
+        LI    R2,768
+CLRSCR  MOVB  R1,@VDPWD
+        DEC   R2
+        JNE   CLRSCR
+        LI    R0,>4380          ; Colour table: white on see-through, so the screen colour shows
+        SWPB  R0
+        MOVB  R0,@VDPWA
+        SWPB  R0
+        MOVB  R0,@VDPWA
+        LI    R1,>F000
+        LI    R2,32
+CLRCOL  MOVB  R1,@VDPWD
+        DEC   R2
+        JNE   CLRCOL
+        LI    R0,>1000          ; Copy the drawing of bat to video memory
+        LI    R1,BAT_PIC
+        LI    R2,32
+        BL    @VMBW
+        LI    R0,>1020          ; Copy the drawing of ball to video memory
+        LI    R1,BALL_PIC
+        LI    R2,32
+        BL    @VMBW
+* [Set the screen colour]
+        LI    R0,>0704          ; Register 7: the screen colour
+        BL    @VWREG
+* [Build a wall of bricks]
+* Row 3: whole bricks
+        LI    R0,>0B00          ; Drawing of the bricks in this row (tiles 96 and 97)
+        LI    R1,BRKPAT
+        LI    R2,16
+        BL    @VMBW
+        LI    R0,>038C          ; Colour of this row
+        LI    R1,>8000
+        BL    @VSBW
+        LI    R0,97
+        LI    R1,>6000
+        LI    R2,15             ; Whole bricks
+        BL    @VBRICKS
+* Row 4: shifted half a brick
+        LI    R0,>0B40          ; Drawing of the bricks in this row (tiles 104 and 105)
+        LI    R1,BRKPAT
+        LI    R2,16
+        BL    @VMBW
+        LI    R0,>038D          ; Colour of this row
+        LI    R1,>A000
+        BL    @VSBW
+        LI    R0,129            ; Half a brick at the left end
+        LI    R1,>6900
+        BL    @VSBW
+        LI    R0,130
+        LI    R1,>6800
+        LI    R2,14             ; Whole bricks
+        BL    @VBRICKS
+        LI    R0,158            ; Half a brick at the right end
+        LI    R1,>6800
+        BL    @VSBW
+* Row 5: whole bricks
+        LI    R0,>0B80          ; Drawing of the bricks in this row (tiles 112 and 113)
+        LI    R1,BRKPAT
+        LI    R2,16
+        BL    @VMBW
+        LI    R0,>038E          ; Colour of this row
+        LI    R1,>B000
+        BL    @VSBW
+        LI    R0,161
+        LI    R1,>7000
+        LI    R2,15             ; Whole bricks
+        BL    @VBRICKS
+* Row 6: shifted half a brick
+        LI    R0,>0BC0          ; Drawing of the bricks in this row (tiles 120 and 121)
+        LI    R1,BRKPAT
+        LI    R2,16
+        BL    @VMBW
+        LI    R0,>038F          ; Colour of this row
+        LI    R1,>2000
+        BL    @VSBW
+        LI    R0,193            ; Half a brick at the left end
+        LI    R1,>7900
+        BL    @VSBW
+        LI    R0,194
+        LI    R1,>7800
+        LI    R2,14             ; Whole bricks
+        BL    @VBRICKS
+        LI    R0,222            ; Half a brick at the right end
+        LI    R1,>7800
+        BL    @VSBW
+* Row 7: whole bricks
+        LI    R0,>0C00          ; Drawing of the bricks in this row (tiles 128 and 129)
+        LI    R1,BRKPAT
+        LI    R2,16
+        BL    @VMBW
+        LI    R0,>0390          ; Colour of this row
+        LI    R1,>7000
+        BL    @VSBW
+        LI    R0,225
+        LI    R1,>8000
+        LI    R2,15             ; Whole bricks
+        BL    @VBRICKS
+* Row 8: shifted half a brick
+        LI    R0,>0C40          ; Drawing of the bricks in this row (tiles 136 and 137)
+        LI    R1,BRKPAT
+        LI    R2,16
+        BL    @VMBW
+        LI    R0,>0391          ; Colour of this row
+        LI    R1,>5000
+        BL    @VSBW
+        LI    R0,257            ; Half a brick at the left end
+        LI    R1,>8900
+        BL    @VSBW
+        LI    R0,258
+        LI    R1,>8800
+        LI    R2,14             ; Whole bricks
+        BL    @VBRICKS
+        LI    R0,286            ; Half a brick at the right end
+        LI    R1,>8800
+        BL    @VSBW
+        LI    R1,93             ; Bricks in the wall
+        MOV   R1,@BRICKS
+* [Put a thing here]
+        LI    R1,120
+        MOV   R1,@BAT_X
+        LI    R1,168
+        MOV   R1,@BAT_Y
+        CLR   @BAT_VX
+        CLR   @BAT_VY
+* [Put a thing here]
+        LI    R1,124
+        MOV   R1,@BALL_X
+        LI    R1,80
+        MOV   R1,@BALL_Y
+        CLR   @BALL_VX
+        CLR   @BALL_VY
+* [Set how fast a thing moves]
+        LI    R1,2
+        MOV   R1,@BALL_VX
+        LI    R1,2
+        MOV   R1,@BALL_VY
+
+* ---- once every frame (60 times a second) ----
+MAIN    MOVB  @VDPST,R0         ; Wait for the next frame
+        JLT   GO
+        JMP   MAIN
+GO
+* [Move with the joystick]
+        LI    R12,>0024         ; Look at the keyboard column that holds joystick 1
+        LI    R1,>0600
+        LDCR  R1,3
+        LI    R12,>0006
+        STCR  R1,8              ; Read the 8 switches (0 means pressed)
+        INV   R1                ; Now 1 means pressed
+        MOV   @BAT_X,R2
+        COC   @KLEFT,R1         ; Pushed left?
+        JNE   NOL1
+        AI    R2,-4
+NOL1    COC   @KRIGHT,R1        ; Pushed right?
+        JNE   NOR2
+        AI    R2,4
+NOR2    CI    R2,8              ; Keep it between the two ends
+        JGT   OKL3
+        LI    R2,8
+OKL3    CI    R2,232
+        JLT   OKH4
+        LI    R2,232
+OKH4    MOV   R2,@BAT_X
+* [Keep moving at its speed]
+        A     @BALL_VX,@BALL_X
+        A     @BALL_VY,@BALL_Y
+* [Bounce off the walls]
+        MOV   @BALL_X,R1
+        CI    R1,8              ; Past the left wall?
+        JGT   BW5
+        LI    R1,8
+        MOV   R1,@BALL_X
+        NEG   @BALL_VX
+BW5     MOV   @BALL_X,R1
+        CI    R1,240            ; Past the right wall?
+        JLT   BW6
+        LI    R1,240
+        MOV   R1,@BALL_X
+        NEG   @BALL_VX
+BW6     MOV   @BALL_Y,R1
+        CI    R1,8              ; Past the top?
+        JGT   BW7
+        LI    R1,8
+        MOV   R1,@BALL_Y
+        NEG   @BALL_VY
+BW7
+* [If two things touch]
+        MOV   @BAT_X,R2
+        AI    R2,16
+        C     R2,@BALL_X
+        JH    HIT9              ; Overlapping so far?
+        B     @NOHIT8
+HIT9    MOV   @BALL_X,R2
+        AI    R2,8
+        C     R2,@BAT_X
+        JH    HIT10
+        B     @NOHIT8
+HIT10
+        MOV   @BAT_Y,R2
+        AI    R2,4
+        C     R2,@BALL_Y
+        JH    HIT11             ; Overlapping so far?
+        B     @NOHIT8
+HIT11   MOV   @BALL_Y,R2
+        AI    R2,8
+        C     R2,@BAT_Y
+        JH    HIT12
+        B     @NOHIT8
+HIT12
+* [Set how fast a thing moves]
+        LI    R1,2
+        MOV   R1,@BALL_VX
+        LI    R1,-2
+        MOV   R1,@BALL_VY
+* [Change the score]
+        INC   @SCORE
+* [Play a sound]
+        LI    R1,BOING
+        MOV   R1,@SNDPTR
+        CLR   @SNDWT
+NOHIT8
+* [If a thing hits a brick]
+        MOV   @BALL_X,R0
+        AI    R0,4              ; Middle of the thing
+        SRL   R0,3              ; Across, in tiles (8 dots each)
+        MOV   @BALL_Y,R1
+        AI    R1,5
+        SRL   R1,3              ; Down, in tiles
+        SLA   R1,5              ; Down x 32
+        A     R1,R0             ; Screen position
+        CI    R0,768
+        JL    INSCR14           ; Still on the screen?
+        B     @NOBRK13
+INSCR14 MOV   R0,R4             ; Remember where
+        BL    @VSBR             ; Which tile is there?
+        SRL   R1,8
+        AI    R1,-96            ; Brick tiles are 96 to 175
+        CI    R1,80
+        JL    BRK15             ; A brick?
+        B     @NOBRK13
+BRK15   MOV   R4,R5
+        ANDI  R1,1              ; Even tile = left half of a brick, odd = right half
+        JEQ   LEFTHALF16
+        DEC   R5                ; Right half: the other half is on its left
+        JMP   RUBOUT17
+LEFTHALF16 INC   R5             ; Left half: the other half is on its right
+RUBOUT17 MOV   R4,R0            ; Rub out both halves (a space)
+        LI    R1,>2000
+        BL    @VSBW
+        MOV   R5,R0
+        LI    R1,>2000
+        BL    @VSBW
+        DEC   @BRICKS
+        NEG   @BALL_VY          ; Bounce
+* [Change the score]
+        INC   @SCORE
+* [Play a sound]
+        LI    R1,BOING
+        MOV   R1,@SNDPTR
+        CLR   @SNDWT
+NOBRK13
+* [If all the bricks are gone]
+        MOV   @BRICKS,@BRICKS   ; Any bricks left?
+        JEQ   NOBRKS19
+        B     @BRKS18
+NOBRKS19
+* [Build a wall of bricks]
+* Row 3: whole bricks
+        LI    R0,>0B00          ; Drawing of the bricks in this row (tiles 96 and 97)
+        LI    R1,BRKPAT
+        LI    R2,16
+        BL    @VMBW
+        LI    R0,>038C          ; Colour of this row
+        LI    R1,>8000
+        BL    @VSBW
+        LI    R0,97
+        LI    R1,>6000
+        LI    R2,15             ; Whole bricks
+        BL    @VBRICKS
+* Row 4: shifted half a brick
+        LI    R0,>0B40          ; Drawing of the bricks in this row (tiles 104 and 105)
+        LI    R1,BRKPAT
+        LI    R2,16
+        BL    @VMBW
+        LI    R0,>038D          ; Colour of this row
+        LI    R1,>A000
+        BL    @VSBW
+        LI    R0,129            ; Half a brick at the left end
+        LI    R1,>6900
+        BL    @VSBW
+        LI    R0,130
+        LI    R1,>6800
+        LI    R2,14             ; Whole bricks
+        BL    @VBRICKS
+        LI    R0,158            ; Half a brick at the right end
+        LI    R1,>6800
+        BL    @VSBW
+* Row 5: whole bricks
+        LI    R0,>0B80          ; Drawing of the bricks in this row (tiles 112 and 113)
+        LI    R1,BRKPAT
+        LI    R2,16
+        BL    @VMBW
+        LI    R0,>038E          ; Colour of this row
+        LI    R1,>B000
+        BL    @VSBW
+        LI    R0,161
+        LI    R1,>7000
+        LI    R2,15             ; Whole bricks
+        BL    @VBRICKS
+* Row 6: shifted half a brick
+        LI    R0,>0BC0          ; Drawing of the bricks in this row (tiles 120 and 121)
+        LI    R1,BRKPAT
+        LI    R2,16
+        BL    @VMBW
+        LI    R0,>038F          ; Colour of this row
+        LI    R1,>2000
+        BL    @VSBW
+        LI    R0,193            ; Half a brick at the left end
+        LI    R1,>7900
+        BL    @VSBW
+        LI    R0,194
+        LI    R1,>7800
+        LI    R2,14             ; Whole bricks
+        BL    @VBRICKS
+        LI    R0,222            ; Half a brick at the right end
+        LI    R1,>7800
+        BL    @VSBW
+* Row 7: whole bricks
+        LI    R0,>0C00          ; Drawing of the bricks in this row (tiles 128 and 129)
+        LI    R1,BRKPAT
+        LI    R2,16
+        BL    @VMBW
+        LI    R0,>0390          ; Colour of this row
+        LI    R1,>7000
+        BL    @VSBW
+        LI    R0,225
+        LI    R1,>8000
+        LI    R2,15             ; Whole bricks
+        BL    @VBRICKS
+* Row 8: shifted half a brick
+        LI    R0,>0C40          ; Drawing of the bricks in this row (tiles 136 and 137)
+        LI    R1,BRKPAT
+        LI    R2,16
+        BL    @VMBW
+        LI    R0,>0391          ; Colour of this row
+        LI    R1,>5000
+        BL    @VSBW
+        LI    R0,257            ; Half a brick at the left end
+        LI    R1,>8900
+        BL    @VSBW
+        LI    R0,258
+        LI    R1,>8800
+        LI    R2,14             ; Whole bricks
+        BL    @VBRICKS
+        LI    R0,286            ; Half a brick at the right end
+        LI    R1,>8800
+        BL    @VSBW
+        LI    R1,93             ; Bricks in the wall
+        MOV   R1,@BRICKS
+* [Put a thing here]
+        LI    R1,124
+        MOV   R1,@BALL_X
+        LI    R1,80
+        MOV   R1,@BALL_Y
+        CLR   @BALL_VX
+        CLR   @BALL_VY
+* [Set how fast a thing moves]
+        LI    R1,2
+        MOV   R1,@BALL_VX
+        LI    R1,2
+        MOV   R1,@BALL_VY
+BRKS18
+* [If a thing goes past the bottom]
+        MOV   @BALL_Y,R1
+        CI    R1,184            ; Lower than the line?
+        JLT   NOLOW20
+        JEQ   NOLOW20
+* [Put a thing here]
+        LI    R1,124
+        MOV   R1,@BALL_X
+        LI    R1,80
+        MOV   R1,@BALL_Y
+        CLR   @BALL_VX
+        CLR   @BALL_VY
+* [Set how fast a thing moves]
+        LI    R1,2
+        MOV   R1,@BALL_VX
+        LI    R1,2
+        MOV   R1,@BALL_VY
+* [Change the score]
+        LI    R1,-1
+        A     R1,@SCORE
+        JGT   SCOK21
+        JEQ   SCOK21
+        CLR   @SCORE            ; No negative scores
+SCOK21
+NOLOW20
+* [Show the score]
+        MOV   @SCORE,R0
+        LI    R1,1              ; Screen position = row x 32 + column
+        BL    @SHOWNUM
+* [Show everything on the screen]
+        CLR   R0                ; Sprite list starts at >0300
+        MOVB  R0,@VDPWA
+        LI    R0,>4300
+        MOVB  R0,@VDPWA
+        MOV   @BAT_Y,R1         ; bat
+        SWPB  R1
+        MOVB  R1,@VDPWD
+        MOV   @BAT_X,R1
+        SWPB  R1
+        MOVB  R1,@VDPWD
+        LI    R1,>0000          ; Which drawing
+        MOVB  R1,@VDPWD
+        LI    R1,>0F00          ; Colour
+        MOVB  R1,@VDPWD
+        MOV   @BALL_Y,R1        ; ball
+        SWPB  R1
+        MOVB  R1,@VDPWD
+        MOV   @BALL_X,R1
+        SWPB  R1
+        MOVB  R1,@VDPWD
+        LI    R1,>0400          ; Which drawing
+        MOVB  R1,@VDPWD
+        LI    R1,>0A00          ; Colour
+        MOVB  R1,@VDPWD
+        LI    R1,>D000          ; End of the sprite list
+        MOVB  R1,@VDPWD
+        BL    @SNDTICK          ; Keep any sound going
+        B     @MAIN
+
+* ---- shared routines ----
+* VWREG: set a video register. R0 holds the register number (left byte) and value (right byte).
+VWREG   ORI   R0,>8000
+        SWPB  R0
+        MOVB  R0,@VDPWA
+        SWPB  R0
+        MOVB  R0,@VDPWA
+        B     *R11
+* VMBW: copy R2 bytes from R1 to video memory address R0.
+VMBW    ORI   R0,>4000
+        SWPB  R0
+        MOVB  R0,@VDPWA
+        SWPB  R0
+        MOVB  R0,@VDPWA
+VMBW1   MOVB  *R1+,@VDPWD
+        DEC   R2
+        JNE   VMBW1
+        B     *R11
+
+* VBRICKS: draw R2 whole bricks in a row (a left half then a right half each), starting at screen position R0.
+* R1 holds the left-half tile in its left byte; the right half is the next tile number.
+VBRICKS ORI   R0,>4000
+        SWPB  R0
+        MOVB  R0,@VDPWA
+        SWPB  R0
+        MOVB  R0,@VDPWA
+VBK1    MOVB  R1,@VDPWD
+        AI    R1,>0100
+        MOVB  R1,@VDPWD
+        AI    R1,>FF00
+        DEC   R2
+        JNE   VBK1
+        B     *R11
+
+* VSBW: write the tile in the left byte of R1 to screen position R0.
+VSBW    ORI   R0,>4000
+        SWPB  R0
+        MOVB  R0,@VDPWA
+        SWPB  R0
+        MOVB  R0,@VDPWA
+        MOVB  R1,@VDPWD
+        ANDI  R0,>3FFF
+        B     *R11
+
+* The drawing of one brick, in two halves. The left half is solid; the right half has a thin gap on its right.
+* Both leave a thin gap underneath, so you can see the rows.
+BRKPAT  BYTE  >FF,>FF,>FF,>FF,>FF,>FF,>FF,>00
+        BYTE  >FE,>FE,>FE,>FE,>FE,>FE,>FE,>00
+        EVEN
+
+* The joystick switches: which bit means left, and which means right.
+KLEFT   DATA  >0200
+KRIGHT  DATA  >0400
+
+* SNDTICK: called once a frame. Plays the next step of the current sound list, if one is playing.
+SNDTICK MOV   @SNDWT,@SNDWT     ; Still waiting?
+        JEQ   SND1
+        DEC   @SNDWT
+        B     *R11
+SND1    MOV   @SNDPTR,R0        ; Where are we in the list? (0 = nothing playing)
+        JEQ   SNDEND
+        MOVB  *R0+,R2           ; How many bytes for the sound chip
+        JEQ   SNDOFF            ; A count of 0 ends the list
+        SRL   R2,8
+SND2    MOVB  *R0+,@>8400       ; Send a byte to the sound chip
+        DEC   R2
+        JNE   SND2
+        MOVB  *R0+,R2           ; How long to wait
+        SRL   R2,8
+        MOV   R2,@SNDWT
+        MOV   R0,@SNDPTR
+SNDEND  B     *R11
+SNDOFF  CLR   @SNDPTR
+        B     *R11
+
+* VSBR: read the tile at screen position R0 into the left byte of R1.
+VSBR    SWPB  R0
+        MOVB  R0,@VDPWA
+        SWPB  R0
+        MOVB  R0,@VDPWA
+        NOP
+        MOVB  @>8800,R1         ; Video chip: read a byte
+        B     *R11
+
+* SHOWNUM: R0 = the number (0-999), R1 = screen position. Writes three digits.
+SHOWNUM MOV   R11,R9
+        MOV   R1,R4             ; Keep the screen position
+        CLR   R2
+        MOV   R0,R3             ; R2:R3 is the number to divide
+        LI    R5,100
+        DIV   R5,R2             ; R2 = hundreds, R3 = the rest
+        MOV   R2,R6
+        CLR   R2
+        LI    R5,10
+        DIV   R5,R2             ; R2 = tens, R3 = ones
+        MOV   R2,R7
+        MOV   R3,R8
+        MOV   R4,R0
+        ORI   R0,>4000
+        SWPB  R0
+        MOVB  R0,@VDPWA
+        SWPB  R0
+        MOVB  R0,@VDPWA
+        AI    R6,>30            ; Digit characters start at 48
+        SWPB  R6
+        MOVB  R6,@VDPWD
+        AI    R7,>30
+        SWPB  R7
+        MOVB  R7,@VDPWD
+        AI    R8,>30
+        SWPB  R8
+        MOVB  R8,@VDPWD
+        B     *R9
+
+* ---- numbers the game keeps (all start as shown) ----
+WS      BSS   32                ; Room for R0-R15
+BRICKS  DATA  0
+BAT_X   DATA  120
+BAT_Y   DATA  168
+BAT_VX  DATA  0
+BAT_VY  DATA  0
+BALL_X  DATA  124
+BALL_Y  DATA  80
+BALL_VX DATA  0
+BALL_VY DATA  0
+SCORE   DATA  0
+SNDPTR  DATA  0
+SNDWT   DATA  0
+
+* A 16x16 drawing is four 8x8 blocks: top-left, bottom-left, top-right, bottom-right.
+* @sprite 16x16
+BAT_PIC BYTE >FF,>FF,>FF,>FF,>00,>00,>00,>00
+       BYTE >00,>00,>00,>00,>00,>00,>00,>00
+       BYTE >FF,>FF,>FF,>FF,>00,>00,>00,>00
+       BYTE >00,>00,>00,>00,>00,>00,>00,>00
+
+* @sprite 16x16
+BALL_PIC BYTE >3C,>7E,>FF,>FF,>FF,>FF,>7E,>3C
+       BYTE >00,>00,>00,>00,>00,>00,>00,>00
+       BYTE >00,>00,>00,>00,>00,>00,>00,>00
+       BYTE >00,>00,>00,>00,>00,>00,>00,>00
+
+* @sound
+BOING  BYTE 3,>8E,>0F,>90,4
+       BYTE 3,>87,>0B,>90,4
+       BYTE 1,>9F,1
+       BYTE 0
+       EVEN
+        END   START

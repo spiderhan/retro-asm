@@ -1,0 +1,20 @@
+const fs=require('fs');const GB=require('../lib/blocks');const {run}=require('../test/tms-mini');
+const blocks=GB.loadBlocks('ti99');const p=JSON.parse(fs.readFileSync('kits/bricks.blocks.json','utf8'));
+const r=GB.generate(p,blocks,{});
+const pick=(pre)=>r.asm.split('\n').filter((l,k)=>r.paths[k]&&(r.paths[k]===pre||r.paths[k].startsWith(pre+'/')));
+const screen={};const u=n=>n&0xFFFF;
+const hooks={VTILES:(R)=>{let pos=u(R[0]);let n=u(R[2]);const cells=u(R[3]);let c=u(R[1])>>8;for(let t=0;t<n;t++)for(let i=0;i<cells;i++)screen[pos++]=c+i;},VMBW:()=>{},VSBW:()=>{},VFILL:(R)=>{for(let i=0;i<u(R[2]);i++)screen[u(R[0])+i]=u(R[1])>>8;},VSBR:(R)=>{R[1]=((screen[u(R[0])]===undefined?32:screen[u(R[0])])<<8)<<16>>16;}};
+run(pick('start/1'),{},{},hooks);
+const hi=p.every_frame.findIndex(b=>b.block==='tile-hit');
+const hit=pick('every_frame/'+hi);
+let bad=[];let cnt=0;
+for(const pos of Object.keys(screen).map(Number)){ if(screen[pos]<96)continue; cnt++;
+  const col=pos%32,row=(pos-col)/32;
+  const mem={BALL_X:col*8+4-4,BALL_Y:row*8,BALL_VX:2,BALL_VY:2,SCORE:0,BRICK_LEFT:93};
+  const before=screen[pos];
+  run(hit,mem,{},hooks);
+  if(screen[pos]!==32)bad.push([row,col,before]);
+}
+console.log('pieces',cnt,'not erased',bad.length,bad.slice(0,8));
+const rowsSeen={};for(const k of Object.keys(screen)){const r=Math.floor(k/32);rowsSeen[r]=(rowsSeen[r]||0)+1;}console.log(rowsSeen);
+console.log(pick('start/1').filter(l=>/BL|LI\s+R[0-3]/.test(l)).slice(0,14).join('\n'));

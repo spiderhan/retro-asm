@@ -2,6 +2,7 @@
 * Each [bracketed note] shows which block wrote the lines under it.
 
         DEF   START
+        AORG  >A000             ; Fixed place in the extra memory, so "Run in MAME" can load it
 VDPWD   EQU   >8C00             ; Video chip: write a byte of data
 VDPWA   EQU   >8C02             ; Video chip: set the address (or a register)
 VDPST   EQU   >8802             ; Video chip: read its status
@@ -14,6 +15,27 @@ START   LWPI  WS
         BL    @VWREG
         LI    R0,>0601          ; Register 6: sprite drawings start at >0800
         BL    @VWREG
+        LI    R0,>030E          ; Register 3: the colour table is at >0380
+        BL    @VWREG
+        CLR   R0                ; Clear the screen: 768 spaces from the top
+        MOVB  R0,@VDPWA
+        LI    R0,>4000
+        MOVB  R0,@VDPWA
+        LI    R1,>2000
+        LI    R2,768
+CLRSCR  MOVB  R1,@VDPWD
+        DEC   R2
+        JNE   CLRSCR
+        LI    R0,>4380          ; Colour table: white on see-through, so the screen colour shows
+        SWPB  R0
+        MOVB  R0,@VDPWA
+        SWPB  R0
+        MOVB  R0,@VDPWA
+        LI    R1,>F000
+        LI    R2,32
+CLRCOL  MOVB  R1,@VDPWD
+        DEC   R2
+        JNE   CLRCOL
         LI    R0,>0C00          ; Copy the drawing of bat to video memory
         LI    R1,BAT_PIC
         LI    R2,32

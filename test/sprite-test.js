@@ -19,6 +19,12 @@ for(const f of Object.keys(expect)){
 // ---- how bytes become pixels ----
 {const P=one('tms9900','* @sprite 16x16\nS      BYTE 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, >80,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1\n');const blk=A.dataBlock(P,'/x/f',1);const pic=SP.pictureOf(P,'/x/f',blk,'16x16');
  ok('TI 16x16: byte 17 is the top row of the right half',pic.frames[0][8]===1&&pic.frames[0].reduce((a,b)=>a+b)===2);ok('TI 16x16: the last byte is the bottom-right corner',pic.frames[0][255]===1);}
+// ---- a picture stored row by row is turned into pieces (cells) without changing the drawing (the panel's "Fix it") ----
+{const P=one('tms9900','* @sprite 16x8 rows\nB      BYTE >FF,>01,>81,>7E,>00,>AA,>55,>F0\n       BYTE >0F,>10,>20,>40,>80,>01,>02,>03\n');
+ const blk=A.dataBlock(P,'/x/f',1);const pic=SP.pictureOf(P,'/x/f',blk,'16x8 rows');const D=P.get('/x/f').D;const cells=SP.shapeFor(D,'16x8 cells');
+ const bytes=blk.bytes.slice();pic.frames.forEach((px,f)=>SP.encode(px,cells).forEach((b,i)=>{bytes[f*cells.stride+i]=b;}));
+ ok('rows to cells: the bytes are now left piece then right piece',bytes.slice(0,8).join()===[0xFF,0x81,0x00,0x55,0x0F,0x20,0x80,0x02].join()&&bytes.slice(8).join()===[0x01,0x7E,0xAA,0xF0,0x10,0x40,0x01,0x03].join(),bytes);
+ ok('rows to cells: read back as cells it is the same drawing',SP.decode(bytes,0,cells).join()===pic.frames[0].join());}
 {const D=dia('bbc');const m1=SP.shapeFor(D,'mode1 4x8'),m2=SP.shapeFor(D,'mode2 2x8');
  ok('BBC MODE 1: bits 7 and 3 make the left pixel',SP.decode([0x88],0,m1)[0]===3&&SP.decode([0x08],0,m1)[0]===1&&SP.decode([0x80],0,m1)[0]===2);
  ok('BBC MODE 2: bits 7,5,3,1 make the left pixel',SP.decode([0xAA],0,m2)[0]===15&&SP.decode([0xAA],0,m2)[1]===0&&SP.decode([0x02],0,m2)[0]===1);

@@ -1,0 +1,199 @@
+{
+  "title": "Bat, ball and bricks",
+  "about": "A bat you slide left and right with the joystick, a ball, and a wall of bricks. Every brick the ball hits is rubbed out and scores a point; clear them all and a new wall appears. A starting point: change anything you like.",
+  "machine": "ti99",
+  "things": {
+    "bat": {
+      "art": "BAT_PIC",
+      "x": 120,
+      "y": 168,
+      "w": 16,
+      "h": 4,
+      "color": 15
+    },
+    "ball": {
+      "art": "BALL_PIC",
+      "x": 124,
+      "y": 80,
+      "w": 8,
+      "h": 8,
+      "color": 10
+    }
+  },
+  "start": [
+    {
+      "block": "screen-colour",
+      "colour": 4
+    },
+    {
+      "block": "tile-fill",
+      "tile": "brick",
+      "rows": 6,
+      "top": 3,
+      "left": 1,
+      "across": 0,
+      "colour": 0,
+      "stagger": "yes"
+    },
+    {
+      "block": "place",
+      "thing": "bat",
+      "x": 120,
+      "y": 168
+    },
+    {
+      "block": "place",
+      "thing": "ball",
+      "x": 124,
+      "y": 80
+    },
+    {
+      "block": "set-speed",
+      "thing": "ball",
+      "across": 2,
+      "down": 2
+    }
+  ],
+  "every_frame": [
+    {
+      "block": "move-with-joystick",
+      "thing": "bat",
+      "speed": 4,
+      "leftEnd": 8,
+      "rightEnd": 232
+    },
+    {
+      "block": "move-by-speed",
+      "thing": "ball"
+    },
+    {
+      "block": "bounce-off-walls",
+      "thing": "ball",
+      "left": 8,
+      "right": 240,
+      "top": 8
+    },
+    {
+      "block": "when-things-hit",
+      "thing": "ball",
+      "other": "bat",
+      "then": "bounce",
+      "way": "up",
+      "angle": "where",
+      "do": [
+        {
+          "block": "add-to-score",
+          "by": 1
+        },
+        {
+          "block": "play-sound",
+          "sound": "BOING"
+        }
+      ]
+    },
+    {
+      "block": "tile-hit",
+      "thing": "ball",
+      "tile": "brick",
+      "bounce": "auto",
+      "do": [
+        {
+          "block": "add-to-score",
+          "by": 1
+        },
+        {
+          "block": "play-sound",
+          "sound": "BOING"
+        }
+      ]
+    },
+    {
+      "block": "if-no-tiles",
+      "tile": "brick",
+      "do": [
+        {
+          "block": "tile-fill",
+          "tile": "brick",
+          "rows": 6,
+          "top": 3,
+          "left": 1,
+          "across": 0,
+          "colour": 0,
+          "stagger": "yes"
+        },
+        {
+          "block": "place",
+          "thing": "ball",
+          "x": 124,
+          "y": 80
+        },
+        {
+          "block": "set-speed",
+          "thing": "ball",
+          "across": 2,
+          "down": 2
+        }
+      ]
+    },
+    {
+      "block": "if-below",
+      "thing": "ball",
+      "line": 184,
+      "do": [
+        {
+          "block": "place",
+          "thing": "ball",
+          "x": 124,
+          "y": 80
+        },
+        {
+          "block": "set-speed",
+          "thing": "ball",
+          "across": 2,
+          "down": 2
+        },
+        {
+          "block": "add-to-score",
+          "by": -1
+        }
+      ]
+    },
+    {
+      "block": "show-score",
+      "column": 1,
+      "row": 0
+    }
+  ],
+  "data": [
+    "",
+    "* A 16x16 drawing is four 8x8 blocks: top-left, bottom-left, top-right, bottom-right.",
+    "* @sprite 16x16",
+    "BAT_PIC BYTE >FF,>FF,>FF,>FF,>00,>00,>00,>00",
+    "       BYTE >00,>00,>00,>00,>00,>00,>00,>00",
+    "       BYTE >FF,>FF,>FF,>FF,>00,>00,>00,>00",
+    "       BYTE >00,>00,>00,>00,>00,>00,>00,>00",
+    "",
+    "* @sprite 16x16",
+    "BALL_PIC BYTE >3C,>7E,>FF,>FF,>FF,>FF,>7E,>3C",
+    "       BYTE >00,>00,>00,>00,>00,>00,>00,>00",
+    "       BYTE >00,>00,>00,>00,>00,>00,>00,>00",
+    "       BYTE >00,>00,>00,>00,>00,>00,>00,>00",
+    "",
+    "* @sound",
+    "BOING  BYTE 3,>8E,>0F,>90,4",
+    "       BYTE 3,>87,>0B,>90,4",
+    "       BYTE 1,>9F,1",
+    "       BYTE 0",
+    "       EVEN",
+    "",
+    "* A brick is one picture, two 8x8 pieces wide. Redraw it (or point the tile at another picture) to make something else.",
+    "* @sprite 16x8 cells",
+    "BRICK_PIC BYTE >FF,>FF,>FF,>FF,>FF,>FF,>FF,>00",
+    "       BYTE >FE,>FE,>FE,>FE,>FE,>FE,>FE,>00"
+  ],
+  "tiles": {
+    "brick": {
+      "art": "BRICK_PIC"
+    }
+  }
+}

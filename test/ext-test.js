@@ -84,6 +84,64 @@ const at=(doc,needle,sub)=>{const lines=doc.getText().split(/\r?\n/);const l=lin
    // Retro ASM: Insert starter code
    const lines=game.getText().split(/\r?\n/);const inserted=[];
    const fake=(lineText)=>{const doc=Object.assign({},game,{lineAt:(i)=>({text:i===3?lineText:lines[i]})});return {document:doc,selection:{start:new Position(3,0),end:new Position(3,0),isEmpty:true},insertSnippet:async(sn,where)=>{inserted.push({sn,where});return true;}};};
+   {mock.window.activeTextEditor=fake('');mock.__.debugStarted=null;await C['retroAsm.runInMame']();const s1=mock.__.debugStarted;
+    mock.__.debugStarted=null;await C['retroAsm.debug']();const s2=mock.__.debugStarted;
+    ok('Run in MAME starts MAME without stopping at the first line',s1&&s1.stopOnEntry===false&&s1.request==='launch',s1);
+    ok('Debug in MAME still stops at the first line',s2&&s2.stopOnEntry===true,s2);}
+   {const fs=require('fs'),os=require('os'),pth=require('path');
+    const dir=fs.mkdtempSync(pth.join(os.tmpdir(),'bp-'));const f=pth.join(dir,'g.blocks.json');
+    fs.writeFileSync(f,fs.readFileSync(pth.join(__dirname,'../kits/bricks.blocks.json'),'utf8'));
+    mock.window.activeTextEditor={document:{fileName:f,uri:mock.Uri.file(f)}};
+    const before=mock.__.panels.length;
+    ok('the blocks panel command is registered',typeof C['retroAsm.openBlocksPanel']==='function');
+    await C['retroAsm.openBlocksPanel']();
+    const pn=mock.__.panels[mock.__.panels.length-1];
+    ok('the blocks panel opens',mock.__.panels.length===before+1&&pn.id==='retroAsm.blocks');
+    ok('the blocks panel page blocks anything from outside',/default-src 'none'/.test(pn.webview.html)&&/script-src 'nonce-/.test(pn.webview.html)&&!/https?:\/\//.test(pn.webview.html));
+    pn.send({type:'ready'});
+    const st=pn.sent.filter(m=>m.type==='state').pop();
+    ok('the page is sent the game, the blocks and no problems',st&&st.project.title==='Bat, ball and bricks'&&st.catalogue.length>=14&&st.problems.length===0&&/END\s+START/.test(st.asm),st&&Object.keys(st));
+    ok('the page is sent the colours and where each line came from',st.palette.length===16&&st.paths.length===st.asm.split('\n').length-1,[st.palette.length,st.paths.length]);
+    const proj=JSON.parse(JSON.stringify(st.project));proj.every_frame.pop();
+    await pn.send({type:'change',project:proj});
+    ok('a change from the page is saved to the blocks file',JSON.parse(fs.readFileSync(f,'utf8')).every_frame.length===proj.every_frame.length);
+    { // an older file with the brick blocks is brought up to date, and the pictures can move to their own file
+      const old=JSON.parse(fs.readFileSync(pth.join(__dirname,'../kits/bricks.blocks.json'),'utf8'));
+      const oldWall=old.start.find(b=>b.block==='tile-fill');Object.keys(oldWall).forEach(k=>delete oldWall[k]);Object.assign(oldWall,{block:'brick-wall',rows:6,top:3});
+      const oh=old.every_frame.find(b=>b.block==='tile-hit');Object.keys(oh).forEach(k=>delete oh[k]);Object.assign(oh,{block:'if-hits-brick',thing:'ball',do:[]});
+      delete old.tiles;
+      fs.writeFileSync(f,JSON.stringify(old,null,2));
+      pn.send({type:'ready'});await new Promise(r=>setTimeout(r,50));
+      const su=pn.sent.filter(m=>m.type==='state').pop();
+      ok('an older file with brick blocks opens as tile blocks, with no problems',su.project.start.some(b=>b.block==='tile-fill')&&!su.project.start.some(b=>b.block==='brick-wall')&&su.problems.length===0&&/tile blocks/.test(su.status),[su.problems,su.status]);
+      ok('the older file was saved in the new form',/tile-fill/.test(fs.readFileSync(f,'utf8'))&&!/brick-wall/.test(fs.readFileSync(f,'utf8')));
+      ok('the page is sent the pictures with their tile shape',su.pictures.some(x=>x.label==='BRICK_PIC'&&x.shape.across===2&&x.shape.down===1)&&su.sounds.includes('BOING')&&su.dataFile==='',su.pictures);
+      {const was=mock.window.showInformationMessage;let asked='';mock.window.showInformationMessage=(m)=>{asked=m;return 'Move them now';};
+       try{await pn.send({type:'copyTile',tile:'brick'});}catch(e){/* the stand-in can't open the file for drawing: only the move is checked */}
+       mock.window.showInformationMessage=was;
+       ok('Copy on a game that keeps its pictures inside offers to move them out, and does',/keeps its pictures inside/.test(asked)&&fs.existsSync(pth.join(dir,'g-pictures.a99'))&&JSON.parse(fs.readFileSync(f,'utf8')).dataFile==='g-pictures.a99',asked);
+       fs.unlinkSync(pth.join(dir,'g-pictures.a99'));const back=JSON.parse(fs.readFileSync(f,'utf8'));const mv0=require('../lib/blocks-upgrade');fs.writeFileSync(f,JSON.stringify(Object.assign(back,{dataFile:undefined,data:old.data}),null,2));}
+      await pn.send({type:'moveData'});
+      const sm=pn.sent.filter(m=>m.type==='state').pop();
+      const pf=pth.join(dir,'g-pictures.a99');
+      mock.workspace.fs={stat:async(u)=>{if(!fs.existsSync(u.fsPath))throw new Error('none');return {};},writeFile:async(u,b)=>fs.writeFileSync(u.fsPath,Buffer.from(b)),readFile:async(u)=>fs.readFileSync(u.fsPath)};
+      mock.__.debugStarted=null;await pn.send({type:'run'});
+      ok('"Make and run" starts MAME on the game made from the blocks, not on whichever file was clicked',mock.__.debugStarted&&mock.__.debugStarted.program===pth.join(dir,'g.a99')&&mock.__.debugStarted.stopOnEntry===false&&fs.existsSync(pth.join(dir,'g.a99')),mock.__.debugStarted);
+      ok('the pictures and sounds move to a file of their own',fs.existsSync(pf)&&/BRICK_PIC/.test(fs.readFileSync(pf,'utf8'))&&/BOING/.test(fs.readFileSync(pf,'utf8')),fs.existsSync(pf));
+      const saved=JSON.parse(fs.readFileSync(f,'utf8'));
+      ok('the blocks file now points to it and no longer holds the data',saved.dataFile==='g-pictures.a99'&&!saved.data);
+      ok('the game still makes with no problems, and includes the file',sm.problems.length===0&&/COPY\s+"g-pictures\.a99"/.test(sm.asm)&&sm.pictures.some(x=>x.label==='BAT_PIC')&&sm.sounds.includes('BOING')&&sm.dataFile==='g-pictures.a99',[sm.problems,sm.dataFile]);
+      fs.unlinkSync(pf);pn.send({type:'ready'});
+      ok('a missing pictures file is explained',pn.sent.filter(m=>m.type==='state').pop().problems.some(x=>/pictures file/.test(x)));
+      const bad=JSON.parse(fs.readFileSync(f,'utf8'));bad.dataFile='../x.a99';fs.writeFileSync(f,JSON.stringify(bad));pn.send({type:'ready'});
+      ok('a pictures file name that climbs out of the folder is refused',pn.sent.filter(m=>m.type==='state').pop().problems.some(x=>/not allowed/.test(x)));
+      fs.writeFileSync(f,JSON.stringify(proj,null,2));
+    }
+    pn.send({type:'change',project:'junk'});pn.send({type:'nonsense'});pn.send(null);
+    ok('junk messages are ignored',JSON.parse(fs.readFileSync(f,'utf8')).every_frame.length===proj.every_frame.length);
+    fs.writeFileSync(f,'{ not json');pn.send({type:'ready'});
+    ok('a broken blocks file is explained, not crashed on',/can.t be read/.test(pn.sent.filter(m=>m.type==='state').pop().error||''));
+    fs.rmSync(dir,{recursive:true,force:true});mock.window.activeTextEditor=null;}
    mock.window.activeTextEditor=fake('');let r1=await C['retroAsm.insertSnippet']();
    ok('insert starter code on a blank line',r1===true&&inserted[0].sn.value.includes('MOVB R1,@>8C00')&&inserted[0].where.start.line===3&&inserted[0].where.start.character===0,inserted[0]);
    mock.window.activeTextEditor=fake('       CLR  R0');await C['retroAsm.insertSnippet']();
