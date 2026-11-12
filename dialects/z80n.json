@@ -1,0 +1,1157 @@
+{
+  "id": "z80n",
+  "extends": "z80",
+  "_about": "Builds on z80.json (\"extends\"): only what the Next adds or changes is here. Sections merge name by name; lists are replaced whole; null takes something out.",
+  "name": "Z80N (ZX Spectrum Next, sjasmplus)",
+  "short": "Spectrum Next",
+  "about": "The Spectrum Next's Z80N: every Z80 instruction plus the Next's own (NEXTREG, MUL, LDIRX, PIXELAD and the rest), written the way sjasmplus writes it. Knows the Spectrum's memory and ROM, and the Next's own registers and ports.",
+  "detect": [
+    "^\\s*DEVICE\\s+ZXSPECTRUMNEXT",
+    "--zxnext",
+    "^\\s*SAVENEX\\b"
+  ],
+  "instructions": {
+    "SWAPNIB": {
+      "group": "Shifting and rotating",
+      "name": "Swap the halves of A (Spectrum Next only)",
+      "syntax": "SWAPNIB",
+      "ops": [],
+      "cycles": 8,
+      "bytes": 2,
+      "summary": "Swaps the top 4 bits of A with the bottom 4: $3C becomes $C3.",
+      "explain": "Swap the top and bottom halves of A.",
+      "implicit": {
+        "r": [
+          "A"
+        ],
+        "w": [
+          "A"
+        ]
+      },
+      "resultReg": "A",
+      "flags": "No flags change."
+    },
+    "MIRROR": {
+      "group": "Shifting and rotating",
+      "name": "Mirror A (Spectrum Next only)",
+      "syntax": "MIRROR A",
+      "ops": {
+        "0": [],
+        "1": [
+          "r"
+        ]
+      },
+      "cycles": 8,
+      "bytes": 2,
+      "summary": "Turns the bits of A back to front: bit 0 swaps with bit 7, bit 1 with bit 6 and so on. Handy for flipping a picture left to right.",
+      "explain": {
+        "0": "Turn the bits of A back to front.",
+        "1": "Turn the bits of A back to front."
+      },
+      "implicit": {
+        "r": [
+          "A"
+        ],
+        "w": [
+          "A"
+        ]
+      },
+      "resultReg": "A",
+      "flags": "No flags change."
+    },
+    "TEST": {
+      "group": "Comparing",
+      "name": "Test bits of A (Spectrum Next only)",
+      "syntax": "TEST value",
+      "ops": [
+        "i"
+      ],
+      "cycles": 11,
+      "bytes": 3,
+      "summary": "Works like `AND value` but leaves A as it was: only the flags change. Use it to check some bits of A without losing A.",
+      "explain": "Check which bits of A are also 1 in {1} (A doesn't change).",
+      "implicit": {
+        "r": [
+          "A"
+        ]
+      },
+      "flags": "Z if none of the bits match (the AND would be 0). S, H and P/V (parity) show the result too. Carry is switched off."
+    },
+    "BSLA": {
+      "group": "Shifting and rotating",
+      "name": "Barrel shift left (Spectrum Next only)",
+      "syntax": "BSLA DE,B",
+      "ops": [
+        "r",
+        "r"
+      ],
+      "cycles": 8,
+      "bytes": 2,
+      "summary": "Moves the bits of DE left by B places in one go (0s come in at the bottom). It is the same as multiplying DE by 2, B times.",
+      "explain": "Shift the bits of DE left by B places.",
+      "rw": [
+        "rw",
+        "r"
+      ],
+      "resultReg": "DE",
+      "flags": "No flags change.",
+      "more": "Only the bottom 5 bits of B count (0 to 31); 16 or more empties DE."
+    },
+    "BSRA": {
+      "group": "Shifting and rotating",
+      "name": "Barrel shift right, keeping the sign (Spectrum Next only)",
+      "syntax": "BSRA DE,B",
+      "ops": [
+        "r",
+        "r"
+      ],
+      "cycles": 8,
+      "bytes": 2,
+      "summary": "Moves the bits of DE right by B places in one go, copying the top bit in at the top so a negative number stays negative. Like dividing DE by 2, B times.",
+      "explain": "Shift the bits of DE right by B places.",
+      "rw": [
+        "rw",
+        "r"
+      ],
+      "resultReg": "DE",
+      "flags": "No flags change.",
+      "more": "Only the bottom 5 bits of B count (0 to 31); 16 or more empties DE (or fills it with copies of the top bit)."
+    },
+    "BSRL": {
+      "group": "Shifting and rotating",
+      "name": "Barrel shift right (Spectrum Next only)",
+      "syntax": "BSRL DE,B",
+      "ops": [
+        "r",
+        "r"
+      ],
+      "cycles": 8,
+      "bytes": 2,
+      "summary": "Moves the bits of DE right by B places in one go, with 0s coming in at the top. Like dividing DE by 2, B times (for numbers 0 to 65,535).",
+      "explain": "Shift the bits of DE right by B places.",
+      "rw": [
+        "rw",
+        "r"
+      ],
+      "resultReg": "DE",
+      "flags": "No flags change.",
+      "more": "Only the bottom 5 bits of B count (0 to 31); 16 or more empties DE."
+    },
+    "BSRF": {
+      "group": "Shifting and rotating",
+      "name": "Barrel shift right, filling with 1s (Spectrum Next only)",
+      "syntax": "BSRF DE,B",
+      "ops": [
+        "r",
+        "r"
+      ],
+      "cycles": 8,
+      "bytes": 2,
+      "summary": "Moves the bits of DE right by B places in one go, with 1s coming in at the top.",
+      "explain": "Shift the bits of DE right by B places.",
+      "rw": [
+        "rw",
+        "r"
+      ],
+      "resultReg": "DE",
+      "flags": "No flags change.",
+      "more": "Only the bottom 5 bits of B count (0 to 31); 16 or more empties DE (or fills it with 1s)."
+    },
+    "BRLC": {
+      "group": "Shifting and rotating",
+      "name": "Barrel rotate left (Spectrum Next only)",
+      "syntax": "BRLC DE,B",
+      "ops": [
+        "r",
+        "r"
+      ],
+      "cycles": 8,
+      "bytes": 2,
+      "summary": "Turns the bits of DE left by B places in one go: bits that fall off the top come back in at the bottom. To turn right by n places, use 16-n.",
+      "explain": "Turn the bits of DE left by B places.",
+      "rw": [
+        "rw",
+        "r"
+      ],
+      "resultReg": "DE",
+      "flags": "No flags change.",
+      "more": "Only the bottom 4 bits of B count (0 to 15)."
+    },
+    "MUL": {
+      "group": "Adding and subtracting",
+      "name": "Multiply (Spectrum Next only)",
+      "syntax": "MUL D,E",
+      "ops": {
+        "0": [],
+        "2": [
+          "r",
+          "r"
+        ]
+      },
+      "cycles": 8,
+      "bytes": 2,
+      "summary": "Multiplies D by E and puts the answer in DE: D=12, E=10 gives DE=120. Both are counted as 0 to 255, so the answer is 0 to 65,025.",
+      "explain": {
+        "0": "Multiply D by E; the answer goes in DE.",
+        "2": "Multiply D by E; the answer goes in DE."
+      },
+      "implicit": {
+        "r": [
+          "D",
+          "E"
+        ],
+        "w": [
+          "DE"
+        ]
+      },
+      "resultReg": "DE",
+      "flags": "No flags change.",
+      "more": "This is the Next's own MUL. It is not the same as the MUL of other Z80-like chips (R800, Z180, eZ80)."
+    },
+    "OUTINB": {
+      "group": "Ports",
+      "name": "Output and move on, keeping B (Spectrum Next only)",
+      "syntax": "OUTINB",
+      "ops": [],
+      "cycles": 16,
+      "bytes": 2,
+      "summary": "Sends the byte HL points at to port BC and adds 1 to HL. Unlike OUTI, B is not changed, so the port number stays the same. Handy for sending a block of bytes to one port (sprite pictures to $5B).",
+      "explain": "Send the byte HL points at to port BC, then add 1 to HL (B stays the same).",
+      "implicit": {
+        "r": [
+          "HL",
+          "B",
+          "C"
+        ],
+        "w": [
+          "HL"
+        ]
+      },
+      "flags": "The flags may change in ways that are not documented: don't rely on them."
+    },
+    "NEXTREG": {
+      "group": "Ports",
+      "name": "Set a Next register (Spectrum Next only)",
+      "syntax": "NEXTREG register,value   or   NEXTREG register,A",
+      "ops": [
+        "hr",
+        "g"
+      ],
+      "rw": [
+        "r",
+        "r"
+      ],
+      "cycles": [
+        {
+          "re": ",A$",
+          "c": 17
+        },
+        {
+          "re": ".",
+          "c": 20
+        }
+      ],
+      "summary": "Writes a value into one of the Next's own registers, which control the CPU speed, memory paging, sprites, layers, palette and more. It does in one go what `OUT ($243B)` (pick the register) and `OUT ($253B)` (write the value) do in two.",
+      "explain": "Set {1} to {2}.",
+      "flags": "No flags change.",
+      "more": "There is no NEXTREG for reading: to read a Next register, send its number to port $243B and read port $253B."
+    },
+    "PIXELDN": {
+      "group": "Moving data",
+      "name": "Pixel address one line down (Spectrum Next only)",
+      "syntax": "PIXELDN",
+      "ops": [],
+      "cycles": 8,
+      "bytes": 2,
+      "summary": "HL holds an address on the normal Spectrum screen. This moves it to the same spot one pixel line lower, sorting out the jumps between character rows and thirds of the screen for you.",
+      "explain": "Move HL down one pixel line on the screen.",
+      "implicit": {
+        "r": [
+          "HL"
+        ],
+        "w": [
+          "HL"
+        ]
+      },
+      "flags": "No flags change."
+    },
+    "PIXELAD": {
+      "group": "Moving data",
+      "name": "Pixel address (Spectrum Next only)",
+      "syntax": "PIXELAD",
+      "ops": [],
+      "cycles": 8,
+      "bytes": 2,
+      "summary": "Works out where on the normal Spectrum screen the pixel at across = E, down = D lives, and puts that address in HL. Use SETAE to get the bit within that byte.",
+      "explain": "Put the screen address of the pixel at across E, down D into HL.",
+      "implicit": {
+        "r": [
+          "D",
+          "E"
+        ],
+        "w": [
+          "HL"
+        ]
+      },
+      "flags": "No flags change."
+    },
+    "SETAE": {
+      "group": "Moving data",
+      "name": "Pixel bit for E (Spectrum Next only)",
+      "syntax": "SETAE",
+      "ops": [],
+      "cycles": 8,
+      "bytes": 2,
+      "summary": "Puts in A the single bit that stands for the pixel at across = E within its screen byte: $80 for the leftmost pixel, $01 for the rightmost. Goes with PIXELAD.",
+      "explain": "Set A to the bit for pixel E within its screen byte.",
+      "implicit": {
+        "r": [
+          "E"
+        ],
+        "w": [
+          "A"
+        ]
+      },
+      "resultReg": "A",
+      "flags": "No flags change."
+    },
+    "LDIX": {
+      "group": "Block copy and search",
+      "name": "Copy one byte, skipping see-through (Spectrum Next only)",
+      "syntax": "LDIX",
+      "ops": [],
+      "cycles": 16,
+      "bytes": 2,
+      "summary": "Like LDI (copy the byte HL points at to where DE points, add 1 to both, take 1 from BC), except a byte that equals A is not copied. A is the \"see-through\" value, so pictures with holes can be drawn over a background.",
+      "explain": "Copy the byte at HL to DE unless it equals A; add 1 to HL and DE, take 1 from BC.",
+      "implicit": {
+        "r": [
+          "HL",
+          "DE",
+          "BC",
+          "A"
+        ],
+        "w": [
+          "HL",
+          "DE",
+          "BC"
+        ]
+      },
+      "flags": "Documents disagree on the flags; don't rely on them."
+    },
+    "LDDX": {
+      "group": "Block copy and search",
+      "name": "Copy one byte backwards, skipping see-through (Spectrum Next only)",
+      "syntax": "LDDX",
+      "ops": [],
+      "cycles": 16,
+      "bytes": 2,
+      "summary": "Like LDIX, but HL goes down by 1 each time while DE still goes up. A byte that equals A is not copied. Handy for drawing a picture flipped left to right.",
+      "explain": "Copy the byte at HL to DE unless it equals A; take 1 from HL, add 1 to DE, take 1 from BC.",
+      "implicit": {
+        "r": [
+          "HL",
+          "DE",
+          "BC",
+          "A"
+        ],
+        "w": [
+          "HL",
+          "DE",
+          "BC"
+        ]
+      },
+      "flags": "Documents disagree on the flags; don't rely on them."
+    },
+    "LDWS": {
+      "group": "Block copy and search",
+      "name": "Copy one byte down a Layer 2 screen (Spectrum Next only)",
+      "syntax": "LDWS",
+      "ops": [],
+      "cycles": 14,
+      "bytes": 2,
+      "summary": "Copies the byte HL points at to where DE points, then adds 1 to L and 1 to D (not HL and DE). Made for Layer 2 screens, where adding 1 to D moves down one line.",
+      "explain": "Copy the byte at HL to DE, then add 1 to L and to D.",
+      "implicit": {
+        "r": [
+          "HL",
+          "DE"
+        ],
+        "w": [
+          "HL",
+          "DE"
+        ]
+      },
+      "flags": "Flags as for INC D: Z, S and H show D after it, carry doesn't change."
+    },
+    "LDIRX": {
+      "group": "Block copy and search",
+      "name": "Copy a block, skipping see-through (Spectrum Next only)",
+      "syntax": "LDIRX",
+      "ops": [],
+      "cycles": [
+        16,
+        21
+      ],
+      "cyclesPair": "{2} cycles for each byte, {1} for the last one",
+      "bytes": 2,
+      "summary": "Repeats LDIX until BC is 0: copies BC bytes from HL to DE, working upwards, skipping every byte that equals A. The way to draw a picture with see-through parts.",
+      "explain": "Copy BC bytes from HL to DE, skipping bytes equal to A.",
+      "implicit": {
+        "r": [
+          "HL",
+          "DE",
+          "BC",
+          "A"
+        ],
+        "w": [
+          "HL",
+          "DE",
+          "BC"
+        ]
+      },
+      "flags": "Documents disagree on the flags; don't rely on them.",
+      "more": "BC = 0 means 65,536 bytes, not none."
+    },
+    "LDDRX": {
+      "group": "Block copy and search",
+      "name": "Copy a block backwards, skipping see-through (Spectrum Next only)",
+      "syntax": "LDDRX",
+      "ops": [],
+      "cycles": [
+        16,
+        21
+      ],
+      "cyclesPair": "{2} cycles for each byte, {1} for the last one",
+      "bytes": 2,
+      "summary": "Repeats LDDX until BC is 0: copies BC bytes, reading HL downwards and writing DE upwards, skipping every byte that equals A.",
+      "explain": "Copy BC bytes from HL (going down) to DE (going up), skipping bytes equal to A.",
+      "implicit": {
+        "r": [
+          "HL",
+          "DE",
+          "BC",
+          "A"
+        ],
+        "w": [
+          "HL",
+          "DE",
+          "BC"
+        ]
+      },
+      "flags": "Documents disagree on the flags; don't rely on them.",
+      "more": "BC = 0 means 65,536 bytes, not none."
+    },
+    "LDPIRX": {
+      "group": "Block copy and search",
+      "name": "Fill with a pattern (Spectrum Next only)",
+      "syntax": "LDPIRX",
+      "ops": [],
+      "cycles": [
+        16,
+        21
+      ],
+      "cyclesPair": "{2} cycles for each byte, {1} for the last one",
+      "bytes": 2,
+      "summary": "Fills BC bytes at DE with a repeating 8-byte pattern. The pattern sits at HL, which must be on a multiple of 8 (HL doesn't move); byte number E AND 7 of the pattern is used each time. A byte that equals A is skipped.",
+      "explain": "Fill BC bytes at DE with the 8-byte pattern at HL, skipping bytes equal to A.",
+      "implicit": {
+        "r": [
+          "HL",
+          "DE",
+          "BC",
+          "A"
+        ],
+        "w": [
+          "DE",
+          "BC"
+        ]
+      },
+      "flags": "Documents disagree on the flags; don't rely on them.",
+      "more": "BC = 0 means 65,536 bytes, not none."
+    },
+    "ADD": {
+      "cycles": [
+        {
+          "re": "^(HL|DE|BC),A$",
+          "c": 8
+        },
+        {
+          "re": "^(DE|BC),",
+          "c": 16
+        },
+        {
+          "re": "^HL,(?!(BC|DE|HL|SP)$)",
+          "c": 16
+        },
+        {
+          "re": "^HL,",
+          "c": 11
+        },
+        {
+          "re": "^I[XY],",
+          "c": 15
+        },
+        {
+          "re": "^(A,)?\\(I[XY][^)]*\\)$",
+          "c": 19
+        },
+        {
+          "re": "^(A,)?\\(HL\\)$",
+          "c": 7
+        },
+        {
+          "re": "^(A,)?(IXH|IXL|IYH|IYL)$",
+          "c": 8
+        },
+        {
+          "re": "^(A,)?(A|B|C|D|E|H|L)$",
+          "c": 4
+        },
+        {
+          "re": ".",
+          "c": 7
+        }
+      ],
+      "group": "Adding and subtracting",
+      "name": "Add",
+      "syntax": "ADD A,value   or   ADD HL,pair   or (Next) ADD HL,A   ADD DE,1234",
+      "ops": {
+        "1": [
+          "g"
+        ],
+        "2": [
+          "g",
+          "g"
+        ]
+      },
+      "summary": "Adds a value to A (or one register pair to another). The answer goes in the first one. The Next adds `ADD HL,A`, `ADD DE,A`, `ADD BC,A` and adding a number straight to HL, DE or BC (`ADD DE,320`).",
+      "explain": {
+        "1": "Add {1} to A.",
+        "2": "Add {2} to {1}."
+      },
+      "rw": {
+        "1": [
+          "r"
+        ],
+        "2": [
+          "rw",
+          "r"
+        ]
+      },
+      "implicit": {
+        "1": {
+          "r": [
+            "A"
+          ],
+          "w": [
+            "A"
+          ]
+        }
+      },
+      "sizeFromOps": true,
+      "resultReg": {
+        "1": "A",
+        "2": "{1}"
+      },
+      "setsUnless": "^(HL|IX|IY|DE|BC),",
+      "flags": "For A: all flags show the result (Z if it is 0, C if it went past 255). ADD HL (or IX, IY) only changes carry. The Next's ADD HL,A (DE,A, BC,A) and ADD HL,number change no flags you can rely on.",
+      "special": [
+        {
+          "re": "^(HL|DE|BC),A$",
+          "text": "Add A to {1} (A counts as 0 to 255). Spectrum Next only."
+        },
+        {
+          "re": "^(DE|BC),|^HL,(?!(BC|DE|HL|SP)$)",
+          "text": "Add {2} to {1}. Spectrum Next only."
+        },
+        {
+          "re": "^(HL,HL|IX,IX|IY,IY)$",
+          "text": "Double {1} (add it to itself)."
+        },
+        {
+          "re": "^(A,)?A$",
+          "text": "Double A (add it to itself)."
+        }
+      ]
+    },
+    "PUSH": {
+      "cycles": [
+        {
+          "re": "^I[XY]$",
+          "c": 15
+        },
+        {
+          "re": "^(AF|BC|DE|HL)$",
+          "c": 11
+        },
+        {
+          "re": ".",
+          "c": 23
+        }
+      ],
+      "group": "Stack",
+      "name": "Push",
+      "syntax": "PUSH pair   or (Next) PUSH number",
+      "ops": [
+        "g"
+      ],
+      "summary": "Puts a register pair on top of the stack (a pile of saved values). SP moves down by 2. On the Next, `PUSH number` puts a number straight on the stack, without using a register.",
+      "explain": "Save {1} on top of the stack.",
+      "bytes": null,
+      "rw": [
+        "r"
+      ],
+      "size": "word",
+      "flags": "No flags change.",
+      "special": [
+        {
+          "re": "^(?!(AF|BC|DE|HL|IX|IY)$)",
+          "text": "Put {1} on top of the stack (Spectrum Next only)."
+        }
+      ],
+      "more": "In the bytes of `PUSH number` the number is stored high byte first, unlike every other Z80 instruction."
+    },
+    "JP": {
+      "cycles": [
+        {
+          "re": "^\\(C\\)$",
+          "c": 13
+        },
+        {
+          "re": "^\\(HL\\)$|^HL$",
+          "c": 4
+        },
+        {
+          "re": "^\\(I[XY]\\)$|^I[XY]$",
+          "c": 8
+        },
+        {
+          "re": ".",
+          "c": 10
+        }
+      ],
+      "group": "Jumps",
+      "name": "Jump",
+      "syntax": "JP label   or   JP condition,label   or (Next) JP (C)",
+      "ops": {
+        "1": [
+          "t"
+        ],
+        "2": [
+          "cc",
+          "t"
+        ]
+      },
+      "summary": "Jumps to an address, anywhere in memory. With a condition, only jumps if it is true.",
+      "explain": {
+        "1": "Jump to {1}.",
+        "2": "Jump to {2} if {1}."
+      },
+      "far": true,
+      "flags": "No flags change.",
+      "more": "`JP (HL)` jumps to the address held in HL; the brackets don't mean memory here.",
+      "special": [
+        {
+          "re": "^\\(C\\)$",
+          "text": "Read a byte from port BC, then jump to that byte times 64 within this 16K of memory (Spectrum Next only)."
+        },
+        {
+          "re": "^\\(HL\\)$",
+          "text": "Jump to the address held in HL."
+        },
+        {
+          "re": "^\\(IX\\)$",
+          "text": "Jump to the address held in IX."
+        },
+        {
+          "re": "^\\(IY\\)$",
+          "text": "Jump to the address held in IY."
+        }
+      ]
+    }
+  },
+  "sizing": {
+    "formsFirst": [
+      {
+        "re": "^(HL|DE|BC),A$",
+        "only": [
+          "ADD"
+        ],
+        "bytes": 2
+      },
+      {
+        "re": "^(DE|BC),",
+        "only": [
+          "ADD"
+        ],
+        "bytes": 4
+      },
+      {
+        "re": "^HL,(?!(BC|DE|HL|SP)$)",
+        "only": [
+          "ADD"
+        ],
+        "bytes": 4
+      },
+      {
+        "re": "^(AF|BC|DE|HL|IX|IY)$",
+        "only": [
+          "PUSH"
+        ],
+        "bytes": 1
+      },
+      {
+        "re": ".",
+        "only": [
+          "PUSH"
+        ],
+        "bytes": 4
+      },
+      {
+        "re": "^\\(C\\)$",
+        "only": [
+          "JP"
+        ],
+        "bytes": 2
+      },
+      {
+        "re": ",A$",
+        "only": [
+          "NEXTREG"
+        ],
+        "bytes": 3
+      },
+      {
+        "re": ".",
+        "only": [
+          "NEXTREG"
+        ],
+        "bytes": 4
+      }
+    ],
+    "loadNote": "With no ORG line, this assumes the code starts at 32768 ($8000), a common place for Spectrum Next machine code"
+  },
+  "timing": {
+    "about": "The Next's Z80N runs at 3.5, 7, 14 or 28 million cycles (T-states) a second: Next register $07 picks which. The counts here are the same at every speed. At 28 MHz the Next adds a short wait to some memory reads, so code can take a little longer than the count says.",
+    "slow": [
+      {
+        "from": "4000",
+        "to": "7FFF",
+        "code": true,
+        "text": "At 3.5 MHz, memory at 16384-32767 is shared with the screen (contended memory), so this can take a few cycles longer while the picture is drawn. At 7 MHz and up the Next doesn't slow it down."
+      }
+    ]
+  },
+  "hwRegisters": {
+    "name": "Next register",
+    "_about": "The Spectrum Next's own registers, set with NEXTREG (or ports $243B and $253B). \"write\" names a decoder in lib/decoders.js that says what a value does. A key can be a range, such as \"50-57\".",
+    "list": {
+      "00": {
+        "name": "Machine ID",
+        "text": "Read only. 10 means a real ZX Spectrum Next; 8 means an emulator."
+      },
+      "01": {
+        "name": "Core version",
+        "text": "Read only. The top 4 bits are the main version number and the bottom 4 the minor one (register $0E has the sub-minor)."
+      },
+      "02": {
+        "name": "Reset",
+        "text": "Writing 1 to bit 0 resets the machine (soft reset), 1 to bit 1 does a hard reset. Reading bit 2 says whether it was just switched on."
+      },
+      "03": {
+        "name": "Machine type",
+        "text": "Picks which Spectrum the Next behaves like (48K, 128K, +3, Pentagon) and its screen timing. Mostly used by the start-up menu."
+      },
+      "05": {
+        "name": "Peripheral 1",
+        "text": "Joystick modes, 50 or 60 Hz picture (bit 2: 0 = 50 Hz) and the scandoubler."
+      },
+      "06": {
+        "name": "Peripheral 2",
+        "text": "Turbo key, DMA mode, DivMMC and Multiface buttons, PS/2 mode and which sound chip is copied (AY or YM)."
+      },
+      "07": {
+        "name": "CPU speed",
+        "text": "Bits 0 and 1 set the speed: 0 = 3.5 MHz (a normal Spectrum), 1 = 7 MHz, 2 = 14 MHz, 3 = 28 MHz. Reading bits 4 and 5 gives the speed it is really running at.",
+        "write": "nextspeed"
+      },
+      "08": {
+        "name": "Peripheral 3",
+        "text": "Bit 7 unlocks 128K paging, bit 6 turns off the slow-down for memory shared with the screen, plus stereo, speaker, DAC, Timex modes and TurboSound."
+      },
+      "09": {
+        "name": "Peripheral 4",
+        "text": "Mono for each AY chip, sprite number lockstep, and scanlines."
+      },
+      "0E": {
+        "name": "Core sub-minor version",
+        "text": "Read only. The third part of the core version (see register $01)."
+      },
+      "12": {
+        "name": "Layer 2 bank",
+        "text": "The 16K bank where the Layer 2 screen being shown starts. A 256x192 Layer 2 screen takes 3 banks in a row."
+      },
+      "13": {
+        "name": "Layer 2 shadow bank",
+        "text": "The 16K bank where the second (hidden) Layer 2 screen starts, for drawing off-screen."
+      },
+      "14": {
+        "name": "See-through colour",
+        "text": "The colour (0 to 255) that counts as see-through on Layer 2, the ULA screen and LoRes. $E3 (bright magenta) to start with."
+      },
+      "15": {
+        "name": "Sprites and layers",
+        "text": "Bit 0 shows the sprites, bit 1 lets them go over the border, bits 2 to 4 set which of sprites, Layer 2 and the ULA screen is on top, bit 6 picks which sprite is on top, bit 7 turns on LoRes (128x96, 256 colours).",
+        "write": "nextlayers"
+      },
+      "16": {
+        "name": "Layer 2 scroll across",
+        "text": "How far Layer 2 is scrolled sideways, 0 to 255 pixels."
+      },
+      "17": {
+        "name": "Layer 2 scroll down",
+        "text": "How far Layer 2 is scrolled up and down, 0 to 191 lines."
+      },
+      "18": {
+        "name": "Layer 2 clip window",
+        "text": "Four writes in a row: left, right, top, bottom. Only the part of Layer 2 inside is shown."
+      },
+      "19": {
+        "name": "Sprite clip window",
+        "text": "Four writes in a row: left, right, top, bottom. Only sprites inside are shown."
+      },
+      "1A": {
+        "name": "ULA screen clip window",
+        "text": "Four writes in a row: left, right, top, bottom, for the ULA (normal) screen and LoRes."
+      },
+      "1B": {
+        "name": "Tilemap clip window",
+        "text": "Four writes in a row: left, right, top, bottom, for the tilemap."
+      },
+      "1C": {
+        "name": "Clip window control",
+        "text": "Writing: bits 0 to 3 send the next write of $18, $19, $1A or $1B back to \"left\". Reading: where each one has got to."
+      },
+      "1E": {
+        "name": "Video line (top bit)",
+        "text": "Read only. Bit 0 is the top bit of the line being drawn now."
+      },
+      "1F": {
+        "name": "Video line",
+        "text": "Read only. The line being drawn now (bottom 8 bits). Useful for waiting for a line."
+      },
+      "22": {
+        "name": "Line interrupt control",
+        "text": "Bit 1 turns on an interrupt at a chosen line (set in $23), bit 2 turns off the usual 50-times-a-second one, bit 0 is the top bit of the line number."
+      },
+      "23": {
+        "name": "Line interrupt line",
+        "text": "The line (bottom 8 bits) the line interrupt happens at."
+      },
+      "2D": {
+        "name": "Sound DAC",
+        "text": "A byte for the mono sound DAC, often written by the copper to play sampled sound."
+      },
+      "2F": {
+        "name": "Tilemap scroll across (top bits)",
+        "text": "The top 2 bits of how far the tilemap is scrolled sideways."
+      },
+      "30": {
+        "name": "Tilemap scroll across",
+        "text": "The bottom 8 bits of how far the tilemap is scrolled sideways."
+      },
+      "31": {
+        "name": "Tilemap scroll down",
+        "text": "How far the tilemap is scrolled up and down, 0 to 255."
+      },
+      "32": {
+        "name": "ULA screen scroll across",
+        "text": "How far the ULA screen (or LoRes) is scrolled sideways."
+      },
+      "33": {
+        "name": "ULA screen scroll down",
+        "text": "How far the ULA screen (or LoRes) is scrolled up and down, 0 to 191."
+      },
+      "34": {
+        "name": "Sprite number",
+        "text": "Picks the sprite (0 to 127) that registers $35 to $39 change."
+      },
+      "35": {
+        "name": "Sprite: across",
+        "text": "The bottom 8 bits of the across position of the sprite picked in $34."
+      },
+      "36": {
+        "name": "Sprite: down",
+        "text": "The bottom 8 bits of the down position of the sprite picked in $34."
+      },
+      "37": {
+        "name": "Sprite: palette and flips",
+        "text": "Bits 4 to 7 palette offset, bit 3 mirror left-right, bit 2 mirror up-down, bit 1 rotate, bit 0 the top bit of the across position."
+      },
+      "38": {
+        "name": "Sprite: shown and picture",
+        "text": "Bit 7 shows the sprite, bit 6 says a fifth byte ($39) is used, bits 0 to 5 the picture (pattern) number."
+      },
+      "39": {
+        "name": "Sprite: extra",
+        "text": "Bit 7 4-bit picture, bits 3 and 4 stretch across, bits 1 and 2 stretch down, bit 0 the top bit of the down position."
+      },
+      "40": {
+        "name": "Palette index",
+        "text": "Which colour in the palette the next write to $41 or $44 changes."
+      },
+      "41": {
+        "name": "Palette colour",
+        "text": "The colour for the entry picked in $40, as RRRGGGBB. Moves on to the next entry by itself."
+      },
+      "42": {
+        "name": "ULANext ink mask",
+        "text": "Which bits of a screen attribute byte are the ink colour, in ULANext mode."
+      },
+      "43": {
+        "name": "Palette control",
+        "text": "Picks which palette $40, $41 and $44 change (ULA, Layer 2, sprites, tilemap; first or second), which ones are shown, and turns on ULANext."
+      },
+      "44": {
+        "name": "Palette colour (9 bits)",
+        "text": "Two writes: RRRGGGBB, then the last bit of blue. Gives 512 colours instead of 256."
+      },
+      "4A": {
+        "name": "Fallback colour",
+        "text": "The colour shown where every layer is see-through."
+      },
+      "4B": {
+        "name": "Sprite see-through colour",
+        "text": "The colour number that is see-through in sprites. $E3 to start with."
+      },
+      "4C": {
+        "name": "Tilemap see-through colour",
+        "text": "The colour number (0 to 15) that is see-through in the tilemap."
+      },
+      "50-57": {
+        "name": "Memory slot",
+        "text": "Each of $50 to $57 picks which 8K page of memory shows in one 8K slot of the 64K the Z80 can see: $50 is $0000-$1FFF, $51 $2000-$3FFF, up to $57 at $E000-$FFFF. 255 puts the ROM back (slots 0 and 1 only).",
+        "write": "nextmmu"
+      },
+      "60": {
+        "name": "Copper data",
+        "text": "A byte of a copper program (the copper changes Next registers at chosen screen lines by itself)."
+      },
+      "61": {
+        "name": "Copper address",
+        "text": "Where in the copper program the next write to $60 goes (bottom 8 bits)."
+      },
+      "62": {
+        "name": "Copper control",
+        "text": "Bits 6 and 7 stop or start the copper; bits 0 to 2 are the top bits of the copper address."
+      },
+      "64": {
+        "name": "Copper line offset",
+        "text": "Moves the copper's line numbers so line 0 can be earlier or later on the screen."
+      },
+      "68": {
+        "name": "ULA control",
+        "text": "Bit 7 turns the ULA (normal) screen off, plus blending and stencil options."
+      },
+      "69": {
+        "name": "Display control",
+        "text": "Bit 7 turns Layer 2 on, bit 6 shows the second ULA screen (bank 7), bits 0 to 5 are the Timex screen modes."
+      },
+      "6B": {
+        "name": "Tilemap control",
+        "text": "Bit 7 turns the tilemap on, bit 6 picks 80 columns instead of 40, plus other tilemap options."
+      },
+      "6C": {
+        "name": "Tilemap default attribute",
+        "text": "The palette offset and flips used when tiles have no attribute byte of their own."
+      },
+      "6E": {
+        "name": "Tilemap address",
+        "text": "Where the tilemap lives in bank 5, in steps of 256 bytes."
+      },
+      "6F": {
+        "name": "Tile pictures address",
+        "text": "Where the tile pictures live in bank 5, in steps of 256 bytes."
+      },
+      "70": {
+        "name": "Layer 2 control",
+        "text": "Bits 4 and 5 pick the Layer 2 size: 0 = 256x192 (256 colours), 1 = 320x256 (256 colours), 2 = 640x256 (16 colours). Bits 0 to 3 are a palette offset."
+      },
+      "71": {
+        "name": "Layer 2 scroll across (top bit)",
+        "text": "The top bit of how far Layer 2 is scrolled sideways, for the 320 and 640 wide modes."
+      },
+      "75-79": {
+        "name": "Sprite attribute, then next sprite",
+        "text": "The same as $35 to $39, but the sprite number moves on to the next sprite after the write."
+      },
+      "7F": {
+        "name": "Your own byte",
+        "text": "Not used by the hardware: a byte programs can keep anything in."
+      }
+    }
+  },
+  "ioPorts": {
+    "243B": {
+      "name": "Next register select",
+      "text": "**Port $243B** picks which Next register port $253B reads or writes. NEXTREG does both steps in one instruction, but only for writing."
+    },
+    "253B": {
+      "name": "Next register value",
+      "text": "**Port $253B** reads or writes the Next register picked with port $243B."
+    },
+    "123B": {
+      "name": "Layer 2 control",
+      "text": "**Port $123B** controls Layer 2: bit 1 shows it, bit 0 makes writes to $0000-$3FFF go to Layer 2 memory, bits 6 and 7 pick which third of it."
+    },
+    "303B": {
+      "name": "sprite slot",
+      "text": "**Port $303B** picks the sprite (writing) whose details go to port $57, and the picture slot whose bytes go to port $5B. Reading it says whether sprites collided."
+    },
+    "57": {
+      "name": "sprite details",
+      "anyHigh": true,
+      "text": "**Port $57** takes a sprite's details, 4 or 5 bytes in a row: across, down, palette and flips, shown and picture number (and the extra byte). It moves on to the next sprite by itself."
+    },
+    "5B": {
+      "name": "sprite pictures",
+      "anyHigh": true,
+      "text": "**Port $5B** takes the bytes of sprite pictures (256 for each 16x16 picture), starting at the slot picked with port $303B."
+    },
+    "6B": {
+      "name": "DMA",
+      "anyHigh": true,
+      "text": "**Port $6B** is the Next's DMA chip, which copies memory (or memory to a port) much faster than the Z80 can."
+    },
+    "DFFD": {
+      "name": "extra memory paging (Next)",
+      "text": "**Port $DFFD** adds more bits to the 128K paging of port $7FFD, to reach the Next's extra memory."
+    },
+    "1FFD": {
+      "name": "+3 memory paging",
+      "text": "**Port $1FFD** is the +3's memory paging (special all-RAM modes, and ROM choice)."
+    },
+    "FF": {
+      "name": "Timex screen modes",
+      "anyHigh": true,
+      "text": "**Port $FF** picks the Timex screen modes (high colour, high resolution)."
+    },
+    "E3": {
+      "name": "DivMMC",
+      "anyHigh": true,
+      "text": "**Port $E3** controls the DivMMC (the SD card system's memory)."
+    }
+  },
+  "directives": {
+    "SAVENEX": {
+      "kind": "other",
+      "symbolOperands": false,
+      "conditional": false,
+      "name": "Savenex",
+      "syntax": "SAVENEX OPEN \"file.nex\",start,stack / SAVENEX CORE 3,0,0 / SAVENEX AUTO / SAVENEX CLOSE",
+      "ops": [
+        0,
+        99
+      ],
+      "summary": "sjasmplus: makes a .nex file, the Spectrum Next's own program file. OPEN names it and says where the program starts and where the stack goes, AUTO puts in the memory banks the program uses, CLOSE writes it."
+    },
+    "MMU": {
+      "kind": "other",
+      "symbolOperands": false,
+      "conditional": false,
+      "name": "MMU",
+      "syntax": "MMU slot,page[,address]",
+      "ops": [
+        0,
+        99
+      ],
+      "summary": "sjasmplus: picks which memory page the assembler puts the following code into, for a slot of memory (8K slots on the Next). It only changes where sjasmplus stores the bytes; the program must still set the slot with NEXTREG $50-$57."
+    },
+    "CSPECTMAP": {
+      "kind": "other",
+      "symbolOperands": false,
+      "conditional": false,
+      "name": "Cspectmap",
+      "syntax": "CSPECTMAP \"file.map\"",
+      "ops": [
+        0,
+        99
+      ],
+      "summary": "sjasmplus: writes the labels to a file the CSpect emulator's debugger can read."
+    }
+  },
+  "build": {
+    "_about": "With no build command or build.bat, sjasmplus is run with --zxnext (so it knows the Next's instructions) and CSpect is started with the .nex file that a SAVENEX OPEN line makes.",
+    "tool": {
+      "id": "sjasmplus",
+      "name": "sjasmplus",
+      "why": "turns Z80 source into a program",
+      "find": [
+        "sjasmplus.exe",
+        "sjasmplus"
+      ],
+      "command": "\"${tool}\" --zxnext \"${fileBasename}\"",
+      "url": "https://github.com/z00m128/sjasmplus/releases",
+      "get": "Windows: download the newest sjasmplus-<version>.win.zip from the Releases page and unzip it into your tools folder. Linux: sudo apt install sjasmplus (or build it from the source on the Releases page). Mac: build it from the source on the Releases page."
+    },
+    "run": {
+      "id": "cspect",
+      "name": "CSpect",
+      "why": "pretends to be a ZX Spectrum Next",
+      "find": [
+        "CSpect.exe",
+        "cspect"
+      ],
+      "args": [
+        "-w3",
+        "-zxnext",
+        "${fileDirname}/${fileBasenameNoExtension}.nex"
+      ],
+      "output": "${fileDirname}/${fileBasenameNoExtension}.nex",
+      "url": "https://mdf200.itch.io/cspect",
+      "get": "Download CSpect from its itch.io page and unzip it into your tools folder. On Linux and Mac it runs with Mono (mono CSpect.exe). ZEsarUX also runs Next programs: set retroAsm.build.runCommand to use it."
+    },
+    "hint": "For Spectrum Next code, set \"retroAsm.build.command\" to run your assembler, for example sjasmplus --zxnext \"${file}\" (or put a build.bat next to the file). To start an emulator afterwards, set \"retroAsm.build.runCommand\", for example \"C:\\CSpect\\CSpect.exe\" -w3 -zxnext \"${fileDirname}\\${fileBasenameNoExtension}.nex\" (with SAVENEX lines in the code)."
+  },
+  "snippets": {
+    "program": {
+      "name": "A whole program to start from",
+      "about": "A Spectrum Next program for sjasmplus. Your code goes in the middle. Building it makes a .nex file to open in CSpect or on a real Next. At the end it waits, so you can see what it did.",
+      "body": [
+        "; ${1:What this program does}",
+        "        DEVICE ZXSPECTRUMNEXT   ; Build for the Spectrum Next",
+        "        OPT --zxnext            ; Let sjasmplus read the Next's own instructions",
+        "        ORG \\$8000               ; Put the code at 32768",
+        "start:  nextreg \\$07,3          ; Run at 28 MHz",
+        "        ei                      ; Let the 50-times-a-second tick run (halt waits for it)",
+        "        $0",
+        "stay:   halt                    ; Wait here, so you can see what happened",
+        "        jr stay",
+        "",
+        "; Put your routines here, before SAVENEX, so they are in the file too",
+        "",
+        "        SAVENEX OPEN \"${2:program}.nex\",start,\\$BFFE ; Make a .nex file that starts at start",
+        "        SAVENEX CORE 3,0,0      ; Needs a Next with core 3.0.0 or newer",
+        "        SAVENEX AUTO            ; Put in the memory the program uses",
+        "        SAVENEX CLOSE"
+      ]
+    },
+    "nextreg": {
+      "name": "Set a Next register",
+      "about": "NEXTREG with the register to fill in. Hover over the number to see what each register does.",
+      "body": [
+        "        nextreg ${1:\\$07},${2:3}         ; ${3:What this changes}",
+        "$0"
+      ]
+    },
+    "bank": {
+      "name": "Show a memory page in a slot",
+      "about": "Puts an 8K page of the Next's memory into one of the eight 8K slots of the 64K the Z80 sees (slot 7 is $E000-$FFFF).",
+      "body": [
+        "        nextreg \\$5${1:7},${2:20}          ; Show page ${2:20} in slot ${1:7}",
+        "$0"
+      ]
+    }
+  }
+}

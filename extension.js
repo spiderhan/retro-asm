@@ -135,11 +135,12 @@ function loadDialects() {
   for (const D of built.dialects) { next.set(D.id, D); builtInIds.add(D.id); }
   problems.push(...built.errors);
   for (const folder of dialectFolders()) {
-    const mine = loadFolder(folder);
+    const mine = loadFolder(folder, { baseFolders: [path.join(extensionPath, 'dialects')] });
     for (const D of mine.dialects) { next.set(D.id, D); builtInIds.delete(D.id); }
     problems.push(...mine.errors);
   }
   dialects = next;
+  project.chips = [...next.values()];     // so a warning can say "NEXTREG is a Spectrum Next instruction"
   if (problems.length) {
     output.appendLine('Problems loading chip files:');
     for (const p of problems) output.appendLine('  ' + p);

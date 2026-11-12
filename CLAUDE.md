@@ -10,10 +10,11 @@ It gives plain-English tooltips, colours, warnings and quick navigation for four
 |---|---|---|---|
 | TI-99/4A | TMS9900 | xas99 | `.a99` |
 | ZX Spectrum | Z80 | sjasmplus | `.z80` |
+| ZX Spectrum Next | Z80N | sjasmplus | `.z80` (picked when the file uses Next instructions) |
 | Commodore 64 | 6502 | KickAssembler | `.asm` |
 | BBC Micro | 6502 / 65C02 | BeebAsm | `.6502` |
 
-Each chip is a data file in `dialects/` (`tms9900.json`, `z80.json`, `6502.json`, `bbc.json`). Adding a chip means adding a data file, not new code. `templates/new-dialect.json` is the starting point.
+Each chip is a data file in `dialects/` (`tms9900.json`, `z80.json`, `z80n.json`, `6502.json`, `bbc.json`). A chip file can build on another with `"extends"` (`z80n.json` builds on `z80.json`). Adding a chip means adding a data file, not new code. `templates/new-dialect.json` is the starting point.
 
 ## How the code is laid out
 
@@ -45,6 +46,7 @@ Run these from the project folder.
 | `node test/ext-test.js` | Main test run. Set `XAS99` to the path of `xas99.py` to include the build step. |
 | `node test/lib-test.js misc` | The logic in `lib/` |
 | `node test/case-test.js` | Letter-case changing |
+| `node test/z80n-test.js` | The Spectrum Next chip. Set `SJASMPLUS` to the path of sjasmplus to compare sizes with it. |
 | `node test/real-check.js <folder>` | Reads a folder of real code. A clean, correct program must give 0 warnings. |
 | `node test/layout-check.js file.a99 file.lst` | Compares addresses with an xas99 `-L` listing |
 | `npm run test:vscode` | Runs inside real VS Code. Set `CLASSIC99` to also test the F5 run. |

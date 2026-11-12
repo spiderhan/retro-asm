@@ -2,7 +2,7 @@
   "name": "retro-asm",
   "displayName": "Retro Assembly Helper",
   "description": "Plain-English tooltips, colours and jump-around navigation for retro assembly: TMS9900 (TI-99/4A, xas99), 6502 (Commodore 64, KickAssembler; BBC Micro, BeebAsm) and Z80 (ZX Spectrum, sjasmplus). Other chips are added as data files.",
-  "version": "0.30.3",
+  "version": "0.31.0",
   "publisher": "hanmade",
   "repository": {
     "type": "git",
@@ -476,7 +476,7 @@
         "retroAsm.lineUpColumns": {
           "type": "object",
           "default": {},
-          "markdownDescription": "Where **Retro ASM: Line up** (Shift+Alt+L) starts each part of a line, for one chip. Each chip has a layout of its own to start with (see the `lineUp` section of its chip file); list only the numbers you want to change. Columns count from 0, a label always starts in column 0. For example: `{ \"tms9900\": { \"instruction\": 8, \"operands\": 13, \"comment\": 30 } }`. The chips are `tms9900`, `z80`, `6502` and `bbc`. Other numbers you can set: `commentGap` (the fewest spaces kept before a comment)."
+          "markdownDescription": "Where **Retro ASM: Line up** (Shift+Alt+L) starts each part of a line, for one chip. Each chip has a layout of its own to start with (see the `lineUp` section of its chip file); list only the numbers you want to change. Columns count from 0, a label always starts in column 0. For example: `{ \"tms9900\": { \"instruction\": 8, \"operands\": 13, \"comment\": 30 } }`. The chips are `tms9900`, `z80`, `z80n`, `6502` and `bbc`. Other numbers you can set: `commentGap` (the fewest spaces kept before a comment)."
         },
         "retroAsm.hoverInComments": {
           "type": "boolean",
