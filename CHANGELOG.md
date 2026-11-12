@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.31.0
+
+- **ZX Spectrum Next (Z80N).** A new chip, **Spectrum Next**, for the Next's Z80 with its extra instructions, written the sjasmplus way. A `.z80` or `.asm` file is read as Spectrum Next when it uses a Next instruction or has a `DEVICE ZXSPECTRUMNEXT`, `OPT --zxnext` or `SAVENEX` line. Plain Spectrum code stays plain Z80.
+- **All the Next's own instructions** have tooltips, a sentence for each line, sizes and times: `NEXTREG`, `MUL D,E`, `SWAPNIB`, `MIRROR A`, `TEST n`, `BSLA`/`BSRA`/`BSRL`/`BSRF`/`BRLC DE,B`, `ADD HL,A` (and `DE,A`, `BC,A`), `ADD HL,1234` (and `DE`, `BC`), `PUSH 1234`, `OUTINB`, `PIXELAD`, `PIXELDN`, `SETAE`, `JP (C)`, `LDIX`, `LDIRX`, `LDDX`, `LDDRX`, `LDPIRX` and `LDWS`.
+- **The Next's registers.** Hover the number in `NEXTREG $07,3` to see what register $07 is, and the line says what the value does: *CPU speed: 28 MHz*. Memory slots (`$50`-`$57`) and sprites and layers (`$15`) are spelled out too. 71 register numbers are explained, and the cheat sheet has a table of them.
+- **The Next's ports:** `$243B`, `$253B`, `$123B`, `$303B`, `$57`, `$5B`, `$6B`, `$DFFD` and more.
+- **Build and run:** **Build** runs `sjasmplus --zxnext`, and **F5** starts CSpect with the `.nex` file that `SAVENEX` lines make. New starter code: a whole Next program, `nextreg` and `bank`. `SAVENEX`, `MMU` and `CSPECTMAP` lines are known.
+- **NEXTREG in a file read as plain Z80** now says it is a Spectrum Next instruction and how to switch, instead of "check the spelling".
+- **Chip files can build on another one.** `"extends": "z80"` takes everything from `z80.json`, so `z80n.json` only lists what the Next adds. Your own chip files can do the same with a built-in one. Also new in chip files: `detect`, `sizing.formsFirst` and `hwRegisters` (see **Adding a chip of your own** in the README).
+- **Tested:** all the test suites, and a new one (`test/z80n-test.js`, 51 checks): the size of every way of writing every Next instruction, compared with the real sjasmplus 1.24.0 (`--zxnext`), which also built the new starter code into a `.nex` file; times from the Spectrum Next wiki's table; the sentences and tooltips; which chip a file is read as; and chip files that build on another (including a missing base).
+- **Not tested:** nothing was run in CSpect, ZEsarUX or on a real Next, so **F5** for the Next is unchecked. Not run in real VS Code. The real-code check on your own Spectrum code was not run (no Next code to try it on). The Next wiki says its times come from limited testing.
+
 ## 0.30.3
 
 - **Copy, Edit picture and New picture on an older game no longer just give an error.** If the open game still keeps its pictures inside the blocks file (made before 0.30), they now ask "Move them now?" and, on yes, move the pictures and sounds into their own file and carry on.

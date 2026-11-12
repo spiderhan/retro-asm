@@ -76,10 +76,10 @@ const at=(doc,needle,sub)=>{const lines=doc.getText().split(/\r?\n/);const l=lin
    ok('"SPRITE" in capitals is a label, not a picture',typing('SPRITE').length===0);
    // every chip's starter code passes the checks
    const {loadFile,snippetPreview}=require('../lib/dialect');const {Project}=require('../lib/project');const F=require('../lib/features');
-   for(const n of ['tms9900','z80','6502','bbc']){const D=loadFile(path.join(__dirname,'../dialects/'+n+'.json'));
+   for(const n of ['tms9900','z80','z80n','6502','bbc']){const D=loadFile(path.join(__dirname,'../dialects/'+n+'.json'));
      const prog=D.snippets.find(s=>s.key==='program');const rest=D.snippets.filter(s=>s!==prog).map(s=>s.preview).join('\n');
-     ok(n+': has starter code',prog&&D.snippets.length===4,D.snippets.map(s=>s.key));if(!prog)continue;
-     const PJ=new Project();PJ.set('/x/s.a99',snippetPreview(prog.text.replace('$0',()=>rest.replace(/\$/g,'\\$'))),D);const w=F.check(PJ,'/x/s.a99');
+     ok(n+': has starter code',prog&&D.snippets.length>=4,D.snippets.map(s=>s.key));if(!prog)continue;
+     const PJ=new Project();PJ.set('/x/s.a99',snippetPreview(prog.text.replace(/^\s*\$0$/m,()=>rest.replace(/\$/g,'\\$'))),D);const w=F.check(PJ,'/x/s.a99');
      ok(n+': starter code gives no warnings',w.length===0,w.map(x=>[x.line+1,x.message]));}
    // Retro ASM: Insert starter code
    const lines=game.getText().split(/\r?\n/);const inserted=[];

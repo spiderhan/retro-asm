@@ -10,6 +10,7 @@ New here? **[QUICKSTART.md](QUICKSTART.md)** gets you from install to a built pr
 |---|---|---|---|---|
 | TI-99/4A | TMS9900 | xas99 | `.a99` | the main sections below use it for their examples |
 | ZX Spectrum | Z80 | sjasmplus (and SkoolKit's `skool2asm` output) | `.z80` | **ZX Spectrum** below |
+| ZX Spectrum Next | Z80N (Z80 plus the Next's own instructions) | sjasmplus | `.z80` (picked when the file uses Next instructions) | **ZX Spectrum Next** below |
 | Commodore 64 | 6502 | KickAssembler | (`.asm`, see below) | **Commodore 64** below |
 | BBC Micro (and Master) | 6502 / 65C02 | BeebAsm | `.6502` | **BBC Micro** below |
 | TI-99/4A GPL (cartridge programs) | GPL, TI's own language run from GROM | xga99 | `.gpl` | **TI-99/4A GPL** below |
@@ -39,6 +40,7 @@ Run **Retro ASM: Set up tools** (Ctrl+Shift+P). It lists, for each computer, wha
 |---|---|---|---|
 | TI-99/4A | xas99 | Classic99 (Windows only) | Python 3. To step through a program: MAME and its TI-99/4A ROMs (see **Step through a program**) |
 | ZX Spectrum | sjasmplus | Fuse | |
+| ZX Spectrum Next | sjasmplus | CSpect | Mono, on Linux and Mac (CSpect is a Windows program) |
 | Commodore 64 | KickAssembler (`KickAss.jar`) | VICE | Java |
 | BBC Micro | BeebAsm | BeebEm (Windows only) | |
 
@@ -130,7 +132,7 @@ Make the label, the instruction, the operands and the comment of every line star
 - If something is too long for its place (a long label, say), it keeps one space after it and the rest of the line follows on. A comment always keeps at least two spaces before it, so on the TI-99/4A the one-space comment warning goes away too.
 - **Only the spaces between the parts change.** The words, the operands (exactly as you typed them, even `R0, R1`) and the comments are copied as they were. A Tab between the parts becomes spaces.
 - **Left as they are:** blank lines, whole-line comments, `name = value` and `*=address` lines, lines with a `{` or `}`, a line that has a label followed by more statements after a colon (BeebAsm's `.loop : LDA #1`), and on the TI-99/4A a sum that carries on after a space (`LI R0,5 + 2`).
-- **Your own columns:** set `retroAsm.lineUpColumns` for the chip, listing only the numbers you want to change, for example `{ "tms9900": { "instruction": 8, "operands": 13, "comment": 30 } }`. The chips are `tms9900`, `z80`, `6502` and `bbc`. To change a chip for good, edit the `lineUp` section of its chip file (see **Adding a chip of your own**).
+- **Your own columns:** set `retroAsm.lineUpColumns` for the chip, listing only the numbers you want to change, for example `{ "tms9900": { "instruction": 8, "operands": 13, "comment": 30 } }`. The chips are `tms9900`, `z80`, `z80n`, `6502` and `bbc`. To change a chip for good, edit the `lineUp` section of its chip file (see **Adding a chip of your own**).
 - It goes well with the letter-case tidy-up (Shift+Alt+U): do them in either order.
 
 ### Convert a TI-99/4A file to xas99 style
@@ -458,6 +460,27 @@ Things it doesn't follow yet:
 - The 3-operand unofficial forms such as `RLC (IX+3),B` aren't known.
 - Fuse hasn't been tried with the real program yet (only a stand-in), so check that **F5** opens your snapshot. Building was tried with the real sjasmplus 1.24.0: errors are underlined on the right lines, and a clean file makes its `.sna`.
 
+## ZX Spectrum Next (Z80N, sjasmplus)
+
+The Next's chip is a Z80 with extra instructions, so everything in **ZX Spectrum** above works here too. A `.z80` or `.asm` file is read as **Spectrum Next** when it uses a Next instruction (`NEXTREG`, `MUL` ...) or has a `DEVICE ZXSPECTRUMNEXT`, `OPT --zxnext` or `SAVENEX` line; otherwise it stays plain Z80. Click the chip name in the bottom-right corner to change it. If a file read as plain Z80 has a Next instruction in it, the warning says so and how to switch.
+
+What it adds:
+
+- Tooltips, a sentence for each line, sizes and times for all the Next's own instructions: `NEXTREG`, `MUL D,E`, `SWAPNIB`, `MIRROR A`, `TEST n`, the barrel shifts (`BSLA DE,B` and the rest), `ADD HL,A` (and `DE,A`, `BC,A`), adding a number straight to `HL`, `DE` or `BC`, `PUSH number`, `OUTINB`, `PIXELAD`, `PIXELDN`, `SETAE`, `JP (C)`, and the copies that skip a see-through byte (`LDIX`, `LDIRX`, `LDDX`, `LDDRX`, `LDPIRX`, `LDWS`).
+- The Next's own registers: hover the number in `NEXTREG $07,3` to see what register $07 is (CPU speed), and the line says what the value does (*28 MHz*). Memory slots (`NEXTREG $52,10`: *slot 2 now shows 8K page 10, where the normal screen lives*) and sprites and layers (`$15`) are spelled out too. The cheat sheet lists every register it knows.
+- The Next's ports: `$243B` and `$253B` (Next registers), `$123B` (Layer 2), `$303B`, `$57` and `$5B` (sprites), `$6B` (DMA) and more, as well as the Spectrum's own.
+- Times say that the Next can run at 3.5, 7, 14 or 28 MHz, and that memory shared with the screen only slows code down at 3.5 MHz.
+- Starter code: a whole Next program (`program`) that builds a `.nex` file, setting a Next register (`nextreg`) and showing a memory page in a slot (`bank`).
+- sjasmplus's `SAVENEX`, `MMU` and `CSPECTMAP` lines are known.
+
+To build, you need sjasmplus; **Build** runs `sjasmplus --zxnext "game.z80"`. Put `SAVENEX` lines in the code (the starter code has them) so the build makes a `.nex` file, and **F5** starts CSpect with it (`CSpect.exe -w3 -zxnext game.nex`). To use ZEsarUX or other commands, set `retroAsm.build.command` and `retroAsm.build.runCommand`.
+
+Things it doesn't follow yet:
+
+- Memory paging: the extension doesn't follow which page is in which slot, so it treats the 64K as one block, like the Spectrum.
+- The Next's copper and DMA programs are just bytes to it.
+- Starting CSpect with **F5** hasn't been tried with the real CSpect. Building was tried with the real sjasmplus 1.24.0: the sizes of all the Next instructions match it, and the starter code makes its `.nex` file.
+
 ## BBC Micro (6502, BeebAsm)
 
 There is more than one assembler for the BBC Micro, but **BeebAsm** is the one most people use today: it is the stardot community's own, it writes code the same way as the BBC's built-in BASIC assembler, it makes a disc image you can run straight away, and big projects such as the documented Elite source code are written for it. So that is the way this chip reads.
@@ -577,6 +600,8 @@ The `snippets` section is the starter code (see **Starter code**). Each one is n
 
 The `sprites` section lists the picture shapes for the picture editor: each has a `name`, `width` and `height`, and can have an `order` (`rows`, `columns` or `cells`), `pixelBits` (which bits of a byte make each pixel, for pixels of more than one bit), `colours` and `colourNames`, `pixelWidth` (2 for double-width pixels) and `stride` (how far apart pictures are, such as 64 for C64 sprites). `newSprite` says how to write a new picture. `6502.json` and `bbc.json` have the fullest examples.
 
+A chip file can build on another one with `"extends"`: `z80n.json` says `"extends": "z80"` and lists only what the Next adds or changes. Sections merge name by name (the new file wins), lists are replaced whole, and `null` takes something out. Your own chip file in `asm-dialects` can build on a built-in one the same way. In `sizing`, `formsFirst` puts new forms in front of the ones taken over. `detect` lists lines that mark a file as written for this chip (`DEVICE ZXSPECTRUMNEXT`), which counts when the extension picks between chips that share a file ending. `hwRegisters` explains numbered hardware registers set by an instruction whose operand is marked `hr` (the Next's `NEXTREG`).
+
 `z80.json` also shows `ioPorts` (hardware reached with IN and OUT, and how to read a value sent there), `addressGuess` (when a plain number is probably an address), `build` (what to say when no build command is set) and, in `registers`, which registers are pairs.
 
 ## Settings
@@ -664,6 +689,7 @@ From the `retro-asm` folder:
 | `node test/lib-test.js misc` | Prints the outline, warnings, folds and original-game addresses for the test files. |
 | `node test/real-check.js <folder>` | Runs the checks over every `.a99`, `.z80`, `.asm`, `.a80`, `.s` and `.6502` file in a folder (a finished program should give 0 warnings). |
 | `node test/beebasm-check.js file.6502 [beebasm]` | Builds the file with the real BeebAsm and compares the address of every label with ours. Give the path to `beebasm` (or set `BEEBASM`); `node test/ext-test.js` runs it too when `BEEBASM` is set. |
+| `node test/z80n-test.js` | The Spectrum Next chip file: sizes, times, words and tooltips for the Next's instructions and registers, which chip a file is read as, and chip files that build on another. Set `SJASMPLUS` to the path of sjasmplus to also compare the sizes with it and build the starter code. |
 | `python test/z80-size-check.py [file.asm]` | Compares the Z80 sizes with SkoolKit's Z80 assembler (`pip install skoolkit`): every way of writing every instruction, or every line of a file. |
 | `python test/z80-cycle-check.py` | Compares the Z80 cycle counts with SkoolKit's Z80 simulator: every way of writing every instruction is run, with jumps taken and not taken. |
 | `node test/layout-check.js file.a99 file.lst` | Compares every address with an xas99 listing made with `-L`. |
@@ -687,6 +713,7 @@ A short list of the big steps. The full details of every release are in `CHANGEL
 | Version | What it added |
 |---|---|
 | 0.26 | **Game blocks (early prototype, TI-99/4A):** build a simple game from plain-English blocks, starting from a ready-made *Bat and ball* kit, and get an ordinary `.a99` file |
+| 0.31 | **ZX Spectrum Next (Z80N):** the Next's own instructions, registers and ports, `.nex` building with sjasmplus and running in CSpect; chip files can build on another (`extends`) |
 | 0.30.3 | Copy, Edit picture and New picture offer to move an older game's pictures into their own file |
 | 0.30.2 | A **Make and run in MAME** button in the blocks panel, so the game that runs is always the one just made |
 | 0.30.1 | Every row of a wall can be broken (the ball bounces the way it came in), FCTN + = quits a made game, a Copy button on tiles, and a fix for the "bigger than 8x8" tile error |
