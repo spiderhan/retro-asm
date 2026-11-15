@@ -56,6 +56,8 @@
   "primeAfterName": true,
   "dotInNames": true,
   "dotLocals": true,
+  "colonStatements": true,
+  "numberLabels": true,
   "addressByShape": true
  },
  "build": {
@@ -2562,6 +2564,18 @@
     99
    ],
    "summary": "sjasmplus: changes an option while assembling."
+  },
+  "SLDOPT": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "Debugger options",
+   "syntax": "SLDOPT COMMENT keyword,keyword,...",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "sjasmplus: says which words in comments (WPMEM, LOGPOINT, ASSERTION) are kept in the .sld file for a debugger such as DeZog. It adds nothing to the program."
   },
   "LABELSLIST": {
    "kind": "other",
