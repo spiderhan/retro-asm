@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.31.1
+
+Three things reported from real Spectrum Next code written for sjasmplus.
+
+- **Several statements on one line.** sjasmplus lets you write `bit 0, a : jr nz, 1F : set 0, e`. The extension read that as one `BIT` with four operands, warned about it, and then said there was no label called `jr`, `nz` or `set`. Each statement is now read by itself, with its own tooltip, address, size and time. A `:` straight after a label (`loop: ld a,1 : inc a`) still just ends the label, and a `:` inside quotes, brackets or a comment is left alone.
+- **Numbered labels.** `1:` can be used again and again, with `jr 1F` for the next one and `jr 1B` for the last one. Two `1:` labels no longer get "defined more than once". Hover `1F` to see which line it means, and Ctrl+click it to go there. A jump to a number that isn't there gets a warning, and so does a `JR` or `DJNZ` to one that is too far away. In the outline they sit inside their routine. A numbered label no longer becomes the "home" of the `.name` labels after it (before, `.loop` after a `2:` was filed under `2`). Outside a jump, `1B` is still the binary number 1.
+- **`SLDOPT`** is known (the line that tells a debugger such as DeZog which comment words to keep), so it and its words (`WPMEM`, `LOGPOINT`, `ASSERTION`) no longer get warnings.
+- **Letter case on save** now changes every statement on such a line. Before, only the first one changed, so a line could end up half upper case.
+- **Not a fault, but worth knowing:** instructions turning to upper case when you save is the extension's own letter-case change (the setting `retroAsm.formatCaseOnSave`, on by default). Turn that setting off if you would rather keep what you typed.
+- **Tested:** all the test suites, and a new one (`test/sjasm-test.js`, 54 checks, run for both Spectrum and Spectrum Next). A made-up sample using all of the above was built with the real sjasmplus 1.21.0: it built with no errors, and every statement's address, every label's address and where each `1F` / `1B` / `2B` jump lands are the same as in sjasmplus's own listing. sjasmplus also agreed that `end:` in the first column is a label and that an indented `di:halt` is two instructions. The fixtures for the other three computers give exactly the same warnings and readings as before.
+- **Not tested:** not run in real VS Code, so the tooltips, Ctrl+click and the save were only checked through the parts that do the work. Not tried on your own Next code (I didn't have it), so there may be other sjasmplus words it uses that aren't known yet. Numbered labels are only followed inside one file, not across `INCLUDE`. sjasmplus's `a ? b : c` sums would now be split at the `:`.
+
 ## 0.31.0
 
 - **ZX Spectrum Next (Z80N).** A new chip, **Spectrum Next**, for the Next's Z80 with its extra instructions, written the sjasmplus way. A `.z80` or `.asm` file is read as Spectrum Next when it uses a Next instruction or has a `DEVICE ZXSPECTRUMNEXT`, `OPT --zxnext` or `SAVENEX` line. Plain Spectrum code stays plain Z80.

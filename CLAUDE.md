@@ -46,6 +46,7 @@ Run these from the project folder.
 | `node test/ext-test.js` | Main test run. Set `XAS99` to the path of `xas99.py` to include the build step. |
 | `node test/lib-test.js misc` | The logic in `lib/` |
 | `node test/case-test.js` | Letter-case changing |
+| `node test/sjasm-test.js` | sjasmplus's way of writing: several statements on a line, numbered labels, `SLDOPT` |
 | `node test/z80n-test.js` | The Spectrum Next chip. Set `SJASMPLUS` to the path of sjasmplus to compare sizes with it. |
 | `node test/real-check.js <folder>` | Reads a folder of real code. A clean, correct program must give 0 warnings. |
 | `node test/layout-check.js file.a99 file.lst` | Compares addresses with an xas99 `-L` listing |
