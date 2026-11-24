@@ -26,6 +26,15 @@
   "lineComment": [
    ";"
   ],
+  "dotDirectives": true,
+  "repeatPrefix": true,
+  "squareMemory": true,
+  "rawBlocks": [
+   [
+    "LUA",
+    "ENDLUA"
+   ]
+  ],
   "col0Comment": [],
   "spaceStarComment": false,
   "operandsEndAtSpace": false,
@@ -2218,6 +2227,7 @@
    "summary": "Leaves a gap of that many bytes (filled with the value, or 0)."
   },
   "=": {
+   "canChange": true,
    "kind": "equ",
    "name": "Set a name",
    "syntax": "NAME = value",
@@ -2228,6 +2238,7 @@
    "summary": "Gives a name to a number, like EQU. It takes up no memory."
   },
   "DEFL": {
+   "canChange": true,
    "kind": "equ",
    "name": "Set a name (can change)",
    "syntax": "NAME DEFL value",
@@ -2284,8 +2295,7 @@
    "summary": "Ends a macro."
   },
   "IF": {
-   "kind": "other",
-   "conditional": true,
+   "kind": "if",
    "symbolOperands": true,
    "name": "Conditional",
    "syntax": "IF condition",
@@ -2296,8 +2306,8 @@
    "summary": "Assembles the lines up to ELSE or ENDIF only if the sum is not 0."
   },
   "IFDEF": {
-   "kind": "other",
-   "conditional": true,
+   "kind": "if",
+   "test": "defined",
    "symbolOperands": false,
    "name": "Conditional",
    "syntax": "IFDEF condition",
@@ -2308,8 +2318,8 @@
    "summary": "Assembles the lines up to ELSE or ENDIF only if the name is defined."
   },
   "IFNDEF": {
-   "kind": "other",
-   "conditional": true,
+   "kind": "if",
+   "test": "notDefined",
    "symbolOperands": false,
    "name": "Conditional",
    "syntax": "IFNDEF condition",
@@ -2320,8 +2330,7 @@
    "summary": "Assembles the lines up to ELSE or ENDIF only if the name is not defined."
   },
   "ELSE": {
-   "kind": "other",
-   "conditional": true,
+   "kind": "else",
    "symbolOperands": false,
    "name": "Conditional",
    "syntax": "ELSE",
@@ -2332,8 +2341,7 @@
    "summary": "The other half of an IF."
   },
   "ENDIF": {
-   "kind": "other",
-   "conditional": false,
+   "kind": "endif",
    "symbolOperands": false,
    "name": "End of conditional",
    "syntax": "ENDIF",
@@ -2588,6 +2596,785 @@
     99
    ],
    "summary": "sjasmplus: saves the labels to a file (for an emulator's debugger)."
+  },
+  "D24": {
+   "kind": "data",
+   "unit": 3,
+   "name": "Define 3-byte numbers",
+   "syntax": "D24 value,...",
+   "ops": [
+    1,
+    999
+   ],
+   "summary": "sjasmplus: puts one or more 3-byte numbers into the program, lowest byte first ($123456 gives $56, $34, $12)."
+  },
+  "DG": {
+   "kind": "data",
+   "symbolOperands": false,
+   "encoding": "bits",
+   "name": "Define bytes as a picture",
+   "syntax": "DG ..##..##",
+   "ops": [
+    1,
+    999
+   ],
+   "summary": "sjasmplus: draws bytes with characters, 8 to a byte: `-`, `.` and `_` are 0 bits, anything else is a 1 bit, and spaces are ignored. Handy for sprites and fonts."
+  },
+  "DEFG": {
+   "kind": "data",
+   "symbolOperands": false,
+   "encoding": "bits",
+   "name": "Define bytes as a picture",
+   "syntax": "DEFG ..##..##",
+   "ops": [
+    1,
+    999
+   ],
+   "summary": "sjasmplus: draws bytes with characters, 8 to a byte: `-`, `.` and `_` are 0 bits, anything else is a 1 bit, and spaces are ignored. Handy for sprites and fonts."
+  },
+  "DH": {
+   "kind": "data",
+   "symbolOperands": false,
+   "encoding": "hex",
+   "name": "Define bytes in hex",
+   "syntax": "DH \"0123ABCD\"",
+   "ops": [
+    1,
+    999
+   ],
+   "summary": "sjasmplus: puts in bytes written as pairs of hex digits in quotes: \"0123ABCD\" gives 4 bytes, $01, $23, $AB, $CD."
+  },
+  "DEFH": {
+   "kind": "data",
+   "symbolOperands": false,
+   "encoding": "hex",
+   "name": "Define bytes in hex",
+   "syntax": "DEFH \"0123ABCD\"",
+   "ops": [
+    1,
+    999
+   ],
+   "summary": "sjasmplus: puts in bytes written as pairs of hex digits in quotes: \"0123ABCD\" gives 4 bytes, $01, $23, $AB, $CD."
+  },
+  "HEX": {
+   "kind": "data",
+   "symbolOperands": false,
+   "encoding": "hex",
+   "name": "Define bytes in hex",
+   "syntax": "HEX \"0123ABCD\"",
+   "ops": [
+    1,
+    999
+   ],
+   "summary": "sjasmplus: puts in bytes written as pairs of hex digits in quotes: \"0123ABCD\" gives 4 bytes, $01, $23, $AB, $CD."
+  },
+  "DP": {
+   "kind": "text",
+   "unit": 1,
+   "mixed": true,
+   "lengthByte": true,
+   "name": "Define text with its length in front",
+   "syntax": "DP \"some words\"",
+   "ops": [
+    1,
+    999
+   ],
+   "summary": "sjasmplus: puts in a byte saying how long the text is, then the text: `DP \"Ahoy!\"` is the same as `DB 5,\"Ahoy!\"`."
+  },
+  "DEFP": {
+   "kind": "text",
+   "unit": 1,
+   "mixed": true,
+   "lengthByte": true,
+   "name": "Define text with its length in front",
+   "syntax": "DEFP \"some words\"",
+   "ops": [
+    1,
+    999
+   ],
+   "summary": "sjasmplus: puts in a byte saying how long the text is, then the text: `DP \"Ahoy!\"` is the same as `DB 5,\"Ahoy!\"`."
+  },
+  "ABYTE": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": true,
+   "name": "Define bytes with a number added",
+   "syntax": "ABYTE offset value,...",
+   "ops": [
+    1,
+    999
+   ],
+   "summary": "sjasmplus: puts in bytes like DB, but adds the first number to each one: `ABYTE 1 \"abc\"` gives \"bcd\". (Addresses after it are marked as rough.)"
+  },
+  "ABYTEC": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": true,
+   "name": "Define text with a number added, last letter marked",
+   "syntax": "ABYTEC offset \"text\"",
+   "ops": [
+    1,
+    999
+   ],
+   "summary": "sjasmplus: like ABYTE, but also switches on the top bit of the last byte to mark the end, as DC does. (Addresses after it are marked as rough.)"
+  },
+  "ABYTEZ": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": true,
+   "name": "Define text with a number added, ending in 0",
+   "syntax": "ABYTEZ offset \"text\"",
+   "ops": [
+    1,
+    999
+   ],
+   "summary": "sjasmplus: like ABYTE, then a 0 byte to mark where it ends, as DZ does. (Addresses after it are marked as rough.)"
+  },
+  "IFN": {
+   "kind": "if",
+   "negate": true,
+   "symbolOperands": true,
+   "name": "Conditional (if not)",
+   "syntax": "IFN condition",
+   "ops": [
+    1,
+    99
+   ],
+   "summary": "sjasmplus: assembles the lines up to ELSE or ENDIF only if the sum is 0 (the opposite of IF)."
+  },
+  "IFUSED": {
+   "kind": "if",
+   "test": "unknown",
+   "symbolOperands": false,
+   "name": "Conditional (if used)",
+   "syntax": "IFUSED label   or   label: IFUSED",
+   "ops": [
+    0,
+    1
+   ],
+   "summary": "sjasmplus: assembles the lines up to ELSE or ENDIF only if the label is used somewhere in the program. Handy for a library: only routines that are called get built."
+  },
+  "IFNUSED": {
+   "kind": "if",
+   "test": "unknown",
+   "symbolOperands": false,
+   "name": "Conditional (if not used)",
+   "syntax": "IFNUSED label   or   label: IFNUSED",
+   "ops": [
+    0,
+    1
+   ],
+   "summary": "sjasmplus: assembles the lines up to ELSE or ENDIF only if the label is not used anywhere (the opposite of IFUSED)."
+  },
+  "ELSEIF": {
+   "kind": "elif",
+   "symbolOperands": true,
+   "name": "Else if",
+   "syntax": "ELSEIF condition",
+   "ops": [
+    1,
+    99
+   ],
+   "summary": "sjasmplus: part of an IF: if nothing before it in the IF was assembled, assembles the lines after it only if the sum is not 0."
+  },
+  "WHILE": {
+   "kind": "other",
+   "symbolOperands": true,
+   "conditional": true,
+   "name": "Repeat while",
+   "syntax": "WHILE condition   or   WHILE condition,most",
+   "ops": [
+    1,
+    2
+   ],
+   "summary": "sjasmplus: repeats the lines up to ENDW for as long as the sum is not 0. The second number stops a loop that never ends (100,000 times if it is left out). (Addresses after it are marked as rough.)"
+  },
+  "ENDW": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "End of repeat while",
+   "syntax": "ENDW",
+   "ops": [
+    0,
+    0
+   ],
+   "summary": "sjasmplus: ends a WHILE."
+  },
+  "DEFINE": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "nameFirst": "space",
+   "name": "Define a word",
+   "syntax": "DEFINE name text",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "sjasmplus: makes a word that sjasmplus swaps for the text after it wherever it appears. With no text, the word just exists, for IFDEF to test."
+  },
+  "DEFINE+": {
+   "changes": true,
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "nameFirst": "space",
+   "name": "Define a word again",
+   "syntax": "DEFINE+ name text",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "sjasmplus: like DEFINE, but may change a word that is already defined."
+  },
+  "UNDEFINE": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "undefines": true,
+   "name": "Forget a word",
+   "syntax": "UNDEFINE name   or   UNDEFINE *",
+   "ops": [
+    1,
+    1
+   ],
+   "summary": "sjasmplus: forgets a word made by DEFINE. `UNDEFINE *` forgets all of them."
+  },
+  "DEFARRAY": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "nameFirst": true,
+   "name": "Define a list of words",
+   "syntax": "DEFARRAY name item,item,...",
+   "ops": [
+    1,
+    999
+   ],
+   "summary": "sjasmplus: makes a list: name[0] is swapped for the first item, name[1] the next and so on. name[#] is how many there are."
+  },
+  "DEFARRAY+": {
+   "changes": true,
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "Add to a list of words",
+   "syntax": "DEFARRAY+ name item,item,...",
+   "ops": [
+    1,
+    999
+   ],
+   "summary": "sjasmplus: adds more items to the end of a DEFARRAY list."
+  },
+  "EXPORT": {
+   "kind": "other",
+   "symbolOperands": true,
+   "conditional": false,
+   "name": "Export a label",
+   "syntax": "EXPORT label",
+   "ops": [
+    1,
+    1
+   ],
+   "summary": "sjasmplus: writes the label and its value to the export file, so another program can use it."
+  },
+  "ENCODING": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "Text encoding",
+   "syntax": "ENCODING \"WIN\"   or   ENCODING \"DOS\"",
+   "ops": [
+    1,
+    1
+   ],
+   "summary": "sjasmplus: picks how letters in text are turned into bytes. \"DOS\" changes Windows letters to the old DOS-866 set; \"WIN\", the normal choice, leaves them as they are."
+  },
+  "DISP": {
+   "kind": "origin",
+   "mode": "displace",
+   "name": "Build for another address",
+   "syntax": "DISP address   or   DISP address,page",
+   "ops": [
+    1,
+    2
+   ],
+   "summary": "sjasmplus: the code after it is built to run at this address, but is still stored where it is now, until ENT. Use it for code that will be copied somewhere else before it runs. Labels in between get the address where the code will run."
+  },
+  "PHASE": {
+   "kind": "origin",
+   "mode": "displace",
+   "name": "Build for another address",
+   "syntax": "PHASE address   or   PHASE address,page",
+   "ops": [
+    1,
+    2
+   ],
+   "summary": "sjasmplus: the code after it is built to run at this address, but is still stored where it is now, until ENT. Use it for code that will be copied somewhere else before it runs. Labels in between get the address where the code will run."
+  },
+  "TEXTAREA": {
+   "kind": "origin",
+   "mode": "displace",
+   "name": "Build for another address",
+   "syntax": "TEXTAREA address   or   TEXTAREA address,page",
+   "ops": [
+    1,
+    2
+   ],
+   "summary": "sjasmplus: the code after it is built to run at this address, but is still stored where it is now, until ENT. Use it for code that will be copied somewhere else before it runs. Labels in between get the address where the code will run."
+  },
+  "ENT": {
+   "kind": "origin",
+   "mode": "undisplace",
+   "name": "End of building for another address",
+   "syntax": "ENT",
+   "ops": [
+    0,
+    0
+   ],
+   "summary": "sjasmplus: ends a DISP: the code after it goes back to the address where it is really stored."
+  },
+  "DEPHASE": {
+   "kind": "origin",
+   "mode": "undisplace",
+   "name": "End of building for another address",
+   "syntax": "DEPHASE",
+   "ops": [
+    0,
+    0
+   ],
+   "summary": "sjasmplus: ends a DISP: the code after it goes back to the address where it is really stored."
+  },
+  "UNPHASE": {
+   "kind": "origin",
+   "mode": "undisplace",
+   "name": "End of building for another address",
+   "syntax": "UNPHASE",
+   "ops": [
+    0,
+    0
+   ],
+   "summary": "sjasmplus: ends a DISP: the code after it goes back to the address where it is really stored."
+  },
+  "ENDT": {
+   "kind": "origin",
+   "mode": "undisplace",
+   "name": "End of building for another address",
+   "syntax": "ENDT",
+   "ops": [
+    0,
+    0
+   ],
+   "summary": "sjasmplus: ends a DISP: the code after it goes back to the address where it is really stored."
+  },
+  "FPOS": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "Move in the output file",
+   "syntax": "FPOS position   or   FPOS +offset",
+   "ops": [
+    1,
+    1
+   ],
+   "summary": "sjasmplus: moves to another place in the output file, to write over bytes already there. A + or - in front moves from where it is now."
+  },
+  "SIZE": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "Output file size",
+   "syntax": "SIZE bytes",
+   "ops": [
+    1,
+    1
+   ],
+   "summary": "sjasmplus: makes the output file this many bytes long, filling the end with 0s."
+  },
+  "OUTEND": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "End of output file",
+   "syntax": "OUTEND",
+   "ops": [
+    0,
+    0
+   ],
+   "summary": "sjasmplus: closes the file named by OUTPUT."
+  },
+  "INSERT": {
+   "kind": "include",
+   "binary": true,
+   "symbolOperands": false,
+   "name": "Include a binary file",
+   "syntax": "INSERT \"file.bin\"",
+   "ops": [
+    1,
+    3
+   ],
+   "summary": "sjasmplus: pulls in the raw bytes of a file at this point. Same as INCBIN."
+  },
+  "INCHOB": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": true,
+   "name": "Include a Hobeta file",
+   "syntax": "INCHOB \"file.$c\"   or   INCHOB \"file.$c\",offset,length",
+   "ops": [
+    1,
+    3
+   ],
+   "summary": "sjasmplus: pulls in the bytes of a Hobeta file (a TR-DOS file on its own). (Addresses after it are marked as rough.)"
+  },
+  "INCTRD": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": true,
+   "name": "Include a file from a TRD disk",
+   "syntax": "INCTRD \"disk.trd\",\"file.c\"   or   INCTRD \"disk.trd\",\"file.c\",offset,length",
+   "ops": [
+    2,
+    4
+   ],
+   "summary": "sjasmplus: pulls in the bytes of a file inside a TR-DOS disk image. (Addresses after it are marked as rough.)"
+  },
+  "INCLUDELUA": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "Include a Lua script",
+   "syntax": "INCLUDELUA \"file.lua\"",
+   "ops": [
+    1,
+    1
+   ],
+   "summary": "sjasmplus: runs a Lua script file while assembling. Its functions can then be used in LUA blocks."
+  },
+  "TAPOUT": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "Start a tape block",
+   "syntax": "TAPOUT \"file.tap\"   or   TAPOUT \"file.tap\",flag",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "sjasmplus: the bytes after it go into one block of a tape file (.tap), up to TAPEND."
+  },
+  "TAPEND": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "End a tape block",
+   "syntax": "TAPEND",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "sjasmplus: ends the tape block started by TAPOUT."
+  },
+  "HEXOUT": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "Start an Intel HEX file",
+   "syntax": "HEXOUT \"file.hex\"",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "sjasmplus: the bytes after it go into an Intel HEX file, up to HEXEND."
+  },
+  "HEXEND": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "End an Intel HEX file",
+   "syntax": "HEXEND   or   HEXEND start",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "sjasmplus: closes the Intel HEX file started by HEXOUT."
+  },
+  "SAVEHEX": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "Save as Intel HEX",
+   "syntax": "SAVEHEX \"file.hex\",address,length",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "sjasmplus: saves a block of memory as an Intel HEX file."
+  },
+  "SAVEDEV": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "Save device memory",
+   "syntax": "SAVEDEV \"file.bin\",page,offset,length",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "sjasmplus: saves a block of the machine's memory, counted from a memory page. Like SAVEBIN, but it can be longer than 64K."
+  },
+  "SAVEHOB": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "Save a Hobeta file",
+   "syntax": "SAVEHOB \"file.$c\",\"name.c\",address,length",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "sjasmplus: saves a block of memory as a Hobeta file (a TR-DOS file on its own)."
+  },
+  "SAVETRD": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "Save to a TRD disk",
+   "syntax": "SAVETRD \"disk.trd\",\"name.c\",address,length",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "sjasmplus: saves a block of memory as a file on a TR-DOS disk image (.trd)."
+  },
+  "EMPTYTRD": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "New TRD disk",
+   "syntax": "EMPTYTRD \"disk.trd\"   or   EMPTYTRD \"disk.trd\",\"label\"",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "sjasmplus: makes a new, empty TR-DOS disk image (.trd)."
+  },
+  "SAVE3DOS": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "Save a +3DOS file",
+   "syntax": "SAVE3DOS \"file\",address,length",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "sjasmplus: saves a block of memory with a +3DOS header, for the Spectrum +3 disk drive."
+  },
+  "SAVEAMSDOS": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "Save an AMSDOS file",
+   "syntax": "SAVEAMSDOS \"file\",address,length",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "sjasmplus: saves a block of memory with an AMSDOS header, for the Amstrad CPC."
+  },
+  "SAVECDT": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "Save an Amstrad tape file",
+   "syntax": "SAVECDT FULL \"file.cdt\"   or   SAVECDT CODE \"file.cdt\",\"name\",start,length",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "sjasmplus: saves an Amstrad CPC tape file (.cdt)."
+  },
+  "SAVECPCSNA": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "Save an Amstrad snapshot",
+   "syntax": "SAVECPCSNA \"file.sna\"   or   SAVECPCSNA \"file.sna\",start",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "sjasmplus: saves an Amstrad CPC snapshot that an emulator can load straight away."
+  },
+  "SAVECPR": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "Save an Amstrad cartridge",
+   "syntax": "SAVECPR \"file.cpr\"   or   SAVECPR \"file.cpr\",size",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "sjasmplus: saves an Amstrad CPC Plus cartridge file (.cpr)."
+  },
+  "SETBP": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "Set a breakpoint",
+   "syntax": "SETBP   or   SETBP address   or   SETBP address,\"condition\"",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "sjasmplus: adds a breakpoint (a place for the debugger to stop) to the BPLIST file. With no address, it is this line."
+  },
+  "SETBREAKPOINT": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "Set a breakpoint",
+   "syntax": "SETBREAKPOINT   or   SETBREAKPOINT address",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "sjasmplus: same as SETBP: adds a breakpoint to the BPLIST file."
+  },
+  "BPLIST": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "Breakpoint file",
+   "syntax": "BPLIST \"file\" unreal   or   zesarux, mame, fuse",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "sjasmplus: names the file breakpoints (SETBP) are written to, for an emulator's debugger."
+  },
+  "SHELLEXEC": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "Run a program",
+   "syntax": "SHELLEXEC \"program\"   or   SHELLEXEC \"program\",\"options\"",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "sjasmplus: runs another program on your computer near the end of assembling (for example, to pack the output file)."
+  },
+  "DEFDEVICE": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "Define a machine",
+   "syntax": "DEFDEVICE name,slot size,pages",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "sjasmplus: describes a machine of your own (its memory slots and pages) for DEVICE to pick."
+  },
+  "ENDMOD": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "End module",
+   "syntax": "ENDMOD",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "sjasmplus: ends a module. Same as ENDMODULE."
+  },
+  "LUA": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": true,
+   "name": "Lua script",
+   "syntax": "LUA   or   LUA PASS1, PASS2, PASS3 or ALLPASS",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "sjasmplus: the lines up to ENDLUA are a Lua script that runs while assembling. They are not checked. (Addresses after it are marked as rough, as the script may put in bytes.)"
+  },
+  "ENDLUA": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "End of Lua script",
+   "syntax": "ENDLUA",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "sjasmplus: ends a LUA block."
+  },
+  "RELOCATE_START": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "Start relocatable code",
+   "syntax": "RELOCATE_START   or   RELOCATE_START HIGH",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "sjasmplus: starts a block of code that can be moved: sjasmplus notes each place that holds one of its addresses, up to RELOCATE_END."
+  },
+  "RELOCATE_END": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "End relocatable code",
+   "syntax": "RELOCATE_END",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "sjasmplus: ends a RELOCATE_START block."
+  },
+  "RELOCATE_TABLE": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": true,
+   "name": "Relocation table",
+   "syntax": "RELOCATE_TABLE   or   RELOCATE_TABLE offset",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "sjasmplus: puts in a table of words: where each address noted in a RELOCATE_START block sits, so a loader can fix them. (Addresses after it are marked as rough.)"
+  },
+  "MMU": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "MMU",
+   "syntax": "MMU slot,page   or   MMU slot,page,address",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "sjasmplus: picks which memory page the assembler puts the following code into, for a slot of memory (8K slots on the Next, 16K on a 128K Spectrum). It only changes where sjasmplus stores the bytes; the program must still switch the memory itself."
+  },
+  "CSPECTMAP": {
+   "kind": "other",
+   "symbolOperands": false,
+   "conditional": false,
+   "name": "Cspectmap",
+   "syntax": "CSPECTMAP   or   CSPECTMAP \"file.map\"",
+   "ops": [
+    0,
+    99
+   ],
+   "summary": "sjasmplus: writes the labels to a file the CSpect emulator's debugger can read."
   },
   "PROC": {
    "kind": "other",

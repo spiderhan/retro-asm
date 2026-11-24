@@ -448,17 +448,25 @@ What you get:
 - Addresses and sizes for every line, worked out the Z80 way (IX and IY instructions are a byte longer, and `(IX+n)` another one). Checked against SkoolKit's Z80 assembler for every way of writing every instruction, and for every line of a full Spectrum game's disassembly.
 - The ROM calculator: after `RST $28` come a list of sums for the calculator, not instructions. A disassembly of a game shows those bytes as instructions, so they're marked as data in the tooltips, aren't checked for mistakes, and don't count in the routine's register summary.
 - Warnings when `JR` or `DJNZ` can't reach its label (128 bytes back, 127 ahead), with the fix, and when `JR` is given a test it can't do (`JR PE,...`).
-- sjasmplus's way of writing: local labels (`.loop` belongs to the label above it, so every routine can have its own), `main.loop`, `'A'` for a letter, `$`, `#` or `0FFh` for hex, `%` for binary, `DEFB "text",0`, `DEFM`, `DZ`, `DC`, `BLOCK`, `ALIGN`, `=`, `MACRO`/`ENDM` (either way round), `IF`/`ENDIF`, `DEVICE`, `SAVESNA`, `INCLUDE` and `INCBIN`, and `SLDOPT` (the line that tells a debugger such as DeZog which comment words to keep). SkoolKit's `skool2asm` output reads the same way: `skool2asm.py -c game.skool > game.asm` turns a `.skool` disassembly into a file this works on.
+- sjasmplus's way of writing: local labels (`.loop` belongs to the label above it, so every routine can have its own), `main.loop`, `'A'` for a letter, `$`, `#` or `0FFh` for hex, `%` for binary, `DEFB "text",0`, `DEFM`, `DZ`, `DC`, `BLOCK`, `ALIGN`, `=`, `MACRO`/`ENDM` (either way round), `IF`/`ENDIF`, `DEVICE`, `SAVESNA`, `INCLUDE` and `INCBIN`, and `SLDOPT` (the line that tells a debugger such as DeZog which comment words to keep). Every other directive in the sjasmplus 1.24 manual is known too, with a tooltip: see the next few points. SkoolKit's `skool2asm` output reads the same way: `skool2asm.py -c game.skool > game.asm` turns a `.skool` disassembly into a file this works on.
 - **Several statements on one line**, split by `:`, as sjasmplus allows: `bit 0, a : jr nz, 1F : set 0, e`. Each one has its own tooltip, address, size and time, and warnings are worked out for each one by itself. A `:` straight after a label (`loop: ld a,1 : inc a`) still just ends the label.
 - **Numbered labels.** `1:` (or just `1` in the first column) can be used again and again. `jr 1F` jumps to the next `1` further on and `jr 1B` to the last one before. Hover `1F` to see which line it means, Ctrl+click it to go there, and a jump to a number that isn't there, or that is too far for `JR`, gets a warning. They sit inside their routine in the outline. Outside a jump, `1B` is still the binary number 1.
+- **All of sjasmplus's directives**, including `DEFINE`, `UNDEFINE`, `DEFARRAY`, `EXPORT`, `D24`, `DG` (bytes drawn as `..##..##`), `DH`/`HEX`, `DP`, `ABYTE`, `WHILE`/`ENDW`, `INSERT`, `INCHOB`, `INCTRD`, `TAPOUT`/`TAPEND`, `OUTEND`, `FPOS`, `SIZE`, the other `SAVE...` lines (`SAVEDEV`, `SAVETRD`, `SAVE3DOS`, `SAVEHEX` and the Amstrad ones), `SETBP`, `BPLIST`, `SHELLEXEC`, `RELOCATE_START`/`RELOCATE_END`/`RELOCATE_TABLE`, `DEFDEVICE`, `MMU`, `CSPECTMAP` and `ENDMOD`. None of them gets a "check the spelling" warning any more.
+- **`IF` picks the half that is really built.** `IF`, `IFN`, `ELSEIF` and `ELSE` work out their test when they can, so the addresses after them stay exact; the lines in the half that is left out aren't checked. `IFDEF` and `IFNDEF` look for a `DEFINE` of the word (as in sjasmplus, labels don't count). `IFUSED` and `IFNUSED` can't be worked out, so they still mark the addresses after them as rough unless both halves are the same size.
+- **`DISP` ... `ENT`** (also written `PHASE`/`DEPHASE`, `TEXTAREA`/`ENDT`): labels in between get the address the code will run at, and after `ENT` the addresses carry on from where the bytes really are.
+- **A dot in front of a directive** (`.db 1,2`) works, and so does **`.3 inc a`**, which puts the instruction in 3 times (`.(n) inc a` too).
+- **Square brackets** for memory (`ld a,[hl]`, `jp [hl]`) work like round ones, for sizes, times and tooltips.
+- **`LUA` ... `ENDLUA`:** the Lua lines in between aren't checked as assembly.
+- **Names that can be set again** (`count = count - 1`, `DEFL`, `DEFINE+`) no longer get "defined more than once".
 - The summary line above each routine lists register pairs as pairs: *Changes A, BC, HL*.
 
 To build, you need sjasmplus, and to run, Fuse: see **Set up the assemblers and emulators** above. With them in place **Build** runs `sjasmplus "game.z80"`. Put a `SAVESNA "game.sna",start` line in the code (the starter code has one) so the build makes a snapshot, and **F5** starts Fuse with it. To use other commands, set `retroAsm.build.command` and `retroAsm.build.runCommand`, for example `"C:\Fuse\fuse.exe" "${fileDirname}\game.sna"`. sjasmplus's error messages (`game.asm(33): error: ...`) are underlined on the right lines.
 
 Things it doesn't follow yet:
 
-- Lines inside `IF`, `DUP` and `REPT` blocks may be put in more than once (or not at all), so addresses after one are marked as rough. The same goes for `STRUCT`, `PAGE` and `SLOT`.
+- Lines inside `DUP`, `REPT` and `WHILE` blocks are put in more than once, so addresses after one are marked as rough. The same goes for `IFUSED`, `STRUCT`, `PAGE`, `SLOT`, `ABYTE`, `INCHOB`, `INCTRD`, `RELOCATE_TABLE` and `LUA` blocks (a script can put in bytes).
 - sjasmplus's `MODULE` names aren't followed.
+- sjasmplus minds capitals in label names (`Spr_pointer` and `SPR_POINTER` are two different labels), but the extension treats them as the same name, so it can say one is "defined more than once".
 - The 3-operand unofficial forms such as `RLC (IX+3),B` aren't known.
 - Fuse hasn't been tried with the real program yet (only a stand-in), so check that **F5** opens your snapshot. Building was tried with the real sjasmplus 1.24.0: errors are underlined on the right lines, and a clean file makes its `.sna`.
 
@@ -473,7 +481,7 @@ What it adds:
 - The Next's ports: `$243B` and `$253B` (Next registers), `$123B` (Layer 2), `$303B`, `$57` and `$5B` (sprites), `$6B` (DMA) and more, as well as the Spectrum's own.
 - Times say that the Next can run at 3.5, 7, 14 or 28 MHz, and that memory shared with the screen only slows code down at 3.5 MHz.
 - Starter code: a whole Next program (`program`) that builds a `.nex` file, setting a Next register (`nextreg`) and showing a memory page in a slot (`bank`).
-- sjasmplus's `SAVENEX`, `MMU` and `CSPECTMAP` lines are known.
+- sjasmplus's `SAVENEX` lines are known, and so are `MUL DE` (another way to write `MUL D,E`) and `JP [C]`. A file starting `.device zxspectrumnext` (with a dot) is read as Spectrum Next too.
 
 To build, you need sjasmplus; **Build** runs `sjasmplus --zxnext "game.z80"`. Put `SAVENEX` lines in the code (the starter code has them) so the build makes a `.nex` file, and **F5** starts CSpect with it (`CSpect.exe -w3 -zxnext game.nex`). To use ZEsarUX or other commands, set `retroAsm.build.command` and `retroAsm.build.runCommand`.
 
@@ -581,6 +589,10 @@ For assemblers that write things differently, the `syntax` section has switches,
 | `dotLabels` | A label starts with `.` and can sit anywhere on a line (BeebAsm). | BBC |
 | `colonStatements` | `:` separates statements on one line. | BBC, Z80 |
 | `numberLabels` | A label that is just a number (`1:`) can be used again and again; in a jump, `1F` means the next one and `1B` the last one. | Z80 |
+| `dotDirectives` | Any directive can have a `.` in front (`.db 1,2`). | Z80 |
+| `repeatPrefix` | `.3 inc a` (or `.(n) inc a`) puts the instruction in that many times. | Z80 |
+| `squareMemory` | `[hl]` means the same as `(hl)` in an instruction. | Z80 |
+| `rawBlocks` | Pairs of words such as `[["LUA", "ENDLUA"]]`: the lines between them belong to another language and aren't read. | Z80 |
 | `assignments` | `name = value` gives a name to a number. | BBC |
 | `braceScopes` | `{ }`, FOR ... NEXT and MACRO ... ENDMACRO keep the names made inside them to themselves. `braceMacros: false` makes a macro end at ENDMACRO rather than at `}`. | BBC |
 | `caseSensitive` | `loop` and `LOOP` are different names. | BBC |
@@ -594,6 +606,8 @@ The `sizing` section can list `forms`: ways of writing an operand and how many b
 The `timing` section and each instruction's `cycles` give the time in the tooltip. `cycles` can be a number; two numbers, such as `[7, 12]`, for an instruction that may or may not jump (worded by `timing.pair`, or the instruction's own `cyclesPair`); a number for each way of writing the operand, named by `timing.modes` (these work like the sizing forms, with `zeroPage` for the shorter form, and `"4+"` means one more when a page is crossed); or a list of rules tried on the operands, as in `z80.json`. `cyclesAlt` with `timing.altLabel` gives a second chip's numbers (the BBC Master's 65C02), `cyclesNote` adds a sentence, and `timing.slow` marks addresses that run slower. `tms9900.json` shows `access` (how often it reads or writes memory), `operandCost`, `slowAccess` and `cyclesByCount` (a time that depends on a count). A chip file with no `timing` section just shows no time.
 
 `bbc.json` shows the directive kinds `if`, `elif`, `else`, `endif`, `for`, `next` and `skipto`, `reserves` (a gap that puts nothing into the program file), and a `build` section that names the assembler and the emulator to look for (`tool`, `run`), with the command to run each.
+
+`z80.json` shows a few more directive settings. An `if` can have `"negate": true` (true when the sum is 0, like sjasmplus's `IFN`) or a `test`: `"defined"` or `"notDefined"` (is there a `DEFINE` of the word, like `IFDEF`), or `"unknown"` (it can't be worked out, like `IFUSED`). `canChange` marks a name that may be set again (`DEFL`, `=`), and `changes` a directive that changes a name already set (`DEFINE+`). A data directive can have `"encoding": "hex"` (two hex digits to a byte, `DH`) or `"bits"` (one character to a bit, `DG`). An `origin` directive can have `"mode": "displace"` (labels get this address but the bytes stay where they are, `DISP`) and `"undisplace"` (back to the real address, `ENT`). `"nameFirst": "space"` reads `DEFINE NAME value`, with the value after a space.
 
 The `caseFormat` section says which letter case to use when the file is saved (see **Capitals and lower case**). Each of `instructions`, `directives`, `registers` and `labels` is `upper`, `lower` or `keep` (leave as typed). The words themselves come from the file's own `instructions`, `directives` and `registers`, so there is nothing else to list. Leave the section out and instructions and registers become capitals, while directives and labels are left as typed. `tms9900.json` changes all four; the other three chip files change instructions and registers.
 
@@ -692,7 +706,7 @@ From the `retro-asm` folder:
 | `node test/lib-test.js misc` | Prints the outline, warnings, folds and original-game addresses for the test files. |
 | `node test/real-check.js <folder>` | Runs the checks over every `.a99`, `.z80`, `.asm`, `.a80`, `.s` and `.6502` file in a folder (a finished program should give 0 warnings). |
 | `node test/beebasm-check.js file.6502 [beebasm]` | Builds the file with the real BeebAsm and compares the address of every label with ours. Give the path to `beebasm` (or set `BEEBASM`); `node test/ext-test.js` runs it too when `BEEBASM` is set. |
-| `node test/sjasm-test.js` | sjasmplus's way of writing, for the Spectrum and the Spectrum Next: several statements on one line, numbered labels (`1:`, `1F`, `1B`), `SLDOPT`, and the letter-case change on such lines. `node test/ext-test.js` runs it too. |
+| `node test/sjasm-test.js` | sjasmplus's way of writing, for the Spectrum and the Spectrum Next: several statements on one line, numbered labels (`1:`, `1F`, `1B`), `SLDOPT`, the letter-case change on such lines, every other sjasmplus directive, `IF` branches, `DISP`/`ENT`, `.db` and `.3`, `[hl]` and `LUA` blocks. `node test/ext-test.js` runs it too. |
 | `node test/z80n-test.js` | The Spectrum Next chip file: sizes, times, words and tooltips for the Next's instructions and registers, which chip a file is read as, and chip files that build on another. Set `SJASMPLUS` to the path of sjasmplus to also compare the sizes with it and build the starter code. |
 | `python test/z80-size-check.py [file.asm]` | Compares the Z80 sizes with SkoolKit's Z80 assembler (`pip install skoolkit`): every way of writing every instruction, or every line of a file. |
 | `python test/z80-cycle-check.py` | Compares the Z80 cycle counts with SkoolKit's Z80 simulator: every way of writing every instruction is run, with jumps taken and not taken. |
@@ -717,6 +731,7 @@ A short list of the big steps. The full details of every release are in `CHANGEL
 | Version | What it added |
 |---|---|
 | 0.26 | **Game blocks (early prototype, TI-99/4A):** build a simple game from plain-English blocks, starting from a ready-made *Bat and ball* kit, and get an ordinary `.a99` file |
+| 0.31.2 | sjasmplus: every directive in its manual is known; `IF` follows the half that is built; `DISP`/`ENT`, `.db`, `.3 inc a`, `[hl]` and `LUA` blocks are understood |
 | 0.31.1 | sjasmplus: several statements on one line (`:`), numbered labels (`1:` with `jr 1F` / `jr 1B`) and `SLDOPT` are understood |
 | 0.31 | **ZX Spectrum Next (Z80N):** the Next's own instructions, registers and ports, `.nex` building with sjasmplus and running in CSpect; chip files can build on another (`extends`) |
 | 0.30.3 | Copy, Edit picture and New picture offer to move an older game's pictures into their own file |

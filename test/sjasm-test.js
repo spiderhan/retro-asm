@@ -65,6 +65,129 @@ for(const id of ['z80','z80n']){
   ok(`${id}: letter case changes every statement on a line`,r[3]==='        BIT 0, A : JR nz, 1F : SET 0, E'&&r[4]==='1:      BIT 1, A : JR nz, 1F : SET 1, E'&&r[8]==='.wait:  DEC A : JR nz, .wait',[r[3],r[4],r[8]]);
   ok(`${id}: a second go changes nothing more`,CF.formatText(r.join('\n'),chip(id)).edits.length===0);}
 }
+// ---- the rest of the sjasmplus directives ----
+for(const id of ['z80','z80n']){
+ const ALL=lines(
+  '        ORG $8000',
+  '        DEFINE SPEED 3',
+  '        DEFINE DEBUG',
+  '        DEFINE+ SPEED 4',
+  '        UNDEFINE DEBUG',
+  '        DEFARRAY colours 1,2,3',
+  '        DEFARRAY+ colours 4',
+  '        IFN SPEED',
+  '        nop',
+  '        ELSEIF SPEED > 2',
+  '        nop',
+  '        ENDIF',
+  'start:  IFUSED',
+  '        nop',
+  '        ENDIF',
+  '        IFNUSED start',
+  '        ENDIF',
+  'count = 3',
+  '        WHILE count > 0',
+  'count = count - 1',
+  '        ENDW',
+  '        D24 $123456',
+  '        DG ..##..## XX..XX..',
+  '        DH "0123ABCD"',
+  '        HEX "01"',
+  '        DP "Ahoy!"',
+  '        ABYTE 1 "abc"',
+  '        ABYTEC 0 "abc"',
+  '        ABYTEZ 0 "abc"',
+  '        ENCODING "DOS"',
+  '        EXPORT start',
+  '        TAPOUT "made-up.tap"',
+  '        TAPEND',
+  '        OUTPUT "made-up.bin"',
+  '        FPOS 0',
+  '        SIZE 10',
+  '        OUTEND',
+  '        HEXOUT "made-up.hex"',
+  '        HEXEND',
+  '        SAVEHEX "made-up.hex",$8000,10',
+  '        SAVEDEV "made-up.bin",0,0,10',
+  '        SAVEHOB "made-up.$c","made.c",$8000,10',
+  '        SAVETRD "made-up.trd","made.c",$8000,10',
+  '        EMPTYTRD "made-up.trd"',
+  '        SAVE3DOS "made-up",$8000,10',
+  '        SAVEAMSDOS "made-up",$8000,10',
+  '        SAVECDT EMPTY "made-up.cdt"',
+  '        SAVECPCSNA "made-up.sna"',
+  '        SAVECPR "made-up.cpr"',
+  '        SETBP $8000',
+  '        SETBREAKPOINT',
+  '        BPLIST "made-up.txt" zesarux',
+  '        SHELLEXEC "echo"',
+  '        RELOCATE_START',
+  '        RELOCATE_END',
+  '        RELOCATE_TABLE',
+  '        MODULE tools',
+  '        ENDMOD',
+  '        DEFDEVICE mine,$4000,4',
+  '        INCLUDELUA "made-up.lua"',
+  '        MMU 0,1',
+  '        CSPECTMAP "made-up.map"',
+  '        ret');
+ {const c=open(id,ALL).checks;ok(`${id}: every sjasmplus directive is known, and none gives a warning`,c.length===0,c.map(x=>`${x.line+1}: ${x.message}`));}
+ for(const k of ['DISP','PHASE','TEXTAREA','ENT','DEPHASE','UNPHASE','ENDT','INSERT','INCHOB','INCTRD','LUA','ENDLUA'])ok(`${id}: ${k} is known`,!!chip(id).directive(k));
+ {const d=chip(id).directive('DISP');ok(`${id}: DISP has a tooltip in plain words`,!!d&&/copied/.test(d.summary));}
+ // ---- sizes ----
+ {const {p,f}=open(id,lines('        ORG $8000','a1:     D24 $123456','a2:     DG ..##..## XX..XX..','a3:     DH "0123ABCD"','a4:     DP "Ahoy!"','a5:     DH "01 23"','a6:     ret'));
+  const at=(ln)=>p.lineInfo(f,ln).addr.toString(16);
+  ok(`${id}: D24 is 3 bytes, DG 1 byte for each 8 marks, DH 1 for each 2 digits, DP the text and its length`,[1,2,3,4,5,6].map(at).join()==='8000,8003,8005,8009,800f,8011',[1,2,3,4,5,6].map(at));
+  ok(`${id}: those addresses aren't marked as rough`,!p.lineInfo(f,6).approx);}
+ // ---- DISP ... ENT ----
+ {const {p,f}=open(id,lines('        ORG $8000','        ld hl,moved','        DISP $C000','moved:  ld a,1','        jp moved','        ENT','after:  ret'));
+  ok(`${id}: a label inside DISP gets the address the code will run at`,p.labelAddress(f,'moved').addr===0xC000,p.labelAddress(f,'moved'));
+  ok(`${id}: after ENT the address carries on from where the bytes really are`,p.labelAddress(f,'after').addr===0x8008,p.labelAddress(f,'after'));
+  ok(`${id}: DISP addresses aren't marked as rough`,!p.lineInfo(f,6).approx);}
+ {const {p,f}=open(id,lines('        ORG $8000','d1:     DISP $C000','        nop','e1:     ENT','e2:     nop'));
+  // checked against sjasmplus: a label on these lines gets the address from before the line
+  ok(`${id}: a label on the DISP line gets the real address, one on the ENT line the "runs at" address`,p.labelAddress(f,'d1').addr===0x8000&&p.labelAddress(f,'e1').addr===0xC001&&p.labelAddress(f,'e2').addr===0x8001,['d1','e1','e2'].map(n=>p.labelAddress(f,n)));}
+ // ---- a dot in front of a directive, and .3 to repeat ----
+ {const {p,f,checks}=open(id,lines('        ORG $8000','        .db 1,2','        .3 inc a','        .(2) nop','        .ds 2','last:   ret'));
+  ok(`${id}: ".db" and ".3 inc a" give no warnings`,checks.length===0,checks.map(x=>`${x.line+1}: ${x.message}`));
+  ok(`${id}: ".3 inc a" counts 3 bytes and ".(2) nop" 2`,p.labelAddress(f,'last').addr===0x8009,p.labelAddress(f,'last'));
+  const h=F.hoverAt(p,f,1,9);ok(`${id}: ".db" has the DB tooltip`,!!h&&/single bytes/.test(h.parts.join(' ')),h&&h.parts);}
+ // ---- LUA ... ENDLUA ----
+ {const {checks,m}=open(id,lines('        LUA ALLPASS','x = 1','for i = 1, 3 do sj.add_byte(i) end','        ENDLUA','        ret'));
+  ok(`${id}: the Lua lines between LUA and ENDLUA aren't checked as assembly`,checks.length===0,checks.map(x=>`${x.line+1}: ${x.message}`));
+  ok(`${id}: ENDLUA is read again as a directive`,m.lines[3].mnem&&m.lines[3].mnem.upper==='ENDLUA'&&m.lines[4].mnem.upper==='RET');}
+ // ---- square brackets ----
+ {const {p,f,checks}=open(id,lines('        ORG $8000','        ld a,[hl]','        ld [ix+2],a','        ld hl,[$5000]','        jp [hl]','last:   db "[x]"'));
+  ok(`${id}: [hl] gives no warnings`,checks.length===0,checks.map(x=>`${x.line+1}: ${x.message}`));
+  ok(`${id}: [hl] is sized like (hl)`,p.labelAddress(f,'last').addr===0x8008,p.labelAddress(f,'last'));
+  ok(`${id}: brackets in quotes are left alone`,p.get(f).lines[5].operands[0].text==='"[x]"');}
+}
+// ---- IF picks the branch that is really built (checked against sjasmplus 1.24.0) ----
+for(const id of ['z80','z80n']){
+ const {p,f,checks}=open(id,lines(
+  '        ORG $8000','        DEFINE WORDY','lab     equ 5',
+  '        IFDEF WORDY','w1:     nop','        ENDIF',
+  '        IFDEF lab','w2:     nop','        ENDIF',
+  '        IFNDEF nothing','w4:     nop','        ENDIF',
+  '        IFN 0','w5:     nop','        ELSEIF 1','w6:     nop','        ENDIF',
+  '        IF 0','w7:     nop','        ELSEIF 1','w8:     nop','        ELSE','w9:     nop','        ENDIF',
+  'DEBUG   equ 1','        IF DEBUG','        call w1','        ELSE','        ret','        ENDIF',
+  'end1:   ret'));
+ const at=(n)=>{const a=p.labelAddress(f,n);return a?a.addr.toString(16)+(a.approx?'?':''):'-';};
+ ok(`${id}: IFDEF (DEFINE words only), IFNDEF, IFN, ELSEIF and IF ... ELSE give sjasmplus's addresses`,['w1','w4','w5','w8','end1'].map(at).join()==='8000,8001,8002,8003,8007',['w1','w4','w5','w8','end1'].map(at));
+ ok(`${id}: lines in a branch that isn't built are left out`,p.lineInfo(f,7).skipped&&p.lineInfo(f,15).skipped&&!p.lineInfo(f,4).skipped);
+ ok(`${id}: no warnings`,checks.length===0,checks.map(x=>`${x.line+1}: ${x.message}`));
+ const h=F.hoverAt(p,f,12,9);ok(`${id}: the tooltip on IFN 0 says the test is true`,!!h&&/the test is true/.test(h.parts.join(' ')),h&&h.parts);
+}
+// ---- the Spectrum Next ----
+{const {p,f,checks}=open('z80n',lines('        ORG $8000','        mul de','        jp [c]','last:   ret'));
+ ok('z80n: "mul de" and "jp [c]" give no warnings',checks.length===0,checks.map(x=>`${x.line+1}: ${x.message}`));
+ ok('z80n: "jp [c]" is 2 bytes, like "jp (c)"',p.labelAddress(f,'last').addr===0x8004,p.labelAddress(f,'last'));
+ const h=F.hoverAt(p,f,1,9);ok('z80n: "mul de" has a tooltip',!!h&&/Multiply D by E/.test(h.parts.join(' ')),h&&h.parts);}
+{const {guessDialect}=require('../lib/dialect');
+ ok('z80n: ".device zxspectrumnext" picks the Next',guessDialect('        .device zxspectrumnext\n        nop\n',[chip('z80'),chip('z80n')]).id==='z80n');}
+// MMU works on any machine, so plain Z80 doesn't send it to the Next
+ok('z80: MMU is plain Z80 too, with the Next\'s own wording kept for the Next',!!chip('z80').directive('MMU')&&/NEXTREG/.test(chip('z80n').directive('MMU').summary)&&!/NEXTREG/.test(chip('z80').directive('MMU').summary));
 // the other chips are not touched
 ok('TI: ":" after a label is still only a label mark',!chip('tms9900').syntax.colonStatements&&!chip('tms9900').syntax.numberLabels);
 ok('C64: ":" is not a statement separator',!chip('6502').syntax.colonStatements);
