@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.31.2
+
+A check of the Spectrum and Next files against the sjasmplus 1.24 manual found many directives missing. Each one gave a "check the spelling" warning on correct code.
+
+- **Every sjasmplus directive is now known**, with a plain-English tooltip: `DEFINE`, `DEFINE+`, `UNDEFINE`, `DEFARRAY`, `EXPORT`, `ENCODING`, `D24`, `DG`/`DEFG`, `DH`/`DEFH`/`HEX`, `DP`/`DEFP`, `ABYTE`, `ABYTEC`, `ABYTEZ`, `IFN`, `IFUSED`, `IFNUSED`, `ELSEIF`, `WHILE`/`ENDW`, `DISP`/`PHASE`/`TEXTAREA`, `ENT`/`DEPHASE`/`UNPHASE`/`ENDT`, `FPOS`, `SIZE`, `OUTEND`, `INSERT`, `INCHOB`, `INCTRD`, `INCLUDELUA`, `TAPOUT`/`TAPEND`, `HEXOUT`/`HEXEND`, `SAVEHEX`, `SAVEDEV`, `SAVEHOB`, `SAVETRD`, `EMPTYTRD`, `SAVE3DOS`, `SAVEAMSDOS`, `SAVECDT`, `SAVECPCSNA`, `SAVECPR`, `SETBP`/`SETBREAKPOINT`, `BPLIST`, `SHELLEXEC`, `RELOCATE_START`/`RELOCATE_END`/`RELOCATE_TABLE`, `DEFDEVICE`, `LUA`/`ENDLUA` and `ENDMOD`.
+- **`MMU` and `CSPECTMAP` work on the plain Spectrum too.** Before, they were only known for the Next, so a 128K program using `MMU` was told to switch to the Next.
+- **`IF` now follows the half that is really built.** Before, both halves of `IF ... ELSE ... ENDIF` were counted, so every address after one was out (and marked as rough). `IF`, `IFN` and `ELSEIF` work out their sum, and `IFDEF`/`IFNDEF` look for a `DEFINE` of the word (labels don't count, as in sjasmplus). Lines in the half that is left out aren't checked. `IFUSED` can't be worked out, so it still makes addresses rough.
+- **`DISP` ... `ENT`:** labels in between get the address the code will run at, and after `ENT` the addresses carry on from where the bytes really are.
+- **Sizes for the new data lines:** `D24` is 3 bytes, `DG` one byte for every 8 marks, `DH` one for every 2 hex digits, and `DP` the text plus a length byte.
+- **`.db 1,2`** (a dot in front of any directive) and **`.3 inc a`** (the instruction put in 3 times) no longer get warnings, and `.3` counts 3 times in the addresses.
+- **Square brackets** (`ld a,[hl]`, `jp [hl]`) work like round ones. Before, `ld a,[hl]` was counted as 2 bytes instead of 1.
+- **The lines inside `LUA` ... `ENDLUA`** are no longer checked as assembly.
+- **`count = count - 1`, `DEFL` and `DEFINE+`** no longer get "defined more than once": sjasmplus lets these names be set again.
+- **Spectrum Next:** `MUL DE` (another way to write `MUL D,E`) now has its tooltip, `JP [C]` is 2 bytes like `JP (C)`, and a file with `.device zxspectrumnext` (with a dot) is read as Spectrum Next. All 23 of the Next's own instructions were already there; none were missing.
+- **Tests:** `test/real-check.js` can now read code as Spectrum Next (before, it only knew plain Z80, so Next code gave hundreds of warnings). The build check in `test/ext-test.js` no longer fails when sjasmplus is installed.
+- **Tested:** all the test suites, with 69 new checks in `test/sjasm-test.js` (123 in all), run for both Spectrum and Spectrum Next. Run inside real VS Code 1.147.0: all passed (the TI-99 build check was skipped, as xas99 isn't installed). A made-up sample using the new directives, `MUL DE` and `JP [C]` was built with the real sjasmplus 1.24.1, and all 21 of its labels have the same addresses in the extension. Real Spectrum Next code (10 files) gives no warnings except the one below. Built with sjasmplus 1.24.1, every one of its address labels matches the extension, and none is marked rough.
+- **Not tested, or not fixed:** sjasmplus minds capitals in label names, but the extension doesn't. In the real code, a number `SPR_POINTER` and a label `Spr_pointer` were taken as one name, giving one "defined more than once" warning. That needs its own change. The `SAVE...` lines for other machines (TR-DOS, +3, Amstrad) only have tooltips; nothing was built with them. The new chip-file settings are listed in the README.
+
 ## 0.31.1
 
 Three things reported from real Spectrum Next code written for sjasmplus.

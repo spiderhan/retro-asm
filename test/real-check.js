@@ -1,8 +1,8 @@
 // Run the checks over a folder of real source files: node test/real-check.js <folder> [how many warnings to show]
-// .a99 files are read as TMS9900. .z80, .asm, .a80, .s and .6502 files as Z80, 6502 (C64) or 6502 (BBC Micro), whichever fits the code.
+// .a99 files are read as TMS9900. .z80, .asm, .a80, .s and .6502 files as Z80, Spectrum Next (Z80N), 6502 (C64) or 6502 (BBC Micro), whichever fits the code.
 const path=require('path'),fs=require('fs');const {loadFile,guessDialect}=require('../lib/dialect');const {Project}=require('../lib/project');const F=require('../lib/features');
 const dir=path.resolve(process.argv[2]);const chip=(n)=>loadFile(path.join(__dirname,'../dialects/'+n+'.json'));
-const TI=chip('tms9900'),others=[chip('6502'),chip('bbc'),chip('z80')];const P=new Project();P.fileSize=(p)=>{try{return fs.statSync(p).size;}catch(e){return null;}};
+const TI=chip('tms9900'),others=[chip('6502'),chip('bbc'),chip('z80'),chip('z80n')];const P=new Project();P.fileSize=(p)=>{try{return fs.statSync(p).size;}catch(e){return null;}};
 const files=fs.readdirSync(dir).filter(f=>/\.(a99|z80|asm|a80|s|6502)$/i.test(f)).map(f=>path.join(dir,f));
 for(const f of files){const text=fs.readFileSync(f,'utf8');P.set(f,text,/\.a99$/i.test(f)?TI:guessDialect(text,others.filter(D=>D.fileExtensions.includes(path.extname(f).toLowerCase()))));}
 // files pulled in from other folders (INCLUDE "lib/maths.asm"), read the same way as the file that pulls them in

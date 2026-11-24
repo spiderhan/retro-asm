@@ -296,7 +296,8 @@ const at=(doc,needle,sub)=>{const lines=doc.getText().split(/\r?\n/);const l=lin
   const out=B.parseOutput('zxdemo.asm(33): error: Label not found: nowhere\nzxdemo.asm(35): warning[rdlow]: Reading memory at low address\n',ws);
   ok('sjasmplus errors are read',out.length===2&&out[0].line===32&&out[0].severity==='error'&&/Label not found/.test(out[0].message)&&out[1].severity==='warning',out);
   const {loadFile}=require('../lib/dialect');const z80=loadFile(path.join(__dirname,'../dialects/z80.json'));
-  const pl=B.plan(path.join(ws,'zxdemo.asm'),{},'linux',z80);ok('Z80 with no build command: says how to set one up',/sjasmplus/.test(pl.error||''),pl);
+  const pl=B.plan(path.join(ws,'zxdemo.asm'),{},'linux',z80);// with sjasmplus installed on this computer, it is found and used instead
+  ok('Z80 with no build command: says how to set one up, or finds sjasmplus',/sjasmplus/.test(pl.error||'')||(pl.how==='sjasmplus'&&/sjasmplus/.test(pl.command||'')),pl);
  }
  { // ---- version 0.6: the side panel ----
   const V=mock.__.views;

@@ -6,9 +6,9 @@
   "short": "Spectrum Next",
   "about": "The Spectrum Next's Z80N: every Z80 instruction plus the Next's own (NEXTREG, MUL, LDIRX, PIXELAD and the rest), written the way sjasmplus writes it. Knows the Spectrum's memory and ROM, and the Next's own registers and ports.",
   "detect": [
-    "^\\s*DEVICE\\s+ZXSPECTRUMNEXT",
+    "^\\s*\\.?DEVICE\\s+ZXSPECTRUMNEXT",
     "--zxnext",
-    "^\\s*SAVENEX\\b"
+    "^\\s*\\.?SAVENEX\\b"
   ],
   "instructions": {
     "SWAPNIB": {
@@ -180,9 +180,12 @@
     "MUL": {
       "group": "Adding and subtracting",
       "name": "Multiply (Spectrum Next only)",
-      "syntax": "MUL D,E",
+      "syntax": "MUL D,E   or   MUL DE",
       "ops": {
         "0": [],
+        "1": [
+          "r"
+        ],
         "2": [
           "r",
           "r"
@@ -193,6 +196,7 @@
       "summary": "Multiplies D by E and puts the answer in DE: D=12, E=10 gives DE=120. Both are counted as 0 to 255, so the answer is 0 to 65,025.",
       "explain": {
         "0": "Multiply D by E; the answer goes in DE.",
+        "1": "Multiply D by E; the answer goes in DE.",
         "2": "Multiply D by E; the answer goes in DE."
       },
       "implicit": {
@@ -1067,18 +1071,6 @@
         99
       ],
       "summary": "sjasmplus: picks which memory page the assembler puts the following code into, for a slot of memory (8K slots on the Next). It only changes where sjasmplus stores the bytes; the program must still set the slot with NEXTREG $50-$57."
-    },
-    "CSPECTMAP": {
-      "kind": "other",
-      "symbolOperands": false,
-      "conditional": false,
-      "name": "Cspectmap",
-      "syntax": "CSPECTMAP \"file.map\"",
-      "ops": [
-        0,
-        99
-      ],
-      "summary": "sjasmplus: writes the labels to a file the CSpect emulator's debugger can read."
     }
   },
   "build": {
