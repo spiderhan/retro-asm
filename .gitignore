@@ -1,3 +1,6 @@
 node_modules/
 *.vsix
 .vscode-test/
+
+# Claude instructions (local only)
+CLAUDE.md
